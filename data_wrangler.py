@@ -15,7 +15,7 @@ def infer_language(input_file_name):
     input_file_name = 'data/' + input_file_name
 
     logging.info('Reading file: {}'.format(input_file_name))
-    tweets = pd.read_csv(input_file_name, usecols=['tweet_id', 'tweet'], nrows=10)
+    tweets = pd.read_csv(input_file_name, usecols=['tweet_id', 'tweet'])
     total_tweets = tweets.shape[0]
 
     try:
