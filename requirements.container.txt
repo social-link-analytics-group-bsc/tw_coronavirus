@@ -1,0 +1,8 @@
+click==7.1.1
+pathlib==1.0.1
+fasttext==0.9.1
+langdetect==1.0.8
+langid==1.1.6
+polyglot==16.7.4
+PyICU==2.4.3
+pycld2==0.41

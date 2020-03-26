@@ -1,0 +1,6 @@
+.git
+__pycache__
+.vscode
+.ipynb_checkpoints
+env
+.gitignore
