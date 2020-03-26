@@ -28,3 +28,5 @@ RUN pip install -r requirements.txt
 
 # copy project
 COPY ./ /usr/src/app/
+
+CMD ["cd /user/src/app/src; python", "run.py --infer_language '../data/bsc' 'ours_2019-01-01_to_2020-02-22_coronavirus(es-en)_tweets'"]
