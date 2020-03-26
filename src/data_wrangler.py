@@ -42,8 +42,8 @@ def infer_language(data_folder, input_file_name, sample=False):
                 {'tweet_id': tweet['tweet_id'], 'lang': lang}
             )         
     except Exception as e:
-        logging.exception(f'The following error occurs when infering language '\
-                           'of tweets')
+        logging.exception('The following error occurs when infering language '\
+                          'of tweets')
     finally:
         logging.info('Saving results to file: {}'.format(output_file_name))
         with open(output_file_name, 'w') as csv_file:
