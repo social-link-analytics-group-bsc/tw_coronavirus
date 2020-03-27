@@ -14,19 +14,35 @@ def infer_language(data_folder, input_file_name, sample=False):
     input_file_name = data_folder + '/' + input_file_name
     sample_size = 10
 
+    print('Starting process to infer language of tweets')
+
+    logging.info('Looking for file that contains pre-processed tweet ids...')
+    processed_tweet_ids = set()
+    try:
+        with open(output_file_name) as csv_file:
+            logging.info('Found file with existing pre-processed tweet ids...')
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                processed_tweet_ids.add(row['tweet_id'])
+    except IOError:
+        pass
+
     logging.info('Reading file: {}'.format(input_file_name))
     tweets = []
     with open(input_file_name, 'r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         row_counter = 0
         for row in csv_reader:
+            if row['tweet_id'] in processed_tweet_ids:
+                # ignore tweets that were already processed
+                continue
             row_counter += 1
             if sample and row_counter > sample_size:
-                break
+                break            
             tweets.append({
                 'tweet_id': row['tweet_id'],
                 'tweet': row['tweet']
-            })
+            })    
 
     logging.info('Starting process of infering languages of tweets...')
     total_tweets = len(tweets)
@@ -45,9 +61,16 @@ def infer_language(data_folder, input_file_name, sample=False):
         logging.exception('The following error occurs when infering language '\
                           'of tweets')
     finally:
+        if len(processed_tweet_ids) > 0:
+            writing_mode = 'a'
+        else:
+            writing_mode = 'w'
         logging.info('Saving results to file: {}'.format(output_file_name))
-        with open(output_file_name, 'w') as csv_file:
+        with open(output_file_name, writing_mode) as csv_file:
             csv_writer = csv.DictWriter(csv_file, fieldnames=['tweet_id', 'lang'])
-            csv_writer.writeheader()
+            if writing_mode == 'w':                
+                csv_writer.writeheader()            
             for tweet_lang in tweet_langs:
                 csv_writer.writerow(tweet_lang)
+    
+    print('Process finishes successfully!')
