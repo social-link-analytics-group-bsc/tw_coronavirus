@@ -40,7 +40,7 @@ def infer_language(data_folder, input_file_name, sample=False):
                 row_counter += 1
                 if sample and row_counter > sample_size:
                     break 
-                logging.info('[{0}] Infering language of tweet: {2}'.\
+                logging.info('[{0}] Infering language of tweet: {1}'.\
                             format(row_counter, row['tweet_id']))
                 lang = detect_language(row['tweet'])
                 tweet_langs.append(
