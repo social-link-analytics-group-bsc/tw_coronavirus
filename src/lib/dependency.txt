@@ -1,0 +1,2 @@
+run the next command to download a dependency for fastext
+wget https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
