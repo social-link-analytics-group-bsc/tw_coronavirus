@@ -59,8 +59,7 @@ def create_interaction_net():
           'log for updates...')
     na = NetworkAnalyzer()
     na.generate_network()
-    print('Process has finished, results were stored in the collection networks in ' \
-          'your database.')
+    print('Process has finished, results were stored in the directory sna/gefx.')
 
 
 if __name__ == "__main__":
