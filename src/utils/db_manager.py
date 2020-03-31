@@ -13,19 +13,21 @@ class DBManager:
         config = get_config(config_fn)
         connection_dict = {
             'host': config['mongodb']['host'],
-            'port': config['mongodb']['port']
+            'port': int(config['mongodb']['port'])
         }
-        if config['mongodb']['username']:
+        if 'username' in config['mongodb'] and \
+            config['mongodb']['username'] != '':
             connection_dict.update({
                 'username': config['mongodb']['username']
             })
-        if config['mongodb']['password']:
+        if 'password' in config['mongodb'] and \
+            config['mongodb']['password'] != '':
             connection_dict.update({
                 'password': config['mongodb']['password']
             })
         client = MongoClient(**connection_dict)
         if not db_name:
-            self.__db = client[config['mongo']['db_name']]
+            self.__db = client[config['mongodb']['db_name']]
         else:
             self.__db = client[db_name]
         self.__collection = collection
@@ -65,8 +67,6 @@ class DBManager:
 
     def find_tweets_by_author(self, author_screen_name, **kwargs):
         query = {'user.screen_name': author_screen_name}
-        if 'limited_to_time_window' in kwargs.keys():
-            query.update({'extraction_date': {'$in': kwargs['limited_to_time_window']}})
         return self.search(query)
 
     def find_all(self, projection=None):
@@ -160,11 +160,7 @@ class DBManager:
         return self.aggregate(pipeline)
     
     def get_unique_users(self, **kwargs):
-        match = {}
         pipeline = [
-            {
-                '$match': match
-            },
             {
                 '$group': {
                     '_id': '$user.id_str',
@@ -284,9 +280,7 @@ class DBManager:
         return self.aggregate(pipeline)
 
     def get_user_and_location(self, **kwargs):
-        match = {
-            'relevante': {'$eq': 1}
-        }
+        match = {}
         group = {
             '_id': '$user.id_str',
             'location': {'$first': '$user.location'},
@@ -302,10 +296,8 @@ class DBManager:
         result_docs = self.aggregate(pipeline)
         return result_docs
     
-    def get_tweet_places(self, location_reference, **kwargs):
-        match = {
-            'relevante': {'$eq': 1}
-        }
+    def get_tweet_places(self, location_reference='place', **kwargs):
+        match = {}
         group = {
             'count': {'$sum': 1}
         }
@@ -322,11 +314,9 @@ class DBManager:
         return result_docs
     
     def get_tweets_by_date(self, **kwargs):
-        match = {
-            'relevante': {'$eq': 1}
-        }
+        match = {}
         group = {
-            '_id': '$tweet_py_date',
+            '_id': '$date',
             'num_tweets': {'$sum': 1}
         }
         project = {
@@ -347,11 +337,10 @@ class DBManager:
     
     def get_tweets_by_hour(self, interested_date, **kwargs):
         match = {
-            'relevante': {'$eq': 1},
-            'tweet_py_date': {'$eq': interested_date}
+            'tweet_date': {'$eq': interested_date}
         }
         group = {
-            '_id': '$tweet_py_hour',
+            '_id': '$time',
             'num_tweets': {'$sum': 1}
         }
         project = {
@@ -368,12 +357,11 @@ class DBManager:
 
     def get_tweets_user(self, username):
         match = {
-            'relevante': {'$eq': 1},
             'user.screen_name': {'$eq': username}
         }
         project = {
             '_id': 0,
-            'tweet': '$tweet_obj',
+            'tweet': '$$ROOT',
             'screen_name': '$user.screen_name'
         }
         pipeline = [
@@ -443,7 +431,7 @@ class DBManager:
             {'$project': {
                'id_str': '$id_str',
                'datetime': {'$dateFromString': {
-                    'dateString': '$tweet_py_date'
+                    'dateString': '$date'
                 }},
                '_id': 0,
             }},
@@ -466,7 +454,7 @@ class DBManager:
             'user.screen_name': {'$ne': user_screen_name}
         }
         group = {
-            '_id': '$tweet_py_date',
+            '_id': '$date',
             'num_tweets': {'$sum': 1}
         }
         project = {
