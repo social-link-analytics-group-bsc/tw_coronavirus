@@ -8,7 +8,7 @@ Scripts to collect, process, and analyze publications on Twitter about COVID-19.
 2. Rename `src/config.json.example` to `src/config.json` 
 3. Set information about mongo db in `src/config.json`
 
-## CLI
+## Command Line Interface
 
 All commands must be run from the `src` directory.
 
