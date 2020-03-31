@@ -2,7 +2,9 @@ import csv
 import logging
 import pathlib
 
+from datetime import datetime
 from utils.language_detector import detect_language
+from utils.db_manager import DBManager
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
@@ -63,3 +65,20 @@ def infer_language(data_folder, input_file_name, sample=False):
                 csv_writer.writerow(tweet_lang)
     
     print('Process finishes successfully!')
+
+
+def add_date_time_field_tweet_objs():
+    """
+    Add date fields to tweet documents
+    """
+    dbm = DBManager('tweets')
+    tweets = dbm.find_all()
+    for tweet in tweets:
+        tweet_id = tweet['id']
+        logging.info('Generating the datetime of tweet: {}'.format(tweet_id))
+        str_tw_dt = tweet['created_at']
+        dt_obj = datetime.strptime(str_tw_dt, '%a %b %d %H:%M:%S %z %Y')        
+        tweet['date_time'] = dt_obj.strftime("%m/%d/%Y, %H:%M:%S")
+        tweet['date'] = dt_obj.strftime("%m/%d/%Y")
+        tweet['time'] = dt_obj.strftime("%H:%M:%S")
+        dbm.update_record({'id': tweet_id}, tweet)

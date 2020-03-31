@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 
-from data_wrangler import infer_language
+from data_wrangler import infer_language, add_date_time_field_tweet_objs
 from network_analysis import NetworkAnalyzer
 
 # Add the directory to the sys.path
@@ -60,6 +60,15 @@ def create_interaction_net():
     na = NetworkAnalyzer()
     na.generate_network()
     print('Process has finished, results were stored in the directory sna/gefx.')
+
+
+@run.command()
+def add_date_fields():
+    """
+    Add date fields to tweet documents
+    """
+    check_current_directory()
+    add_date_time_field_tweet_objs()
 
 
 if __name__ == "__main__":
