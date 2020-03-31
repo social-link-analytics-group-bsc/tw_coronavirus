@@ -19,8 +19,9 @@ class NetworkAnalyzer:
     __unknown_users = set()
     __node_sizes = None
 
-    def __init__(self, tweet_db=None):
-        self.__dbm_tweets = DBManager(tweet_db)
+    def __init__(self, colletion=None):
+        if not None:
+            self.__dbm_tweets = DBManager(colletion)
         self.__dbm_users = DBManager('users')
         self.__dbm_networks = DBManager('networks')
         self.__network = []
@@ -186,8 +187,8 @@ class NetworkAnalyzer:
                 else:
                     u_ff_ratio = self.__computer_ff_ratio(user['friends'], user['followers'])
                 exists = user['exists'] if 'exists' in user.keys() else ''                
-                self.__nodes.add(tuple({'screen_name': user['screen_name'], 'party': user['party'],
-                                        'movement': user['movement'], 'ff_ratio': u_ff_ratio,
+                self.__nodes.add(tuple({'screen_name': user['screen_name'], 
+                                        'ff_ratio': u_ff_ratio,
                                         'exists': exists}.items()))
                 for interacted_user, interactions in user['interactions'].items():
                     iuser = self.__dbm_users.find_record({'screen_name': interacted_user})
@@ -207,14 +208,12 @@ class NetworkAnalyzer:
                             i_ff_ratio = self.__computer_ff_ratio(iuser['friends'], iuser['followers'])
                     exists_iuser = iuser['exists'] if 'exists' in iuser.keys() else ''                    
 
-                    self.__nodes.add(tuple({'screen_name': iuser['screen_name'], 'party': iuser['party'],
-                                            'movement': iuser['movement'], 'ff_ratio': i_ff_ratio}.items()))
+                    self.__nodes.add(tuple({'screen_name': iuser['screen_name'], 
+                                            'ff_ratio': i_ff_ratio}.items()))
                     edge = {
                         'nodeA': {'screen_name': user['screen_name'], 'ff_ratio': u_ff_ratio,
-                                  'party': user['party'], 'movement': user['movement'],
                                   'exists': exists},
                         'nodeB': {'screen_name': interacted_user, 'ff_ratio': i_ff_ratio,
-                                  'party': iuser['party'], 'movement': iuser['movement'],
                                   'exists': exists_iuser},
                         'weight': interactions['total']
                     }
@@ -288,7 +287,7 @@ class NetworkAnalyzer:
 
     def save_network_in_gexf_format(self, file_name):
         today = datetime.strftime(datetime.now(), '%m/%d/%y')
-        f_name = pathlib.Path(__file__).parents[2].joinpath('sna', 'gefx', file_name+'.gexf')
+        f_name = pathlib.Path(__file__).parents[1].joinpath('sna', 'gefx', file_name+'_'+today+'.gexf')
 
         with open(str(f_name), 'w', encoding='utf-8') as f:
             f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -335,3 +334,8 @@ class NetworkAnalyzer:
             f.write('</graph>\n')
             f.write('</gexf>\n')
         return f_name
+
+if __name__ == "__main__":
+
+    na = NetworkAnalyzer('tweets')
+    na.generate_network()
