@@ -14,16 +14,16 @@ All commands must be run from the `src` directory.
 
 ### Detect language of tweets
 
-`python run.py --detect_language [data_dir] [file_name_of_tweets]`
+`python run.py detect-language [data_dir] [file_name_of_tweets]`
 
 - *data_dir*: path to data directory and must be relative to the `src` directory
 - *file_name_of_tweets*: Name of the file containing the tweets in CSV format
 
 ### Create network of users
 
-`python run.py --create_db_users [name_of_database_of_tweets]`
+`python run.py create-db-users [collection_name]`
 
-- *name_of_database_of_tweets*: name of the database of tweets
+- *collection_name*: name of collection that contains tweets
 
 ### Create network of interactions
 
