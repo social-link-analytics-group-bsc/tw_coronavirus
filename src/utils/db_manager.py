@@ -337,7 +337,7 @@ class DBManager:
     
     def get_tweets_by_hour(self, interested_date, **kwargs):
         match = {
-            'tweet_date': {'$eq': interested_date}
+            'date': {'$eq': interested_date}
         }
         group = {
             '_id': '$time',
@@ -431,7 +431,7 @@ class DBManager:
             {'$project': {
                'id_str': '$id_str',
                'datetime': {'$dateFromString': {
-                    'dateString': '$date'
+                    'dateString': '$date_time'
                 }},
                '_id': 0,
             }},
