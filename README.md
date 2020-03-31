@@ -31,6 +31,8 @@ All commands must be run from the `src` directory.
 
 `python run.py --create_interaction_net`
 
+The resulted network is stored in `sna/gefx` under the name `network_`[today_date].gefx
+
 
 
 
