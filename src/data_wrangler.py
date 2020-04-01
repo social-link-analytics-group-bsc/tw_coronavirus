@@ -1,6 +1,7 @@
 import csv
 import logging
 import pathlib
+import os
 
 from datetime import datetime
 from utils.language_detector import detect_language
@@ -82,3 +83,38 @@ def add_date_time_field_tweet_objs():
         tweet['date'] = dt_obj.strftime("%m/%d/%Y")
         tweet['time'] = dt_obj.strftime("%H:%M:%S")
         dbm.update_record({'id': tweet_id}, tweet)
+
+
+def check_datasets_intersection():
+    dbm = DBManager(config_fn='config_mongo_hpai.json', collection='tweets')
+    data_dir = '../data/bsc/'
+    remote_total_tweets = dbm.num_records_collection()
+    logging.info('Total tweets in remote database: {0:,}'.format(remote_total_tweets))
+    local_total_tweets = 0
+    total_intersections = 0
+    dt_now_str = datetime.now().strftime("%d-%m-%Y")
+    for file_name in os.listdir(data_dir):
+        if file_name.endswith('.csv'):
+            logging.info('Reading file: {0}'.format(file_name))
+            fp_file_name = os.path.join(data_dir,file_name)
+            with open(fp_file_name, 'r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    local_total_tweets += 1
+                    tweet_id = row['tweet_id']
+                    logging.info('Checking tweet: {}'.format(tweet_id))
+                    rec = dbm.find_record({'id': tweet_id})
+                    if rec:
+                        total_intersections += 1
+                        logging.info('Found intersection!, total intersection' \
+                                     ' so far: {0:,}'. format(total_intersections))
+    s = 'Datetime: {0}\n' \
+        'Total Tweets Remote: {1:,}\n' \
+        'Total Tweets Local: {2:,}\n' \
+        'Interception: {3:,}'.format(dt_now_str, remote_total_tweets, \
+                                  local_total_tweets, total_intersections)
+    logging.info(s)
+    output_file_name = os.path.join(data_dir, 'processing_outputs', 
+                                    'dbs_inter_{}.txt'.format(dt_now_str))
+    with open(output_file_name, 'w') as output_file:        
+        output_file.write(s)
