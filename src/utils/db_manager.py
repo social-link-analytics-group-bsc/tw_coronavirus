@@ -7,9 +7,10 @@ import pathlib
 class DBManager:
     __collection = ''
 
-    def __init__(self, collection, db_name = ""):
-        script_parent_dir = pathlib.Path(__file__).parents[1]
-        config_fn = script_parent_dir.joinpath('config.json')
+    def __init__(self, collection, config_fn = None, db_name = None):                
+        if not config_fn:
+            script_parent_dir = pathlib.Path(__file__).parents[1]
+            config_fn = script_parent_dir.joinpath('config.json')        
         config = get_config(config_fn)
         connection_dict = {
             'host': config['mongodb']['host'],
@@ -23,7 +24,9 @@ class DBManager:
         if 'password' in config['mongodb'] and \
             config['mongodb']['password'] != '':
             connection_dict.update({
-                'password': config['mongodb']['password']
+                'password': config['mongodb']['password'],
+                'authSource': config['mongodb']['db_name'],
+                'authMechanism': 'DEFAULT'
             })
         client = MongoClient(**connection_dict)
         if not db_name:
