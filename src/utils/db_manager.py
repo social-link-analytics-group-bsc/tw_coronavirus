@@ -1,8 +1,14 @@
 from collections import defaultdict
 from pymongo import MongoClient
-from utils.utils import get_config
+from utils.utils import get_config, get_tweet_datetime
 
+import logging
 import pathlib
+
+
+logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_coronavirus.log')),
+                    level=logging.DEBUG)
+
 
 class DBManager:
     __collection = ''
@@ -85,6 +91,7 @@ class DBManager:
         return [doc for doc in self.__db[self.__collection].aggregate(pipeline, allowDiskUse=True)]
 
     def __add_extra_filters(self, match, **kwargs):
+        match.update(kwargs)
         return match
 
     def get_original_tweets(self, **kwargs):
@@ -499,3 +506,35 @@ class DBManager:
                     {'$sort': {'date': 1}}]
         results.extend(self.aggregate(pipeline))
         return results
+    
+    def insert_tweet(self, tweet):
+        """
+        Save a tweet in the database
+        :param tweet: dictionary in json format of the tweet
+        :return:
+        """
+        if 'id_str' in tweet:
+            id_tweet = tweet['id_str']
+        elif 'id' in tweet:
+            id_tweet = tweet['id']
+        elif 'tweet_id' in tweet:
+            id_tweet = tweet['tweet_id']
+        else:
+            raise Exception('Cannot find id of tweet {}'.format(tweet))
+        num_results = self.search({'tweet_obj.id_str': id_tweet}).count()
+        if num_results == 0:
+            # Add additional date fields
+            tw_ct = None
+            if 'created_at' in tweet:
+                tw_ct = tweet['created_at']
+            elif 'formatted_date' in tweet:
+                tw_ct = tweet['formatted_date']
+            if tw_ct:
+                tw_dt, tw_d, tw_t = get_tweet_datetime()
+                tweet.update({'date_time': tw_dt, 'date': tw_d, 'time': tw_t})
+            self.save_record(tweet)
+            logging.info('Inserted tweet: {0}'.format(id_tweet))
+            return True
+        else:
+            logging.info('Tweet duplicated, not inserted')
+            return False
