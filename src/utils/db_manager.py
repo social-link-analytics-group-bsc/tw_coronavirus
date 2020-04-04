@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from pymongo import MongoClient
 from utils.utils import get_config, get_tweet_datetime
 
@@ -521,7 +522,7 @@ class DBManager:
             id_tweet = tweet['tweet_id']
         else:
             raise Exception('Cannot find id of tweet {}'.format(tweet))
-        num_results = self.search({'tweet_obj.id_str': id_tweet}).count()
+        num_results = self.search({'id': id_tweet}).count()
         if num_results == 0:
             # Add additional date fields
             tw_ct = None
@@ -530,7 +531,7 @@ class DBManager:
             elif 'formatted_date' in tweet:
                 tw_ct = tweet['formatted_date']
             if tw_ct:
-                tw_dt, tw_d, tw_t = get_tweet_datetime()
+                tw_dt, tw_d, tw_t = get_tweet_datetime(tw_ct)
                 tweet.update({'date_time': tw_dt, 'date': tw_d, 'time': tw_t})
             self.save_record(tweet)
             logging.info('Inserted tweet: {0}'.format(id_tweet))
@@ -538,3 +539,39 @@ class DBManager:
         else:
             logging.info('Tweet duplicated, not inserted')
             return False
+
+    def get_tweets_reduced(self, filters={}):    
+        results = self.search(filters)
+        reduced_tweets = []
+        for tweet in results:
+            reduced_tweet = {
+                'id': tweet['id'],
+                'date': datetime.strptime(tweet['date'], "%d/%m/%Y"),
+                'date_time': datetime.strptime(tweet['date_time'].replace(',',''), "%d/%m/%Y %H:%M:%S"),
+                'user_id': tweet['user']['id'],
+                'username': tweet['user']['screen_name'],
+                'user_location': tweet['user']['location'],
+                'user_followers_count': tweet['user']['followers_count'],
+                'user_friends_count': tweet['user']['friends_count'],
+                'user_verified': tweet['user']['verified'],
+                'lang': tweet['lang'],
+                'place_country': None,
+                'retweet_count': tweet['retweet_count'],
+                'favorite_count': tweet['favorite_count'],
+                'quote_count': tweet['quote_count'],
+                'reply_count': tweet['reply_count'],
+                'sentiment': tweet['sentiment_score']
+            }            
+            if 'place' in tweet and tweet['place']:
+                reduced_tweet['place_country'] = tweet['place']['country']
+            if 'retweeted_status' in tweet:
+                reduced_tweet['type'] = 'rt'
+            elif tweet['is_quote_status']:
+                reduced_tweet['type'] = 'qt'
+            elif tweet['in_reply_to_status_id_str']:
+                reduced_tweet['type'] = 'rp'
+            else:
+                reduced_tweet['type'] = 'og'
+            reduced_tweets.append(reduced_tweet)
+        
+        return reduced_tweets
