@@ -16,6 +16,14 @@ logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_
                     level=logging.DEBUG)
 
 
+# set option of preprocessor
+tw_preprocessor.set_options(tw_preprocessor.OPT.URL, 
+                            tw_preprocessor.OPT.MENTION, 
+                            tw_preprocessor.OPT.HASHTAG,
+                            tw_preprocessor.OPT.RESERVED,
+                            tw_preprocessor.OPT.NUMBER,
+                            tw_preprocessor.OPT.EMOJI)
+
 
 def infer_language(data_folder, input_file_name, sample=False):
     output_file_name = data_folder + '/processing_outputs/tweets_languages_' + input_file_name
@@ -73,12 +81,12 @@ def infer_language(data_folder, input_file_name, sample=False):
     print('Process finishes successfully!')
 
 
-def add_date_time_field_tweet_objs():
+def add_date_time_field_tweet_objs(collection):
     """
     Add date fields to tweet documents
     """
-    dbm = DBManager('tweets')
-    tweets = dbm.find_all()
+    dbm = DBManager(collection)
+    tweets = dbm.search({})
     for tweet in tweets:
         tweet_id = tweet['id']
         logging.info('Generating the datetime of tweet: {}'.format(tweet_id))
@@ -87,7 +95,10 @@ def add_date_time_field_tweet_objs():
         tweet['date_time'] = tw_dt
         tweet['date'] = tw_d
         tweet['time'] = tw_t
-        dbm.update_record({'id': tweet_id}, tweet)
+        try:
+            dbm.update_record({'id': tweet_id}, tweet)
+        except:
+            pass
 
 
 def check_datasets_intersection():
@@ -155,44 +166,96 @@ def check_performance_language_detection():
                         accuracy))
                 
 
-def compute_sentiment_analysis_tweets():
-    dbm = DBManager(collection='tweets_esp_hpai')
+def compute_sentiment_analysis_tweet(tweet, sentiment_analyzer):
+    # get text of tweet        
+    if 'extended_tweet' in tweet:
+        tweet_txt = tweet['extended_tweet']['full_text']
+    else:
+        tweet_txt = tweet['text']
+    tweet_lang = tweet['lang']
+    # do preprocessing, remove: hashtags, urls,
+    # mentions, reserved words (e.g., RET, FAV),
+    # and numbers
+    processed_txt = tw_preprocessor.clean(tweet_txt)
+    sentiment_analysis_ret = sentiment_analyzer.analyze_sentiment(processed_txt, 
+                                                                  tweet_lang)        
+    logging.info('Sentiment of tweet: {}'.\
+                 format(sentiment_analysis_ret['sentiment_score']))
+    return sentiment_analysis_ret
+
+
+def compute_sentiment_analysis_tweets(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
     tweets = dbm.search({'retweeted_status': {'$exists': 0}, 
                          'sentiment_score': {'$exists': 0}})
-    sa = SentimentAnalyzer()                         
-    # set option of preprocessor
-    tw_preprocessor.set_options(tw_preprocessor.OPT.URL, 
-                                tw_preprocessor.OPT.MENTION, 
-                                tw_preprocessor.OPT.HASHTAG,
-                                tw_preprocessor.OPT.RESERVED,
-                                tw_preprocessor.OPT.NUMBER,
-                                tw_preprocessor.OPT.EMOJI)
+    sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
     processing_counter = total_segs = 0
     logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
     for tweet in tweets:
         start_time = time.time()
-        processing_counter += 1        
+        processing_counter += 1
         tweet_id = tweet['id']
-        # get text of tweet        
-        if 'extended_tweet' in tweet:
-            tweet_txt = tweet['extended_tweet']['full_text']
-        else:
-            tweet_txt = tweet['text']
-        tweet_lang = tweet['lang']
-        # do preprocessing, remove: hashtags, urls,
-        # mentions, reserved words (e.g., RET, FAV),
-        # and numbers
-        processed_txt = tw_preprocessor.clean(tweet_txt)
         logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
-                     format(processing_counter, total_tweets, processed_txt))        
-        sentiment_analysis_ret = sa.analyze_sentiment(processed_txt, tweet_lang)        
-        logging.info('Sentiment of tweet: {}'.\
-                     format(sentiment_analysis_ret['sentiment_score']))
-        dbm.update_record({'id': tweet_id}, sentiment_analysis_ret)
+                     format(processing_counter, total_tweets, tweet['text']))
+        sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
+        sentiment_dict = {
+            'sentiment': {
+                'score': sentiment_analysis_ret['sentiment_score']
+            }
+        }
+        for tool_name, raw_score in sentiment_analysis_ret.items():
+            if tool_name != 'sentiment_score':
+                sentiment_dict['sentiment'][tool_name] = raw_score
+        dbm.update_record({'id': tweet_id}, sentiment_dict)
         end_time = time.time()
-        et_seg = end_time - start_time
-        total_segs += et_seg * (total_tweets - processing_counter)
-        remaining_time = str(timedelta(seconds=total_segs/processing_counter))
+        total_segs += end_time - start_time
+        remaining_secs = (total_segs/processing_counter) * (total_tweets - processing_counter)
+        remaining_time = str(timedelta(seconds=remaining_secs))
         logging.info('Time remaining to process all tweets: ' \
                      '{} to complete.'.format(remaining_time))
+
+
+def assign_sentiments_to_rts():
+    dbm = DBManager(collection='tweets_esp_hpai')
+    rts = dbm.search({'retweeted_status': {'$exists': 1}, 
+                      'sentiment_score': {'$exists': 0}})
+    sa = SentimentAnalyzer() 
+    total_rts = rts.count()
+    processing_counter = total_segs = 0
+    logging.info('Going to assign sentiments to {0:,} rts'.format(total_rts))
+    for rt in rts:
+        processing_counter += 1
+        logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
+                     format(processing_counter, total_rts, rt['id']))  
+        start_time = time.time()
+        original_tweet = rt['retweeted_status']
+        original_tweet_obj = dbm.find_record({'id': original_tweet['id']})
+        if original_tweet_obj:
+            sentiment_original_tweet = original_tweet_obj['sentiment_score']
+        else:
+            logging.info('Could not find original tweet in the DB. Going '\
+                         'to compute sentiment analysis from object in '\
+                         'retweeted_status')
+            sentiment_analysis_ret = \
+                compute_sentiment_analysis_tweet(original_tweet, sa)
+            original_tweet.update(sentiment_analysis_ret)
+            logging.info('Inserting new original tweet: {}'.\
+                         format(original_tweet['id']))
+            dbm.insert_tweet(original_tweet)            
+            sentiment_original_tweet = sentiment_analysis_ret['sentiment_score']
+        logging.info('Updating retweet: {0}'.format(rt['id']))
+        dbm.update_record({'id': rt['id']},
+                          {'sentiment_score': sentiment_original_tweet})
+        end_time = time.time()
+        total_segs += end_time - start_time
+        remaining_secs = (total_segs/processing_counter) * (total_rts - processing_counter)
+        remaining_time = str(timedelta(seconds=remaining_secs))
+        logging.info('Time remaining to process all rts: ' \
+                     '{} to complete.'.format(remaining_time))
+
+
+def identify_duplicates():
+    dbm = DBManager(collection='tweets_esp_hpai')
+    id_duplicated_tweets = dbm.get_id_duplicated_tweets()
+    print(id_duplicated_tweets)
