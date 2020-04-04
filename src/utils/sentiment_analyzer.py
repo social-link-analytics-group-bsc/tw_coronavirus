@@ -65,9 +65,9 @@ class SentimentAnalyzer:
             n_pg_sentiment_score = self.normalize_score(pg_sentiment_score)
             total_scores += n_pg_sentiment_score
             num_applied_analyzers += 1
+            sentiment_dict['sentiment_score_polyglot'] = pg_sentiment_score
         except:
-            pass
-        sentiment_dict['sentiment_score_polyglot'] = pg_sentiment_score
+            pass        
 
         # For spanish language 
         if language == 'es':
@@ -84,6 +84,9 @@ class SentimentAnalyzer:
             total_scores += n_af_sentiment_score
             num_applied_analyzers += 1
         # Compute final score
-        sentiment_dict['sentiment_score'] = total_scores/num_applied_analyzers
+        if pg_sentiment_score:
+            sentiment_dict['sentiment_score'] = total_scores/num_applied_analyzers
+        else:
+            sentiment_dict['sentiment_score'] = None
         
         return sentiment_dict
