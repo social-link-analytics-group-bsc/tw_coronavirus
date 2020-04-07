@@ -202,64 +202,57 @@ def prepare_sentiment_obj(sentiment_analysis_ret):
 def compute_sentiment_analysis_tweets(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     logging.info('Searching tweets...')
-    query = {'retweeted_status': {'$exists': 0}, 
-             'sentiment': {'$exists': 0},
-             'lang': {'$in': SPAIN_LANGUAGES}
-             }
+    query = {        
+        'sentiment': {'$exists': 0},
+        'covid_keywords': {'$exists': 1},
+        'lang_esp': {'$exists': 1},
+        'place_esp': {'$exists': 1},
+    }
     tweets = dbm.search(query)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
     processing_counter = total_segs = 0
     logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
+    id_org_processed_tweets = []
     for tweet in tweets:
-        start_time = time.time()
-        processing_counter += 1
         tweet_id = tweet['id']
-        logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
-                     format(processing_counter, total_tweets, tweet['text']))
-        sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
-        if sentiment_analysis_ret:
-            sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
-            dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
-        end_time = time.time()
-        total_segs += end_time - start_time
-        remaining_secs = (total_segs/processing_counter) * (total_tweets - processing_counter)
-        remaining_time = str(timedelta(seconds=remaining_secs))
-        logging.info('Time remaining to process all tweets: ' \
-                     '{} to complete.'.format(remaining_time))
-
-
-def assign_sentiments_to_rts(collection, config_fn=None):
-    dbm = DBManager(collection=collection, config_fn=config_fn)
-    logging.info('Searching tweets...')
-    query = {'retweeted_status': {'$exists': 1}, 
-             'sentiment': {'$exists': 0},
-             'lang': {'$in': SPAIN_LANGUAGES}
-             }
-    rts = dbm.search(query)
-    total_rts = rts.count()
-    processing_counter = total_segs = 0
-    logging.info('Going to assign sentiments to {0:,} rts'.format(total_rts))
-    for rt in rts:
-        processing_counter += 1
-        logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
-                     format(processing_counter, total_rts, rt['id']))  
-        start_time = time.time()
-        original_tweet = rt['retweeted_status']
-        original_tweet_obj = dbm.find_record({'id': int(original_tweet['id'])})
-        if not original_tweet_obj:
-            logging.info('Could not find original tweet in the DB. Ignoring RT')
-            continue
-        sentiment_original_tweet = original_tweet_obj['sentiment']
-        logging.info('Updating retweet: {0}'.format(rt['id']))
-        dbm.update_record({'id': int(rt['id'])},
-                          {'sentiment': sentiment_original_tweet})
-        end_time = time.time()
-        total_segs += end_time - start_time
-        remaining_secs = (total_segs/processing_counter) * (total_rts - processing_counter)
-        remaining_time = str(timedelta(seconds=remaining_secs))
-        logging.info('Time remaining to process all rts: ' \
-                     '{} to complete.'.format(remaining_time))
+        if tweet_id not in id_org_processed_tweets:
+            start_time = time.time()
+            processing_counter += 1
+            logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
+                        format(processing_counter, total_tweets, tweet['text']))
+            if 'retweeted_status' not in tweet:        
+                tweet_id = tweet['id']
+                sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
+                if sentiment_analysis_ret:
+                    sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
+                    dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
+                    id_org_processed_tweets.append(tweet_id)
+            else:
+                logging.info('Found a retweet')
+                id_original_tweet = tweet['retweeted_status']['id']
+                original_tweet = dbm.find_record({'id': int(id_original_tweet)})
+                if 'sentiment' in original_tweet:
+                    logging.info('Updating retweet from original tweet')
+                    dbm.update_record({'id': int(tweet_id)}, original_tweet['sentiment'])
+                else:
+                    if 'covid_keywords' in original_tweet and \
+                       'lang_esp' in original_tweet and \
+                       'place_esp' in original_tweet:
+                        sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
+                        if sentiment_analysis_ret:
+                            sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
+                            dbm.update_record({'id': int(original_tweet['id'])}, sentiment_dict)
+                            id_org_processed_tweets.append(original_tweet['id'])
+                            dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
+                    else:
+                        logging.info('Ignoring retweet. The retweeted tweet is not relevant')
+            end_time = time.time()
+            total_segs += end_time - start_time
+            remaining_secs = (total_segs/processing_counter) * (total_tweets - processing_counter)
+            remaining_time = str(timedelta(seconds=remaining_secs))
+            logging.info('Time remaining to process all tweets: ' \
+                        '{} to complete.'.format(remaining_time))
 
 
 def identify_duplicates():

@@ -90,7 +90,6 @@ def sentiment_analysis(collection_name, config_file):
     print('Process of computing sentiment analysis has started, please ' \
           'check the log for updates...')
     compute_sentiment_analysis_tweets(collection_name, config_file)
-    assign_sentiments_to_rts(collection_name, config_file)
 
 
 @run.command()
