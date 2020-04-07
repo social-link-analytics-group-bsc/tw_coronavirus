@@ -3,12 +3,14 @@ import logging
 import pathlib
 import os
 import preprocessor as tw_preprocessor
+import re
 import time
 
 from datetime import datetime, timedelta
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
-from utils.utils import get_tweet_datetime
+from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
+        get_covid_keywords, get_spain_places_regex
 from utils.sentiment_analyzer import SentimentAnalyzer
 
 
@@ -178,16 +180,33 @@ def compute_sentiment_analysis_tweet(tweet, sentiment_analyzer):
     # and numbers
     processed_txt = tw_preprocessor.clean(tweet_txt)
     sentiment_analysis_ret = sentiment_analyzer.analyze_sentiment(processed_txt, 
-                                                                  tweet_lang)        
-    logging.info('Sentiment of tweet: {}'.\
-                 format(sentiment_analysis_ret['sentiment_score']))
+                                                                  tweet_lang)
+    if sentiment_analysis_ret:
+        logging.info('Sentiment of tweet: {}'.\
+                     format(sentiment_analysis_ret['sentiment_score']))
     return sentiment_analysis_ret
+
+
+def prepare_sentiment_obj(sentiment_analysis_ret):
+    sentiment_dict = {
+        'sentiment': {
+            'score': sentiment_analysis_ret['sentiment_score']
+        }
+    }
+    for tool_name, raw_score in sentiment_analysis_ret.items():
+        if tool_name != 'sentiment_score':
+            sentiment_dict['sentiment'][tool_name] = raw_score
+    return sentiment_dict
 
 
 def compute_sentiment_analysis_tweets(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    tweets = dbm.search({'retweeted_status': {'$exists': 0}, 
-                         'sentiment_score': {'$exists': 0}})
+    logging.info('Searching tweets...')
+    query = {'retweeted_status': {'$exists': 0}, 
+             'sentiment': {'$exists': 0},
+             'lang': {'$in': SPAIN_LANGUAGES}
+             }
+    tweets = dbm.search(query)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
     processing_counter = total_segs = 0
@@ -199,15 +218,9 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None):
         logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
                      format(processing_counter, total_tweets, tweet['text']))
         sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
-        sentiment_dict = {
-            'sentiment': {
-                'score': sentiment_analysis_ret['sentiment_score']
-            }
-        }
-        for tool_name, raw_score in sentiment_analysis_ret.items():
-            if tool_name != 'sentiment_score':
-                sentiment_dict['sentiment'][tool_name] = raw_score
-        dbm.update_record({'id': tweet_id}, sentiment_dict)
+        if sentiment_analysis_ret:
+            sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
+            dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
         end_time = time.time()
         total_segs += end_time - start_time
         remaining_secs = (total_segs/processing_counter) * (total_tweets - processing_counter)
@@ -216,11 +229,14 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None):
                      '{} to complete.'.format(remaining_time))
 
 
-def assign_sentiments_to_rts():
-    dbm = DBManager(collection='tweets_esp_hpai')
-    rts = dbm.search({'retweeted_status': {'$exists': 1}, 
-                      'sentiment_score': {'$exists': 0}})
-    sa = SentimentAnalyzer() 
+def assign_sentiments_to_rts(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    logging.info('Searching tweets...')
+    query = {'retweeted_status': {'$exists': 1}, 
+             'sentiment': {'$exists': 0},
+             'lang': {'$in': SPAIN_LANGUAGES}
+             }
+    rts = dbm.search(query)
     total_rts = rts.count()
     processing_counter = total_segs = 0
     logging.info('Going to assign sentiments to {0:,} rts'.format(total_rts))
@@ -230,23 +246,14 @@ def assign_sentiments_to_rts():
                      format(processing_counter, total_rts, rt['id']))  
         start_time = time.time()
         original_tweet = rt['retweeted_status']
-        original_tweet_obj = dbm.find_record({'id': original_tweet['id']})
-        if original_tweet_obj:
-            sentiment_original_tweet = original_tweet_obj['sentiment_score']
-        else:
-            logging.info('Could not find original tweet in the DB. Going '\
-                         'to compute sentiment analysis from object in '\
-                         'retweeted_status')
-            sentiment_analysis_ret = \
-                compute_sentiment_analysis_tweet(original_tweet, sa)
-            original_tweet.update(sentiment_analysis_ret)
-            logging.info('Inserting new original tweet: {}'.\
-                         format(original_tweet['id']))
-            dbm.insert_tweet(original_tweet)            
-            sentiment_original_tweet = sentiment_analysis_ret['sentiment_score']
+        original_tweet_obj = dbm.find_record({'id': int(original_tweet['id'])})
+        if not original_tweet_obj:
+            logging.info('Could not find original tweet in the DB. Ignoring RT')
+            continue
+        sentiment_original_tweet = original_tweet_obj['sentiment']
         logging.info('Updating retweet: {0}'.format(rt['id']))
-        dbm.update_record({'id': rt['id']},
-                          {'sentiment_score': sentiment_original_tweet})
+        dbm.update_record({'id': int(rt['id'])},
+                          {'sentiment': sentiment_original_tweet})
         end_time = time.time()
         total_segs += end_time - start_time
         remaining_secs = (total_segs/processing_counter) * (total_rts - processing_counter)
@@ -259,3 +266,105 @@ def identify_duplicates():
     dbm = DBManager(collection='tweets_esp_hpai')
     id_duplicated_tweets = dbm.get_id_duplicated_tweets()
     print(id_duplicated_tweets)
+
+
+def do_add_covid_keywords_flag(query, dbm):    
+    tweets = dbm.search(query)
+    total_tweets = tweets.count()    
+    for tweet in tweets:
+        dbm.update_record({'id': int(tweet['id'])}, {'covid_keywords': 1})
+    return total_tweets
+
+
+def add_covid_keywords_flag(collection, config_fn=None):
+    """
+    Add field covid_keywords to:
+    1. Tweets that contain covid keywords in their hashtags;
+    2. Tweets that contain covid keywords in their text (or full-text)
+    3. Retweets, whose original tweet contain covid keywords in their text
+    4. Quotes, whose original tweet contain covid keywords in their text
+    5. Retweet of quotes, whose original tweet contain covid keywords in their
+    text.
+    All of these situations are reflected in the filter_query dictionary
+    """
+    start_time = time.time()
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    covid_kws = get_covid_keywords()
+    covid_kw_regex_objs = []
+    for covid_kw in covid_kws:        
+        regex_kw = '.*{}.*'.format(covid_kw)
+        covid_kw_regex_objs.append(re.compile(regex_kw, re.IGNORECASE))    
+    logging.info('Updating tweets that contain covid keywords...')
+    filter_query = {
+        'covid_keywords': {'$exists': 0},
+        '$or': [
+            {'entities.hashtags.text': {'$in': covid_kws}},
+            {'extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
+            {'text': {'$in': covid_kw_regex_objs}},
+            {'retweeted_status.extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
+            {'retweeted_status.extended_tweet.text': {'$in': covid_kw_regex_objs}},
+            {'quoted_status.extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
+            {'quoted_status.extended_tweet.text': {'$in': covid_kw_regex_objs}},
+            {'retweeted_status.quoted_status.extended_tweet.full_text': 
+                {'$in': covid_kw_regex_objs}},
+            {'retweeted_status.quoted_status.extended_tweet.text': 
+                {'$in': covid_kw_regex_objs}},
+        ]
+    }
+    update_dict = {
+        'covid_keywords': 1
+    }
+    ret_update = dbm.update_record_many(filter_query, update_dict)
+    # Print final message
+    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
+                 format(ret_update.matched_count, ret_update.modified_count))
+    end_time = time.time()
+    total_segs = end_time - start_time
+    logging.info('Process lasted: {}.'.format(str(timedelta(seconds=total_segs))))
+
+
+def add_lang_flag(collection, config_fn=None):
+    """
+    Add field lang_esp for tweets whose language is either
+    Spanish, Vasque, Catalan, Gallician, Asturian, or Aragonese
+    """
+    start_time = time.time()
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    filter_query = {
+        'lang': {'$in': SPAIN_LANGUAGES}
+    }
+    update_dict = {
+        'lang_esp': 1
+    }
+    logging.info('Updating tweets written in a spain language {} ...'.\
+                 format(SPAIN_LANGUAGES))
+    ret_update = dbm.update_record_many(filter_query, update_dict)
+    # Print final message
+    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
+                 format(ret_update.matched_count, ret_update.modified_count))
+    end_time = time.time()
+    total_segs = end_time - start_time
+    logging.info('Process lasted: {}.'.format(str(timedelta(seconds=total_segs))))
+
+
+def add_place_flag(collection, config_fn=None):
+    start_time = time.time()
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    filter_query = {
+        '$or': [
+            {'place.country': 'Spain'},
+            {'user.location': {'$in': get_spain_places_regex()}
+            }
+        ]
+    }
+    update_dict = {
+        'place_esp': 1
+    }
+    logging.info('Updating tweets from Spain...')
+    ret_update = dbm.update_record_many(filter_query, update_dict)
+    # Print final message
+    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
+                 format(ret_update.matched_count, ret_update.modified_count))
+    end_time = time.time()
+    total_segs = end_time - start_time
+    logging.info('Process lasted: {}.'.format(str(timedelta(seconds=total_segs))))

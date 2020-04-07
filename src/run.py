@@ -4,7 +4,12 @@ import os
 import pathlib
 import sys
 
-from data_wrangler import infer_language, add_date_time_field_tweet_objs
+from data_exporter import save_tweet_sentiments_to_csv
+from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
+    check_datasets_intersection, check_performance_language_detection, \
+    compute_sentiment_analysis_tweets, assign_sentiments_to_rts, \
+    identify_duplicates, add_covid_keywords_flag, add_lang_flag, add_place_flag
+from data_loader import upload_tweet_sentiment
 from network_analysis import NetworkAnalyzer
 
 # Add the directory to the sys.path
@@ -24,9 +29,10 @@ def check_current_directory():
 def run():
     pass
 
+
 @run.command()
 @click.argument('data_dir', type=click.Path(exists=True)) #Path to data directory
-@click.argument('tweets_file') #Name file of the tweets datset
+@click.argument('tweets_file') #Name of file of the tweets datset
 @click.option('--sample', help='Run task on a sample', default=False, is_flag=True)
 def detect_language(data_dir, tweets_file, sample):
     """
@@ -34,6 +40,7 @@ def detect_language(data_dir, tweets_file, sample):
     """
     check_current_directory()
     infer_language(data_dir, tweets_file, sample)        
+
 
 @run.command()
 @click.argument('tweets_collection_name') # Name of collections that contain tweets
@@ -48,7 +55,8 @@ def create_db_users(tweets_collection_name):
     na.create_users_db()
     print('Process has finished, results were stored in the collection users in ' \
           'your database.')
-    
+
+
 @run.command()
 def create_interaction_net():
     """
@@ -69,6 +77,44 @@ def add_date_fields():
     """
     check_current_directory()
     add_date_time_field_tweet_objs()
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def sentiment_analysis(collection_name, config_file):
+    """
+    Compute sentiment analysis of tweets
+    """
+    print('Process of computing sentiment analysis has started, please ' \
+          'check the log for updates...')
+    compute_sentiment_analysis_tweets(collection_name, config_file)
+    assign_sentiments_to_rts(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+@click.option('--flag_covid_keywords', help='Run process that add covid keywords flag', \
+              default=False, is_flag=True)
+@click.option('--flag_lang', help='Run process that add lang flag', \
+              default=False, is_flag=True)
+@click.option('--flag_place', help='Run process that add place flag', \
+              default=False, is_flag=True)
+def add_flags(collection_name, config_file, flag_covid_keywords, \
+              flag_lang, flag_place):
+    """
+    Add flags to tweets
+    """
+    print()
+    if flag_covid_keywords:
+        add_covid_keywords_flag(collection_name, config_file)
+    if flag_lang:
+        add_lang_flag(collection_name, config_file)
+    if flag_place:
+        add_place_flag(collection_name, config_file)
 
 
 if __name__ == "__main__":
