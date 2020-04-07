@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 import pathlib
@@ -9,7 +10,7 @@ from datetime import datetime, timedelta
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
 
-SPAIN_LANGUAGES = ['es', 'ca', 'eu', 'gl']
+SPAIN_LANGUAGES = ['es', 'ca', 'eu', 'an', 'ast', 'gl']
 
 # Get configuration from file
 def get_config(config_file):
@@ -39,10 +40,44 @@ def calculate_remaining_execution_time(start_time, total_segs,
         logging.info('Remaining execution time: infinite')
     return total_segs
 
+
+def get_spain_places():
+    places_fn = str(pathlib.Path(__file__).parents[2].\
+                joinpath('data','places_spain.csv'))
+    spain_places = set()
+    # Add Spain, España and Espanya as default places
+    spain_places.add('spain')
+    spain_places.add('españa')
+    spain_places.add('espanya')
+    with open(places_fn, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            if row['Comunidad Autonoma'] and \
+               row['Comunidad Autonoma'] not in spain_places:
+                spain_places.add(row['Comunidad Autonoma'].lower())
+            if row['Provincia'] and row['Provincia'] not in spain_places:
+                spain_places.add(row['Provincia'].lower())
+            if row['Capital'] and row['Capital'] not in spain_places:
+                spain_places.add(row['Capital'].lower())
+    return spain_places
+
+
 def get_spain_places_regex():
-    places = ['españa', 'catalunya', 'spain', 'madrid', 'espanya']
+    places = get_spain_places()
     places_regex_objs = []
     for place in places:
         regex_lugar = '.*{}.*'.format(place)
         places_regex_objs.append(re.compile(regex_lugar, re.IGNORECASE))
     return places_regex_objs
+
+
+def get_covid_keywords():
+    keywords_fn = str(pathlib.Path(__file__).parents[2].\
+                      joinpath('data','keywords_covid.txt'))
+    covid_keywords = []
+    with open(keywords_fn, 'r') as txt_file:
+        lines = txt_file.readlines()
+        for line in lines:
+            if line not in covid_keywords:
+                covid_keywords.append(line.replace('\n',''))
+    return covid_keywords
