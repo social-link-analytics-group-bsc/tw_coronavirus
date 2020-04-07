@@ -3,6 +3,9 @@ from afinn import Afinn
 from polyglot.text import Text
 
 import math
+import logging
+import pathlib
+
 
 """
 Supported languages:
@@ -16,6 +19,10 @@ Supported languages:
 Polyglot needs the languages to download before used.
 To download run polyglot download sentiment2.[language_code]
 """
+
+
+logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_coronavirus.log')),
+                    level=logging.DEBUG)
 
 
 class SentimentAnalyzer:
@@ -48,9 +55,9 @@ class SentimentAnalyzer:
         """
 
         if language not in self.supported_languages:
-            raise Exception('Language {} not supported! Currently supported ' \
-                            'languages are: {}'.format(language, 
-                                                       self.supported_languages))
+            logging.info('Language {} not supported! Currently supported ' \
+                         'languages are: {}'.format(language, self.supported_languages))
+            return None
         
         num_applied_analyzers = 0
         total_scores = 0.0
