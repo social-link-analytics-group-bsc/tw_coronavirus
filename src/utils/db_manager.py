@@ -58,13 +58,13 @@ class DBManager:
         return self.__db[self.__collection].update_one(filter_query, {'$set': new_values},
                                                        upsert=create_if_doesnt_exist)
 
-    def update_record_many(self, filter_query, update_query, create_if_doesnt_exist=False):
-        return self.__db[self.__collection].update_many(filter_query, update_query,
+    def update_record_many(self, filter_query, new_values, create_if_doesnt_exist=False):
+        return self.__db[self.__collection].update_many(filter_query, {'$set': new_values},
                                                        upsert=create_if_doesnt_exist)
 
-    def remove_field(self, filter_query, old_values, create_if_doesnt_exist=False):
-        return self.__db[self.__collection].update_one(filter_query, {'$unset': old_values},
-                                                       upsert=create_if_doesnt_exist)
+    def remove_field(self, filter_query, old_values, apply_to_multiple_records=False):
+        return self.__db[self.__collection].update(filter_query, {'$unset': old_values},
+                                                   multi=apply_to_multiple_records)
 
     def search(self, query):
         return self.__db[self.__collection].find(query, no_cursor_timeout=True)
