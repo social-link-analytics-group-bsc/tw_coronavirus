@@ -131,3 +131,5 @@ dmypy.json
 settings.json
 
 config.json
+
+*.err
