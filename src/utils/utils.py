@@ -54,11 +54,11 @@ def get_spain_places():
         for row in csv_reader:
             if row['Comunidad Autonoma'] and \
                row['Comunidad Autonoma'] not in spain_places:
-                spain_places.add(row['Comunidad Autonoma'].lower())
+                spain_places.add(row['Comunidad Autonoma'].strip().lower())
             if row['Provincia'] and row['Provincia'] not in spain_places:
-                spain_places.add(row['Provincia'].lower())
+                spain_places.add(row['Provincia'].strip().lower())
             if row['Capital'] and row['Capital'] not in spain_places:
-                spain_places.add(row['Capital'].lower())
+                spain_places.add(row['Capital'].strip().lower())
     return spain_places
 
 
