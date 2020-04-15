@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
-        get_covid_keywords, get_spain_places_regex
+        get_covid_keywords, get_spain_places_regex, get_spain_places, \
+        calculate_remaining_execution_time
 from utils.sentiment_analyzer import SentimentAnalyzer
 
 
@@ -83,24 +84,41 @@ def infer_language(data_folder, input_file_name, sample=False):
     print('Process finishes successfully!')
 
 
-def add_date_time_field_tweet_objs(collection):
+def add_date_time_field_tweet_objs(collection_name, config_fn=None):
     """
     Add date fields to tweet documents
     """
-    dbm = DBManager(collection)
+    dbm = DBManager(collection_name, config_fn=config_fn)
     tweets = dbm.search({})
+    total_tweets_to_process = tweets.count()
+    total_segs = 0
+    tweets_counter = 0
+    update_queries = []
     for tweet in tweets:
+        start_time = time.time()
+        tweets_counter += 1
         tweet_id = tweet['id']
         logging.info('Generating the datetime of tweet: {}'.format(tweet_id))
         str_tw_dt = tweet['created_at']
         tw_dt, tw_d, tw_t = get_tweet_datetime(str_tw_dt)
-        tweet['date_time'] = tw_dt
-        tweet['date'] = tw_d
-        tweet['time'] = tw_t
-        try:
-            dbm.update_record({'id': tweet_id}, tweet)
-        except:
-            pass
+        tweet_dates = {
+            'date_time': tw_dt,
+            'date': tw_d,
+            'time': tw_t
+        }        
+        update_queries.append(
+            {
+                'filter': {'id': int(tweet_id)},
+                'new_values': tweet_dates
+            }
+        )
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        tweets_counter, 
+                                                        total_tweets_to_process)
+    logging.info('Adding datetime fields to tweets...')
+    ret = dbm.bulk_update(update_queries)
+    modified_docs = ret.bulk_api_result['nModified']
+    logging.info('Added datetime fields to {0:,} tweets'.format(modified_docs))
 
 
 def check_datasets_intersection():
@@ -203,56 +221,53 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     logging.info('Searching tweets...')
     query = {        
-        'sentiment': {'$exists': 0},
-        'covid_keywords': {'$exists': 1},
-        'lang_esp': {'$exists': 1},
-        'place_esp': {'$exists': 1},
+        'sentiment': {'$exists': 0}
     }
     tweets = dbm.search(query)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
     processing_counter = total_segs = 0
     logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
-    id_org_processed_tweets = []
+    processed_sentiments = {}
+    update_queries = []
     for tweet in tweets:
         tweet_id = tweet['id']
-        if tweet_id not in id_org_processed_tweets:
+        if tweet_id not in processed_sentiments:
             start_time = time.time()
             processing_counter += 1
-            logging.info('[{0}/{1}] Processing tweet:\n{2}'.\
+            logging.info('[{0}/{1}] Computing sentiment of tweet:\n{2}'.\
                         format(processing_counter, total_tweets, tweet['text']))
-            if 'retweeted_status' not in tweet:        
-                tweet_id = tweet['id']
+            if 'retweeted_status' not in tweet:
                 sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
                 if sentiment_analysis_ret:
                     sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
-                    dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
-                    id_org_processed_tweets.append(tweet_id)
+                    processed_sentiments[tweet_id] = sentiment_dict
             else:
                 logging.info('Found a retweet')
-                id_original_tweet = tweet['retweeted_status']['id']
-                original_tweet = dbm.find_record({'id': int(id_original_tweet)})
-                if 'sentiment' in original_tweet:
-                    logging.info('Updating retweet from original tweet')
-                    dbm.update_record({'id': int(tweet_id)}, original_tweet['sentiment'])
+                id_org_tweet = tweet['retweeted_status']['id']                
+                if id_org_tweet not in processed_sentiments:   
+                    original_tweet = tweet['retweeted_status']
+                    sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
+                    if sentiment_analysis_ret:
+                        sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
+                        processed_sentiments[id_org_tweet] = sentiment_dict
                 else:
-                    if 'covid_keywords' in original_tweet and \
-                       'lang_esp' in original_tweet and \
-                       'place_esp' in original_tweet:
-                        sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
-                        if sentiment_analysis_ret:
-                            sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
-                            dbm.update_record({'id': int(original_tweet['id'])}, sentiment_dict)
-                            id_org_processed_tweets.append(original_tweet['id'])
-                            dbm.update_record({'id': int(tweet_id)}, sentiment_dict)
-                    else:
-                        logging.info('Ignoring retweet. The retweeted tweet is not relevant')
-            end_time = time.time()
-            total_segs += end_time - start_time
-            remaining_secs = (total_segs/processing_counter) * (total_tweets - processing_counter)
-            remaining_time = str(timedelta(seconds=remaining_secs))
-            logging.info('Time remaining to process all tweets: ' \
-                        '{} to complete.'.format(remaining_time))
+                    sentiment_dict = processed_sentiments[id_org_tweet]
+        else:
+            sentiment_dict = processed_sentiments[tweet_id]
+        update_queries.append(
+            {
+                'filter': {'id': int(tweet_id)},
+                'new_values': sentiment_dict
+            }                        
+        )
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)            
+    logging.info('Adding sentiment fields to tweets...')
+    ret = dbm.bulk_update(update_queries)
+    modified_tweets = ret.bulk_api_result['nModified']
+    logging.info('Added sentiment fields to {0:,} tweets'.format(modified_tweets))
 
 
 def identify_duplicates():
@@ -283,27 +298,15 @@ def add_covid_keywords_flag(collection, config_fn=None):
     start_time = time.time()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     covid_kws = get_covid_keywords()
-    covid_kw_regex_objs = []
-    for covid_kw in covid_kws:        
-        regex_kw = '.*{}.*'.format(covid_kw)
-        covid_kw_regex_objs.append(re.compile(regex_kw, re.IGNORECASE))    
+    covid_kw_regexs = ' '.join(covid_kws)
     logging.info('Updating tweets that contain covid keywords...')
     filter_query = {
-        'covid_keywords': {'$exists': 0},
-        '$or': [
-            {'entities.hashtags.text': {'$in': covid_kws}},
-            {'extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
-            {'text': {'$in': covid_kw_regex_objs}},
-            {'retweeted_status.extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
-            {'retweeted_status.extended_tweet.text': {'$in': covid_kw_regex_objs}},
-            {'quoted_status.extended_tweet.full_text': {'$in': covid_kw_regex_objs}},
-            {'quoted_status.extended_tweet.text': {'$in': covid_kw_regex_objs}},
-            {'retweeted_status.quoted_status.extended_tweet.full_text': 
-                {'$in': covid_kw_regex_objs}},
-            {'retweeted_status.quoted_status.extended_tweet.text': 
-                {'$in': covid_kw_regex_objs}},
+        '$and': [
+            {'covid_keywords': {'$exists': 0}},
+            {'$text': {'$search': covid_kw_regexs}}
         ]
     }
+    logging.info('Filter query: {0}'.format(filter_query))
     update_dict = {
         'covid_keywords': 1
     }
@@ -340,7 +343,7 @@ def add_lang_flag(collection, config_fn=None):
     logging.info('Process lasted: {}.'.format(str(timedelta(seconds=total_segs))))
 
 
-def add_place_flag(collection, config_fn=None):
+def add_place_flag(collection, config_fn=None):    
     start_time = time.time()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     filter_query = {
@@ -361,3 +364,55 @@ def add_place_flag(collection, config_fn=None):
     end_time = time.time()
     total_segs = end_time - start_time
     logging.info('Process lasted: {}.'.format(str(timedelta(seconds=total_segs))))
+
+def sentiment_evaluation():
+    sentiments_voting = {'positivo': 0, 'negativo': 0, 'neutral': 0}
+    correct_counter = 0
+    total = 600
+    with open('../data/bsc/processing_outputs/sentiment_analysis_qualitative_evaluation_2.csv') as csv_file:        
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            true_label = row['clean_nataly'].strip()
+            sentiments_voting[row['sentimiento_polyglot'].strip()] += 1
+            sentiments_voting[row['sentimiento_affin'].strip()] += 1
+            sentiments_voting[row['sentimiento_sentipy'].strip()] += 1
+            if sentiments_voting['positivo'] == sentiments_voting['negativo'] == \
+               sentiments_voting['neutral']:
+                infered_label = row['sentimiento_affin']
+            else:
+                max_value = sentiments_voting['positivo']
+                max_sentiment = 'positivo'
+                for sentiment, value in sentiments_voting.items():
+                    if sentiment != 'positivo':
+                        if value > max_value:
+                            max_value = value
+                            max_sentiment = sentiment
+                infered_label = max_sentiment
+            if true_label == infered_label:
+                correct_counter += 1
+    print('Correct: {0} ({1}%)'.format(correct_counter, correct_counter/total))
+
+
+def update_sentiment_score_fields(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    tweets = dbm.search({'sentiment': {'$exists': 0}})
+    for tweet in tweets:
+        sentiment_dict = {'score': tweet['score']}
+        fields_to_remove = {'score': 1}
+        if 'sentiment_score_polyglot' in tweet:
+            fields_to_remove.update({'sentiment_score_polyglot': 1})
+            sentiment_dict.update({'sentiment_score_polyglot': tweet['sentiment_score_polyglot']})
+        if 'sentiment_score_affin' in tweet:
+            fields_to_remove.update({'sentiment_score_affin': 1})
+            sentiment_dict.update({'sentiment_score_affin': tweet['sentiment_score_affin']})
+        if 'sentiment_score_sentipy' in tweet:
+            fields_to_remove.update({'sentiment_score_sentipy': 1})
+            sentiment_dict.update({'sentiment_score_sentipy': tweet['sentiment_score_sentipy']})
+        logging.info('Updating tweet: {}'.format(tweet['id']))
+        dbm.update_record({'id': int(tweet['id'])}, {'sentiment': sentiment_dict})
+        dbm.remove_field({'id': int(tweet['id'])}, fields_to_remove)
+
+
+def do_drop_collection(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    return dbm.drop_collection()
