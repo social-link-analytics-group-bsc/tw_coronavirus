@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 from utils.utils import get_config, get_tweet_datetime
 
 import logging
@@ -48,6 +48,9 @@ class DBManager:
     def clear_collection(self):
         self.__db[self.__collection].remove({})
 
+    def drop_collection(self):
+        return self.__db[self.__collection].drop()
+
     def save_record(self, record_to_save):
         self.__db[self.__collection].insert(record_to_save)
 
@@ -61,6 +64,18 @@ class DBManager:
     def update_record_many(self, filter_query, new_values, create_if_doesnt_exist=False):
         return self.__db[self.__collection].update_many(filter_query, {'$set': new_values},
                                                        upsert=create_if_doesnt_exist)
+
+    def bulk_update(self, update_queries):
+        # create list of update objects
+        update_objs = []
+        for update_query in update_queries:
+            update_objs.append(
+                UpdateOne(
+                            update_query['filter'], 
+                            {'$set': update_query['new_values']}
+                          )
+            )            
+        return self.__db[self.__collection].bulk_write(update_objs)
 
     def remove_field(self, filter_query, old_values, apply_to_multiple_records=False):
         return self.__db[self.__collection].update(filter_query, {'$unset': old_values},
@@ -522,7 +537,7 @@ class DBManager:
             id_tweet = tweet['tweet_id']
         else:
             raise Exception('Cannot find id of tweet {}'.format(tweet))
-        num_results = self.search({'id': id_tweet}).count()
+        num_results = self.search({'id': int(id_tweet)}).count()
         if num_results == 0:
             # Add additional date fields
             tw_ct = None
@@ -540,6 +555,12 @@ class DBManager:
             logging.info('Tweet duplicated, not inserted')
             return False
 
+
+    def insert_many_tweets(self, tweets, ordered=True):
+        return self.__db[self.__collection].insert_many(tweets, 
+                                                        ordered=ordered)
+        
+
     def get_tweets_reduced(self, filters={}):    
         results = self.search(filters)
         reduced_tweets = []
@@ -554,13 +575,14 @@ class DBManager:
                 'user_followers_count': tweet['user']['followers_count'],
                 'user_friends_count': tweet['user']['friends_count'],
                 'user_verified': tweet['user']['verified'],
+                #'user_description': tweet['user']['description'],
                 'lang': tweet['lang'],
                 'place_country': None,
                 'retweet_count': tweet['retweet_count'],
                 'favorite_count': tweet['favorite_count'],
                 'quote_count': tweet['quote_count'],
                 'reply_count': tweet['reply_count'],
-                'sentiment': tweet['sentiment_score']
+                'sentiment': tweet['sentiment']['score']
             }            
             if 'place' in tweet and tweet['place']:
                 reduced_tweet['place_country'] = tweet['place']['country']
