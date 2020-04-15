@@ -7,7 +7,7 @@ import time
 from datetime import timedelta
 from utils.db_manager import DBManager
 from utils.utils import calculate_remaining_execution_time, SPAIN_LANGUAGES, \
-                        get_spain_places_regex
+                         get_spain_places_regex
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
@@ -81,3 +81,20 @@ def upload_tweet_sentiment():
                  'Total updated tweets in remote server: {2:,}\n'.\
                  format(total_tweets, found_tweets, modified_records))
     print('Process finished!')
+
+
+def do_collection_merging(master_collection, collections_to_merge, 
+                          config_fn=None):
+    dbm_master = DBManager(collection=master_collection, config_fn=config_fn)
+    for collection in collections_to_merge:
+        logging.info('Merging collection {0} into {1}'.format(collection, master_collection))
+        dbm_collection_to_merge = DBManager(collection=collection, config_fn=config_fn)
+        tweets = dbm_collection_to_merge.find_all()
+        logging.info('Trying to insert {0:,} tweets'.format(tweets.count()))
+        try:
+            ret_insertions = dbm_master.insert_many_tweets(tweets, ordered=False)
+            insertion_counter = ret_insertions.inserted_ids
+            logging.info('{0:,} new tweets were inserted into the collection {1}'.\
+                         format(insertion_counter, master_collection))
+        except Exception as e:
+            logging.error('Error when merging {}'.format(e))        
