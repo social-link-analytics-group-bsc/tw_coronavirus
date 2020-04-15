@@ -4,12 +4,14 @@ import os
 import pathlib
 import sys
 
-from data_exporter import save_tweet_sentiments_to_csv
+from data_exporter import save_tweet_sentiments_to_csv, \
+    save_tweet_sentiment_scores_to_csv
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
     check_datasets_intersection, check_performance_language_detection, \
-    compute_sentiment_analysis_tweets, assign_sentiments_to_rts, \
-    identify_duplicates, add_covid_keywords_flag, add_lang_flag, add_place_flag
-from data_loader import upload_tweet_sentiment
+    compute_sentiment_analysis_tweets, identify_duplicates, \
+    add_covid_keywords_flag, add_lang_flag, add_place_flag, sentiment_evaluation, \
+    update_sentiment_score_fields, do_drop_collection
+from data_loader import upload_tweet_sentiment, do_collection_merging
 from network_analysis import NetworkAnalyzer
 
 # Add the directory to the sys.path
@@ -24,6 +26,7 @@ def check_current_directory():
     cd_name = os.path.basename(os.getcwd())
     if cd_name != 'src':
         click.UsageError('Illegal use: This script must run from the src directory')
+
 
 @click.group()
 def run():
@@ -71,12 +74,15 @@ def create_interaction_net():
 
 
 @run.command()
-def add_date_fields():
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def add_date_fields(collection_name, config_file):
     """
     Add date fields to tweet documents
     """
     check_current_directory()
-    add_date_time_field_tweet_objs()
+    add_date_time_field_tweet_objs(collection_name, config_file)
 
 
 @run.command()
@@ -87,8 +93,9 @@ def sentiment_analysis(collection_name, config_file):
     """
     Compute sentiment analysis of tweets
     """
+    check_current_directory()
     print('Process of computing sentiment analysis has started, please ' \
-          'check the log for updates...')
+          'check the log for updates...')    
     compute_sentiment_analysis_tweets(collection_name, config_file)
 
 
@@ -98,22 +105,50 @@ def sentiment_analysis(collection_name, config_file):
               default=None, is_flag=False)
 @click.option('--flag_covid_keywords', help='Run process that add covid keywords flag', \
               default=False, is_flag=True)
-@click.option('--flag_lang', help='Run process that add lang flag', \
-              default=False, is_flag=True)
 @click.option('--flag_place', help='Run process that add place flag', \
               default=False, is_flag=True)
-def add_flags(collection_name, config_file, flag_covid_keywords, \
-              flag_lang, flag_place):
+def add_flags(collection_name, config_file, flag_covid_keywords, flag_place):
     """
     Add flags to tweets
     """
-    print()
+    check_current_directory()
+    print('Process of adding flags has started, follow updates on the log...')
     if flag_covid_keywords:
         add_covid_keywords_flag(collection_name, config_file)
-    if flag_lang:
-        add_lang_flag(collection_name, config_file)
     if flag_place:
         add_place_flag(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def preprocess(collection_name, config_file):
+    """
+    Add flags and run sentiment analysis
+    """
+    check_current_directory()
+    print('Pre-processing process has started, follow updates on the log...')
+    add_date_time_field_tweet_objs(collection_name, config_file)
+    compute_sentiment_analysis_tweets(collection_name, config_file)
+
+@run.command()
+@click.argument('target_collection') # Name of the target collection
+@click.argument('source_collection') # Name of the collection to merge
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def merge_collections(target_collection, source_collection, config_file):
+    check_current_directory()
+    print('Merging process has started, follow updates on the log...')
+    do_collection_merging(target_collection, [source_collection], config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+def drop_collection(collection_name):
+    check_current_directory()
+    print('Dropping collection...')
+    do_drop_collection()
 
 
 if __name__ == "__main__":
