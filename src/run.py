@@ -145,10 +145,12 @@ def merge_collections(target_collection, source_collection, config_file):
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
-def drop_collection(collection_name):
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def drop_collection(collection_name, config_file):
     check_current_directory()
     print('Dropping collection...')
-    do_drop_collection()
+    do_drop_collection(collection_name, config_file)
 
 
 if __name__ == "__main__":
