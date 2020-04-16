@@ -1,6 +1,8 @@
-from classifier import SentimentClassifier
 from afinn import Afinn
+from classifier import SentimentClassifier
+from google.cloud import translate_v2 as translate
 from polyglot.text import Text
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 import math
 import logging
@@ -28,11 +30,13 @@ logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_
 class SentimentAnalyzer:
 
     supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl']
-    sp_classifier = af_classifier = None
+    sp_classifier = af_classifier = translator = vader_classifier = None
 
     def __init__(self):
         self.sp_classifier = SentimentClassifier()
         self.af_classifier = Afinn(language='es')
+        self.translator = translate.Client()
+        self.vader_classifier = SentimentIntensityAnalyzer()
 
     def normalize_score(self, score):
         # Currently the Hyperbolic Tangent Function is implemented.
@@ -97,3 +101,15 @@ class SentimentAnalyzer:
             sentiment_dict['sentiment_score'] = None
         
         return sentiment_dict
+
+    def translate_text(self, text, source_lang='es', target_lang='en'):
+        translation_obj = self.translator.translate(text, 
+            source_language=source_lang, 
+            target_language=target_lang)
+        return translation_obj['translatedText']
+
+    def analyze_sentiment_vader(self, text, language=None, need_translation=False):
+        if need_translation and language:
+            text = self.translate_text(text, language)
+        vader_score = self.vader_classifier.polarity_scores(text)
+        return vader_score['compound']
