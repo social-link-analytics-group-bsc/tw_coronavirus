@@ -1,4 +1,5 @@
 import csv
+import demoji
 import logging
 import pathlib
 import os
@@ -416,3 +417,57 @@ def update_sentiment_score_fields(collection, config_fn=None):
 def do_drop_collection(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     return dbm.drop_collection()
+
+
+def test_vader_sa():
+    file_path = '../data/bsc/processing_outputs/sentiment_analysis_sample_scores.csv'
+    sa = SentimentAnalyzer()
+    dbm = DBManager('tweets_esp')
+    tweets_analyzed = []
+
+    tw_preprocessor.set_options(tw_preprocessor.OPT.URL, 
+                                tw_preprocessor.OPT.MENTION, 
+                                tw_preprocessor.OPT.HASHTAG,
+                                tw_preprocessor.OPT.RESERVED)
+
+    with open(file_path, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            print(row['id'])
+            tweet = dbm.find_record({'id': int(row['id'])})
+            text = tweet['extended_tweet']['full_text']
+            text_lang = tweet['lang']
+            logging.info('Analyzing tweets {}'.format(text))
+            # apply text preprocessor
+            clean_text = tw_preprocessor.clean(text)
+            # find emojis
+            emojis = demoji.findall(clean_text)
+            # remove emojis if they exist
+            if emojis:
+                clean_text = demoji.replace(clean_text).replace('\u200d️','').strip()
+            # translate text to english
+            logging.info('Text to translate {}'.format(clean_text))
+            translated_text = sa.translate_text(clean_text, source_lang=text_lang)
+            # add emojis
+            if emojis:
+                for emoji, _ in emojis.items():
+                    translated_text += ' ' + emoji
+            # compute sentiment
+            sentiment_score = sa.analyze_sentiment_vader(translated_text)
+            tweets_analyzed.append(
+                {
+                    'id': row['id'],
+                    'text': text,
+                    'lang': text_lang,
+                    'score_vader': sentiment_score
+                }
+            )
+    
+    output_file = '../data/bsc/processing_outputs/sentiment_analysis_sample_vader.csv'
+    logging.info('Saving tweets to the CSV {}'.format(output_file))
+    with open(output_file, 'w') as csv_file:
+        headers = tweets_analyzed[0].keys()
+        csv_writer = csv.DictWriter(csv_file, fieldnames=headers)
+        csv_writer.writeheader()
+        for tweet_analyzed in tweets_analyzed:
+            csv_writer.writerow(tweet_analyzed)
