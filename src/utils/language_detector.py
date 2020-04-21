@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 from collections import defaultdict
 
@@ -9,7 +10,8 @@ from polyglot.detect import Detector
 from langid.langid import LanguageIdentifier, model
 
 # Load module for fasttext
-ft_model = fasttext.load_model('lib/lid.176.bin')
+lib_path = str(pathlib.Path(__file__).parents[1].joinpath('lib','lid.176.bin'))
+ft_model = fasttext.load_model(lib_path)
 
 # Instiantiate a langid language identifier object
 langid_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
