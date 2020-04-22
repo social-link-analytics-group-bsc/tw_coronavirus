@@ -10,8 +10,9 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
     check_datasets_intersection, check_performance_language_detection, \
     compute_sentiment_analysis_tweets, identify_duplicates, \
     add_covid_keywords_flag, add_lang_flag, add_place_flag, sentiment_evaluation, \
-    update_sentiment_score_fields, do_drop_collection
-from data_loader import upload_tweet_sentiment, do_collection_merging
+    update_sentiment_score_fields, do_drop_collection, do_add_language_flag
+from data_loader import upload_tweet_sentiment, do_collection_merging, \
+                        do_update_collection
 from network_analysis import NetworkAnalyzer
 
 # Add the directory to the sys.path
@@ -31,18 +32,6 @@ def check_current_directory():
 @click.group()
 def run():
     pass
-
-
-@run.command()
-@click.argument('data_dir', type=click.Path(exists=True)) #Path to data directory
-@click.argument('tweets_file') #Name of file of the tweets datset
-@click.option('--sample', help='Run task on a sample', default=False, is_flag=True)
-def detect_language(data_dir, tweets_file, sample):
-    """
-    Infer language of tweets
-    """
-    check_current_directory()
-    infer_language(data_dir, tweets_file, sample)        
 
 
 @run.command()
@@ -121,15 +110,18 @@ def add_flags(collection_name, config_file, flag_covid_keywords, flag_place):
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
-@click.option('--config_file', help='File with Mongo configuration', \
+@click.option('--config_file', help='File name with Mongo configuration', \
               default=None, is_flag=False)
-def preprocess(collection_name, config_file):
+@click.option('--add_date_fields', help='Indicate whether date fields should be created', \
+              default=False, is_flag=True)              
+def preprocess(collection_name, config_file, add_date_fields):
     """
     Add flags and run sentiment analysis
     """
     check_current_directory()
     print('Pre-processing process has started, follow updates on the log...')
-    add_date_time_field_tweet_objs(collection_name, config_file)
+    if add_date_fields:
+        add_date_time_field_tweet_objs(collection_name, config_file)
     compute_sentiment_analysis_tweets(collection_name, config_file)
 
 @run.command()
@@ -151,6 +143,35 @@ def drop_collection(collection_name, config_file):
     check_current_directory()
     print('Dropping collection...')
     do_drop_collection(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections to update
+@click.argument('source_collection') # Name of collections from where to extract data
+@click.argument('end_date') # Date of the last date to consider in the update
+@click.option('--start_date', help='Date of the first date to consider in the update', \
+              default=None, is_flag=False)
+@click.option('--config_file', help='File name with Mongo configuration', \
+              default=None, is_flag=False)
+def update_collection(collection_name, source_collection, end_date, start_date, 
+                      config_file):
+    check_current_directory()
+    print('Updating collection...')
+    do_update_collection(collection_name, source_collection, end_date, 
+                         start_date, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def add_language_flag(collection_name, config_file):
+    """
+    Add language flags to Spanish tweets
+    """
+    check_current_directory()
+    print('Detecting language')
+    do_add_language_flag(collection_name, config_file)  
 
 
 if __name__ == "__main__":
