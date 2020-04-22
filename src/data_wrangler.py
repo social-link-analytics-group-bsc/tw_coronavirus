@@ -29,6 +29,9 @@ tw_preprocessor.set_options(tw_preprocessor.OPT.URL,
                             tw_preprocessor.OPT.EMOJI)
 
 
+BATCH_SIZE = 5000
+
+
 def infer_language(data_folder, input_file_name, sample=False):
     output_file_name = data_folder + '/processing_outputs/tweets_languages_' + input_file_name
     input_file_name = data_folder + '/' + input_file_name
@@ -90,7 +93,10 @@ def add_date_time_field_tweet_objs(collection_name, config_fn=None):
     Add date fields to tweet documents
     """
     dbm = DBManager(collection_name, config_fn=config_fn)
-    tweets = dbm.search({})
+    query = {
+        'date_time': {'$exists': 0}
+    }
+    tweets = dbm.search(query)
     total_tweets_to_process = tweets.count()
     total_segs = 0
     tweets_counter = 0
@@ -129,7 +135,7 @@ def check_datasets_intersection():
     logging.info('Total tweets in remote database: {0:,}'.format(remote_total_tweets))
     local_total_tweets = 0
     total_intersections = 0
-    dt_now_str = datetime.now().strftime("%d-%m-%Y")
+    dt_now_str = datetime.today().strftime("%d-%m-%Y")
     for file_name in os.listdir(data_dir):
         if file_name.endswith('.csv'):
             logging.info('Reading file: {0}'.format(file_name))
@@ -185,14 +191,19 @@ def check_performance_language_detection():
                  format(total_processed_tweets, \
                         total_intersections, \
                         accuracy))
-                
 
-def compute_sentiment_analysis_tweet(tweet, sentiment_analyzer):
-    # get text of tweet        
+
+def get_tweet_text(tweet):
     if 'extended_tweet' in tweet:
         tweet_txt = tweet['extended_tweet']['full_text']
     else:
         tweet_txt = tweet['text']
+    return tweet_txt
+
+
+def compute_sentiment_analysis_tweet(tweet, sentiment_analyzer):
+    # get text of tweet        
+    tweet_txt = get_tweet_text(tweet)
     tweet_lang = tweet['lang']
     # do preprocessing, remove: hashtags, urls,
     # mentions, reserved words (e.g., RET, FAV),
@@ -221,14 +232,19 @@ def prepare_sentiment_obj(sentiment_analysis_ret):
 def compute_sentiment_analysis_tweets(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     logging.info('Searching tweets...')
-    query = {        
-        'sentiment': {'$exists': 0}
-    }
+    query = {}
+    query.update(
+        {        
+            'sentiment': {'$exists': 0}
+            #'sentiment.score': None
+        }
+    )
     tweets = dbm.search(query)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
-    processing_counter = total_segs = 0
     logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets 
+    processing_counter = total_segs = 0
     processed_sentiments = {}
     update_queries = []
     for tweet in tweets:
@@ -262,13 +278,14 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None):
                 'new_values': sentiment_dict
             }                        
         )
+        if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_tweets)            
-    logging.info('Adding sentiment fields to tweets...')
-    ret = dbm.bulk_update(update_queries)
-    modified_tweets = ret.bulk_api_result['nModified']
-    logging.info('Added sentiment fields to {0:,} tweets'.format(modified_tweets))
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)        
 
 
 def identify_duplicates():
@@ -471,3 +488,74 @@ def test_vader_sa():
         csv_writer.writeheader()
         for tweet_analyzed in tweets_analyzed:
             csv_writer.writerow(tweet_analyzed)
+
+
+def add_fields(dbm, update_queries):
+    logging.info('Adding fields to tweets...')
+    ret = dbm.bulk_update(update_queries)
+    modified_tweets = ret.bulk_api_result['nModified']
+    logging.info('Added fields to {0:,} tweets'.format(modified_tweets))
+
+
+def do_add_language_flag(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'lang': 'es',
+        'lang_detection': {'$exists': 0}
+    }
+    tweets_es = dbm.search(query)
+    total_tweets = tweets_es.count()
+    logging.info('Processing language of {0:,} tweets'.format(total_tweets))
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets 
+    processing_counter = total_segs = 0    
+    processed_tweets = {}
+    update_queries = []
+    spain_languages = ['ca', 'eu', 'gl']
+    for tweet in tweets_es: 
+        tweet_id = tweet['id']
+        if tweet_id not in processed_tweets:
+            start_time = time.time()
+            processing_counter += 1
+            logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
+                        format(processing_counter, total_tweets, tweet['text']))
+            if 'retweeted_status' not in tweet:
+                tweet_lang = tweet['lang']
+                tweet_txt = tw_preprocessor.clean(get_tweet_text(tweet))
+                lang_dict = detect_language(tweet_txt)
+                if lang_dict: processed_tweets[tweet_id] = lang_dict
+            else:
+                logging.info('Found a retweet')
+                original_tweet = tweet['retweeted_status']
+                id_org_tweet = original_tweet['id']                
+                tweet_lang = original_tweet['lang']
+                if id_org_tweet not in processed_tweets:
+                    tweet_txt = tw_preprocessor.clean(get_tweet_text(original_tweet))
+                    lang_dict = detect_language(tweet_txt)
+                    if lang_dict: processed_tweets[id_org_tweet] = lang_dict
+                else:
+                    lang_dict = processed_tweets[id_org_tweet]
+        else:
+            lang_dict = processed_tweets[tweet_id]
+        if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
+           lang_dict['pref_lang'] != tweet_lang and \
+           lang_dict['pref_lang'].find('_') == -1 and \
+           lang_dict['pref_lang'] in spain_languages:
+            new_values = {
+                'lang': lang_dict['pref_lang'],
+                'lang_twitter': tweet_lang,
+                'lang_detection': lang_dict
+            }
+            update_queries.append(
+                {
+                    'filter': {'id': int(tweet_id)},
+                    'new_values': new_values
+                }                        
+            )
+        if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)                    
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)
