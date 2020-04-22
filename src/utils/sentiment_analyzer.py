@@ -95,7 +95,7 @@ class SentimentAnalyzer:
             total_scores += n_af_sentiment_score
             num_applied_analyzers += 1
         # Compute final score
-        if pg_sentiment_score:
+        if num_applied_analyzers > 0:
             sentiment_dict['sentiment_score'] = total_scores/num_applied_analyzers
         else:
             sentiment_dict['sentiment_score'] = None
