@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 
@@ -17,12 +18,19 @@ ft_model = fasttext.load_model(lib_path)
 langid_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 
 
+logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_coronavirus.log')),
+                    level=logging.DEBUG)
+
+
 def detect_language(text):
     threshold_confidence = 0.75    
     lang_detected = defaultdict(int)
 
     if not text:
-        raise Exception('Error!, text is empty.')
+        logging.error('Error!, text is empty.')
+        return None
+
+    lang_dict = {}
 
     # infer language using fasttext    
     try:
@@ -33,6 +41,7 @@ def detect_language(text):
             lang_fasttext = 'undefined'
     except:
         lang_fasttext = 'undefined'
+    lang_dict['fasttext'] = lang_fasttext
     lang_detected[lang_fasttext] += 1
     
     
@@ -45,6 +54,7 @@ def detect_language(text):
             lang_langid = 'undefined' 
     except:
         lang_langid = 'undefined'
+    lang_dict['langid'] = lang_langid
     lang_detected[lang_langid] += 1
 
     # infer language using langdetect
@@ -56,6 +66,7 @@ def detect_language(text):
             lang_langdetect = 'undefined'
     except:
         lang_langdetect = 'undefined'
+    lang_dict['langdetect'] = lang_langdetect
     lang_detected[lang_langdetect] += 1
 
     # infer language using polyglot
@@ -75,6 +86,7 @@ def detect_language(text):
     except:
         lang_polyglot = 'undefined'
     lang_detected[lang_polyglot] += 1
+    lang_dict['polyglot'] = lang_polyglot
 
     # choose language with the highest counter
     max_counter, pref_lang = -1, ''
@@ -87,4 +99,6 @@ def detect_language(text):
         elif counter == max_counter:
             pref_lang += '_' + lang
     
-    return pref_lang if pref_lang != '' else 'undefined'
+    lang_dict['pref_lang'] = pref_lang if pref_lang != '' else 'undefined'
+    
+    return lang_dict
