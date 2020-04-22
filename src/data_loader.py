@@ -4,7 +4,7 @@ import os
 import pathlib
 import time
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from utils.db_manager import DBManager
 from utils.utils import calculate_remaining_execution_time, SPAIN_LANGUAGES, \
                          get_spain_places_regex
@@ -97,4 +97,39 @@ def do_collection_merging(master_collection, collections_to_merge,
             logging.info('{0:,} new tweets were inserted into the collection {1}'.\
                          format(insertion_counter, master_collection))
         except Exception as e:
-            logging.error('Error when merging {}'.format(e))        
+            logging.error('Error when merging {}'.format(e))
+
+
+def do_update_collection(collection_name, source_collection, end_date, 
+                      start_date=None, config_fn=None):                             
+    dbm_weekly_collection = DBManager(config_fn=config_fn)
+    # Create collection if does not exists
+    created_collection = dbm_weekly_collection.create_collection(collection_name)
+    if created_collection:
+        logging.info('Creating collection: {}...'.format(collection_name))
+        dbm_weekly_collection.create_index('id', 'asc', unique=True)
+        logging.info('Creating index: id...')
+    else:
+        logging.info('Setting collection of database to {}'.format(collection_name))
+        dbm_weekly_collection.set_collection(collection_name)
+    dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
+    # If no start date is passed, then use today's date
+    if not start_date:
+        start_date = datetime.today().strptime('%Y-%m-%d')
+    query = {
+        'created_at_date':
+            {'$gte': start_date, '$lte': end_date}
+    }
+    logging.info('Searching for tweets between {0} and {1}...'.\
+                 format(start_date, end_date))
+    tweets_to_copy = dbm_source.search(query)
+    logging.info('Going to insert {0:,} tweets into the collection {1}'.\
+                 format(tweets_to_copy.count(), collection_name))
+    try:
+        ret_insertions = dbm_weekly_collection.insert_many_tweets(tweets_to_copy, 
+                                                                  ordered=False)
+        insertion_counter = ret_insertions.inserted_ids
+        logging.info('{0:,} new tweets were inserted into the collection {1}'.\
+                     format(insertion_counter, collection_name))
+    except Exception as e:
+        logging.error('Error when merging {}'.format(e))        
