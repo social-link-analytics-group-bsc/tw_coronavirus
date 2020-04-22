@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient, UpdateOne, ASCENDING, DESCENDING
 from utils.utils import get_config, get_tweet_datetime
 
 import logging
@@ -14,7 +14,7 @@ logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_
 class DBManager:
     __collection = ''
 
-    def __init__(self, collection, config_fn = None, db_name = None):                
+    def __init__(self, collection = None, config_fn = None, db_name = None):                
         if not config_fn:
             script_parent_dir = pathlib.Path(__file__).parents[1]
             config_fn = script_parent_dir.joinpath('config.json')        
@@ -40,16 +40,45 @@ class DBManager:
             self.__db = client[config['mongodb']['db_name']]
         else:
             self.__db = client[db_name]
-        self.__collection = collection
+        if collection:
+            self.__collection = collection
 
-    def num_records_collection(self):
-        return self.__db[self.__collection].find({}).count()
+    def create_collection(self, name):
+        existing_collections = self.__db.list_collection_names()
+        exists_collection = False
+        for existing_collection in existing_collections:
+            if existing_collection == name:
+                exists_collection = True
+                break
+        if not exists_collection:
+            self.__db.create_collection(name)
+            self.__collection = name
+            return True
+        else:
+            return False
+
+    def set_collection(self, name):
+        self.__collection = name
+
+    def get_db_collections(self):
+        return self.__db.list_collection_names()
+
+    def drop_collection(self):
+        return self.__db[self.__collection].drop()    
 
     def clear_collection(self):
         self.__db[self.__collection].remove({})
 
-    def drop_collection(self):
-        return self.__db[self.__collection].drop()
+    def num_records_collection(self):
+        return self.__db[self.__collection].find({}).count()
+
+    def create_index(self, name, sorting_type='desc', unique=False):
+        if sorting_type == 'desc':
+            direction = DESCENDING
+        else:
+            direction = ASCENDING
+        self.__db[self.__collection].create_index([(name, direction)], 
+                                                  unique=unique)
 
     def save_record(self, record_to_save):
         self.__db[self.__collection].insert(record_to_save)
@@ -83,9 +112,6 @@ class DBManager:
 
     def search(self, query):
         return self.__db[self.__collection].find(query, no_cursor_timeout=True)
-
-    def search_one(self, query, i):
-        return self.__db[self.__collection].find(query)[i]
 
     def remove_record(self, query):
         self.__db[self.__collection].delete_one(query)
@@ -566,9 +592,7 @@ class DBManager:
         reduced_tweets = []
         for tweet in results:
             reduced_tweet = {
-                'id': tweet['id'],
-                'date': datetime.strptime(tweet['date'], "%d/%m/%Y"),
-                'date_time': datetime.strptime(tweet['date_time'].replace(',',''), "%d/%m/%Y %H:%M:%S"),
+                'id': tweet['id'],                                
                 'user_id': tweet['user']['id'],
                 'username': tweet['user']['screen_name'],
                 'user_location': tweet['user']['location'],
@@ -581,9 +605,14 @@ class DBManager:
                 'retweet_count': tweet['retweet_count'],
                 'favorite_count': tweet['favorite_count'],
                 'quote_count': tweet['quote_count'],
-                'reply_count': tweet['reply_count'],
-                'sentiment': tweet['sentiment']['score']
-            }            
+                'reply_count': tweet['reply_count']                
+            }
+            if 'date' in tweet:
+                reduced_tweet['date'] = datetime.strptime(tweet['date'], "%d/%m/%Y")
+            if 'date_time' in tweet:
+                reduced_tweet['date_time'] = datetime.strptime(tweet['date_time'].replace(',',''), "%d/%m/%Y %H:%M:%S")
+            if 'sentiment' in tweet:
+                reduced_tweet['sentiment'] = tweet['sentiment']['score']
             if 'place' in tweet and tweet['place']:
                 reduced_tweet['place_country'] = tweet['place']['country']
             if 'retweeted_status' in tweet:
