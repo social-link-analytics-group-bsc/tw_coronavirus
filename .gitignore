@@ -133,3 +133,9 @@ settings.json
 config.json
 
 *.err
+
+launch.json
+
+data/bsc
+
+reports
