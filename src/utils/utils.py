@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import os
 import pathlib
 import re
 import time
@@ -42,23 +43,27 @@ def calculate_remaining_execution_time(start_time, total_segs,
 
 
 def get_spain_places():
-    places_fn = str(pathlib.Path(__file__).parents[2].\
-                joinpath('data','places_spain.csv'))
+    path_places = str(pathlib.Path(__file__).parents[2].\
+                joinpath('data','bsc', 'spain_places'))
     spain_places = set()
     # Add Spain, España and Espanya as default places
     spain_places.add('spain')
     spain_places.add('españa')
     spain_places.add('espanya')
-    with open(places_fn, 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        for row in csv_reader:
-            if row['Comunidad Autonoma'] and \
-               row['Comunidad Autonoma'] not in spain_places:
-                spain_places.add(row['Comunidad Autonoma'].strip().lower())
-            if row['Provincia'] and row['Provincia'] not in spain_places:
-                spain_places.add(row['Provincia'].strip().lower())
-            if row['Capital'] and row['Capital'] not in spain_places:
-                spain_places.add(row['Capital'].strip().lower())
+    expected_headers = ['comunidad autonoma', 'provincia', 'capital', 
+                        'nombre_esp', 'nombre_alt', 'nombre_compuesto']
+    for r, d, files in os.walk(path_places):
+        for f in files:
+            if '.csv' in f:
+                with open(f, 'r') as csv_file:
+                    csv_reader = csv.DictReader(csv_file)
+                    for row in csv_reader:
+                        for header in expected_headers:
+                            if header in row and \
+                               row[header] and \
+                               row[header] not in spain_places:
+                                spain_places.add(row[header].strip().lower())
+
     return spain_places
 
 
