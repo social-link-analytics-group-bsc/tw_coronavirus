@@ -1,4 +1,4 @@
-comunidad autonoma,provincia,capital
+comunidad autonoma,provincia,ciudad
 Andalucía,Almería,Almería
 Andalucía,Cádiz,Cádiz
 Andalucía,Córdoba,Córdoba
@@ -28,12 +28,12 @@ Castilla-La Mancha,Ciudad Real,Ciudad Real
 Castilla-La Mancha,Cuenca,Cuenca
 Castilla-La Mancha,Guadalajara,Guadalajara
 Castilla-La Mancha,Toledo,Toledo
-Catalunña,Barcelona,Barcelona
-Catalunya,Gerona,Gerona
-Catalunya,Gerona,Girona
-Catalonia,Lérida,Lérida
-Catalonia,Lérida,Lleida
-Catalonia,Tarragona,Tarragona
+Cataluña,Barcelona,Barcelona
+Cataluña,Gerona,Gerona
+Cataluña,Gerona,Girona
+Cataluña,Lérida,Lérida
+Cataluña,Lérida,Lleida
+Cataluña,Tarragona,Tarragona
 Comunidad de Madrid,Madrid,Madrid
 Comunidad Valenciana,Alicante,Alicante
 Comunidad Valenciana,Alicante,Alacant
@@ -56,113 +56,113 @@ Navarra,Navarra,Pamplona
 Navarra,Navarra,Nafarroa
 País Vasco,Álava,Vitoria
 País Vasco,Álava,Gasteiz
-Euskadi,Guipúzcoa,San Sebastián
-Euskadi,Guipúzcoa,Gipúzkoa
-Euskadi,Guipúzcoa,Donostia
-Euskadi,Vizcaya,Bilbao
-Euskadi,Vizcaya,Bizkaia
-Euskadi,Vizcaya,Bilbo
+País Vasco,Guipúzcoa,San Sebastián
+País Vasco,Guipúzcoa,Gipúzkoa
+País Vasco,Guipúzcoa,Donostia
+País Vasco,Vizcaya,Bilbao
+País Vasco,Vizcaya,Bizkaia
+País Vasco,Vizcaya,Bilbo
 Principado de Asturias,Asturias,Oviedo
 Principado de Asturias,Asturias,Asturies
 Región de Murcia,Murcia,Murcia
+Galicia,Pontevedra,Vigo
+Principado de Asturias,Asturias,Gijón
+Cataluña,Barcelona,Hospitalet de Llobregat
+Comunidad Valenciana,Alicante,Elche
+Cataluña,Barcelona,Tarrasa
+Cataluña,Barcelona,Badalona
+Región de Murcia,Murcia,Cartagena
+Cataluña,Barcelona,Sabadell
+Andalucía,Cádiz,Jerez de la Frontera
+Comunidad de Madrid,Madrid,Móstoles
+Comunidad de Madrid,Madrid,Alcalá de Henares
+Comunidad de Madrid,Madrid,Fuenlabrada
+Comunidad de Madrid,Madrid,Leganés
+Comunidad de Madrid,Madrid,Getafe
+Comunidad de Madrid,Madrid,Alcorcón
+Canarias,Santa Cruz de Tenerife,San Cristobal de la Laguna
+Andalucía,Málaga,Marbella
+Andalucía,Sevilla,Dos Hernanas
+Comunidad de Madrid,Madrid,Torrejón de Ardoz
+Comunidad de Madrid,Madrid,Parla
+Cataluña,Barcelona,Mataró
+Andalucía,Cádiz,Algeciras
+Cataluña,Barcelona,Santa Coloma de Gramanet
+Comunidad de Madrid,Madrid,Alcobendas
+Cataluña,Tarragona,Reus
+Canarias,Las Palmas,Santiago del Teide
+País Vasco,Vizcaya,Baracaldo
+Galicia,La Coruña,Santiago de Compostela
+Andalucía,Almeria,Roquetas de Mar
+Comunidad de Madrid,Madrid,Las Rozas de Madrid
+Andalucía,Cádiz,San Fernando
+Región de Murcia,Murcia,Lorca
+Cataluña,Barcelona,San Cugat del Vallés
+Comunidad de Madrid,Madrid,San Sebastián de los Reyes
+Cataluña,Barcelona,Cornellá de Llobregat
+Andalucía,Cádiz,El Puerto de Santa María
+Comunidad de Madrid,Madrid,Rivas-Vaciamadrid
+Comunidad de Madrid,Madrid,Pozuelo de Alarcón
+Andalucía,Cádiz,Chiclana de la Frontera
+Cataluña,Barcelona,San Baudilio de Llobregat
+Andalucía,Almería,El Ejido
+Castilla-La Mancha,Toledo,Talavera de la Reina
+Comunidad Valenciana,Alicante,Torrevieja
+Andalucía,Málaga,Mijas
+Comunidad Valenciana,Valencia,Torrente
+Comunidad de Madrid,Madrid,Coslada
+Andalucía,Málaga,Vélez-Málaga
+Canarias,Santa Cruz de Tenerife,Arona
+Andalucía,Málaga,Fuengirola
+Principado de Asturias,Asturias,Avilés
+País Vasco,Vizcaya,Getxo
+Cataluña,Barcelona,Manresa
+Cataluña,Barcelona,Rubí
+Comunidad Valenciana,Alicante,Orihuela
+Comunidad de Madrid,Madrid,Valdemoro
+Andalucía,Sevilla,Alcalá de Guadaíra
+Comunidad Valenciana,Valencia,Gandía
+Canarias,Las Palmas,Santa Lucía de Tirajana
+Comunidad de Madrid,Madrid,Majadahonda
+Región de Murcia,Murcia,Molina de Segura
+Comunidad Valenciana,Valencia,Paterna
+Comunidad Valenciana,Alicante,Benidorm
+Andalucía,Cádiz,Sanlúcar de Barrameda
+Andalucía,Málaga,Torremolinos
+Andalucía,Málaga,Estepona
+Andalucía,Málaga,Benalmádena
+Cataluña,Barcelona,Villanueva y Geltrú
+Cataluña,Barcelona,Casteldefels
+Cataluña,Barcelona,Viladecans
+Comunidad Valenciana,Valencia,Sagunto
+Galicia,La Coruña,Ferrol
+Castilla y León,León,Ponferrada
+Cataluña,Barcelona,El Prat de Llobregat
+Comunidad de Madrid,Madrid,Collado Villalba
+Andalucía,Cádiz,La Línea de la Concepción
+Canarias,Las Palmas,Arrecife
+País Vasco,Guipúzcoa,Irún
+Castilla y León,Zamora,Zamora
+Cataluña,Barcelona,Granollers
+Comunidad de Madrid,Madrid,Aranjuez
+Extremadura,Badajoz,Mérida
+Comunidad Valenciana,Alicante,Alcoy
+Comunidad Valenciana,Alicante,San Vicente del Raspeig
+Andalucía,Granada,Motril
+Cataluña,Barcelona,Sardañola del Vallés
+Andalucía,Jaén,Linares
+Comunidad de Madrid,Madrid,Arganda del Rey
+Comunidad de Madrid,Madrid,Boadilla del Monte
+Canarias,Las Palmas,San Bartolomé de Tirajana
+Comunidad Valenciana,Alicante,Elda
+Comunidad de Madrid,Madrid,Pinto
+Principado de Asturias,Asturias,Siero
+Cantabria,Cantabria,Torrelavega
+Cataluña,Barcelona,Mollet del Vallés
+Comunidad Valenciana,Castellón,Villarreal
+Comunidad de Madrid,Madrid,Colmenar Viejo
+Andalucía,Sevilla,Utrera
+Islas Baleares,Islas Baleares,Calviá
+Canarias,Santa Cruz de Tenerife,Granadilla de Abona
 Ceuta,,
 Melilla,,
-Vigo,Pontevedra,
-Gijón,Asturias,
-Hospitalet de Llobregat,Barcelona,
-Elche,Alicante,
-Tarrasa,Barcelona,
-Badalona,Barcelona,
-Cartagena,Murcia,
-Sabadell,Barcelona,
-Jerez de la Frontera,Cádiz,
-Móstoles,Madrid,
-Alcalá de Henares,Madrid,
-Fuenlabrada,Madrid,
-Leganés,Madrid,
-Getafe,Madrid,
-Alcorcón,Madrid,
-San Cristobal de la Laguna,Santa Cruz de Tenerife,
-Marbella,Málaga,
-Dos Hernanas,Sevilla,
-Torrejón de Ardoz,Madrid,
-Parla,Madrid,
-Mataró,Barcelona,
-Algeciras,Cádiz,
-Santa Coloma de Gramanet,Barcelona,
-Alcobendas,Madrid,
-Reus,Tarragona,
-Teide,Las Palmas,
-Baracaldo,Vizcaya,
-Santiago de Compostela,La Coruña,
-Roquetas de Mar,Almeria,
-Las Rozas de Madrid,Madrid,
-San Fernando,Cádiz,
-Lorca,Murcia,
-San Cugat del Vallés,Barcelona,
-San Sebastián de los Reyes,Madrid,
-Cornellá de Llobregat,Barcelona,
-El Puerto de Santa María,Cádiz,
-Rivas-Vaciamadrid,Madrid,
-Pozuelo de Alarcón,Madrid,
-Chiclana de la Frontera,Cádiz,
-San Baudilio de Llobregat,Barcelona,
-El Ejido,Almería,
-Talavera de la Reina,Toledo,
-Torrevieja,Alicante,
-Mijas,Málaga,
-Torrente,Valencia,
-Coslada,Madrid,
-Vélez-Málaga,Málaga,
-Arona,Santa Cruz de Tenerife,
-Fuengirola,Málaga,
-Avilés,Asturias,
-Getxo,Vizcaya,
-Manresa,Barcelona,
-Rubí,Barcelona,
-Orihuela,Alicante,
-Valdemoro,Madrid,
-Alcalá de Guadaíra,Sevilla,
-Gandía,Valencia,
-Santa Lucía de Tirajana,Las Palmas,
-Majadahonda,Madrid,
-Molina de Segura,Murcia,
-Paterna,Valencia,
-Benidorm,Alicante,
-Sanlúcar de Barrameda,Cádiz,
-Torremolinos,Málaga,
-Estepona,Málaga,
-Benalmádena,Málaga,
-Villanueva y Geltrú,Barcelona,
-Casteldefels,Barcelona,
-Viladecans,Barcelona,
-Sagunto,Valencia,
-Ferrol,La Coruña,
-Ponferrada,León,
-El Prat de Llobregat,Barcelona,
-Collado Villalba,Madrid,
-La Línea de la Concepción,Cádiz,
-Arrecife,Las Palmas,
-Irún,Guipúzcoa,
-Zamora,Zamora,
-Granollers,Barcelona,
-Aranjuez,Madrid,
-Mérida,Badajoz,
-Alcoy,Alicante,
-San Vicente del Raspeig,Alicante,
-Motril,Granada,
-Sardañola del Vallés,Barcelona,
-Linares,Jaén,
-Arganda del Rey,Madrid,
-Boadilla del Monte,Madrid,
-San Bartolomé de Tirajana,Las Palmas,
-Elda,Alicante,
-Pinto,Madrid,
-Siero,Asturias,
-Torrelavega,Cantabria,
-Mollet del Vallés,Barcelona,
-Villarreal,Castellón,
-Colmenar Viejo,Madrid,
-Utrera,Sevilla,
-Calviá,Islas Baleares,
-Granadilla de Abona,Santa Cruz de Tenerife,
