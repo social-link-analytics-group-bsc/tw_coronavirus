@@ -3,6 +3,7 @@ import demoji
 import logging
 import pathlib
 import os
+import pandas as pd
 import preprocessor as tw_preprocessor
 import re
 import time
@@ -231,15 +232,21 @@ def prepare_sentiment_obj(sentiment_analysis_ret):
 
 def compute_sentiment_analysis_tweets(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    logging.info('Searching tweets...')
     query = {}
     query.update(
         {        
             'sentiment': {'$exists': 0}
-            #'sentiment.score': None
         }
     )
-    tweets = dbm.search(query)
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'retweeted_status': 1,
+        'text': 1,
+        'lang': 1,
+        'extended_tweet': 1
+    }
+    tweets = dbm.find_all(query, projection)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
     logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
@@ -503,7 +510,15 @@ def do_add_language_flag(collection, config_fn=None):
         'lang': 'es',
         'lang_detection': {'$exists': 0}
     }
-    tweets_es = dbm.search(query)
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'retweeted_status': 1,
+        'text': 1,
+        'lang': 1,
+        'extended_tweet': 1
+    }
+    tweets_es = dbm.find_all(query, projection)
     total_tweets = tweets_es.count()
     logging.info('Processing language of {0:,} tweets'.format(total_tweets))
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets 
@@ -513,9 +528,9 @@ def do_add_language_flag(collection, config_fn=None):
     spain_languages = ['ca', 'eu', 'gl']
     for tweet in tweets_es: 
         tweet_id = tweet['id']
+        start_time = time.time()
+        processing_counter += 1
         if tweet_id not in processed_tweets:
-            start_time = time.time()
-            processing_counter += 1
             logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
                         format(processing_counter, total_tweets, tweet['text']))
             if 'retweeted_status' not in tweet:
@@ -536,26 +551,127 @@ def do_add_language_flag(collection, config_fn=None):
                     lang_dict = processed_tweets[id_org_tweet]
         else:
             lang_dict = processed_tweets[tweet_id]
+        new_values = {
+            'lang_detection': lang_dict
+        }
         if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
            lang_dict['pref_lang'] != tweet_lang and \
            lang_dict['pref_lang'].find('_') == -1 and \
            lang_dict['pref_lang'] in spain_languages:
-            new_values = {
-                'lang': lang_dict['pref_lang'],
-                'lang_twitter': tweet_lang,
-                'lang_detection': lang_dict
-            }
-            update_queries.append(
+            new_values.update(
                 {
-                    'filter': {'id': int(tweet_id)},
-                    'new_values': new_values
-                }                        
+                    'lang': lang_dict['pref_lang'],
+                    'lang_twitter': tweet_lang
+                }
             )
+        update_queries.append(
+            {
+                'filter': {'id': int(tweet_id)},
+                'new_values': new_values
+            }                        
+        )
         if len(update_queries) == max_batch:
             add_fields(dbm, update_queries)
             update_queries = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_tweets)                    
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)
+
+
+def do_add_query_version_flag(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    file_query_versions = str(pathlib.Path(__file__).parents[1].joinpath('data','query_versions.csv'))    
+    with open(file_query_versions, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            query_version = row['version']
+            start_date = row['start_date']
+            end_date = row['end_date']
+            query = {
+                'created_at_date': {'$gte': start_date},
+                'query_version': {'$exists': 0}
+            }
+            if end_date:
+                query['created_at_date'].update({'$lte': end_date})
+            flag_to_add = {
+                'query_version': query_version
+            }
+            dbm.update_record_many(query, flag_to_add)
+
+
+def add_esp_location_flags(collection, config_fn):
+    places_esp = pd.read_csv('../data/places_spain.csv')
+    ccaas = set(list(places_esp['comunidad autonoma'].str.lower()))
+    provinces = set(list(places_esp[places_esp['provincia']!='']['provincia'].dropna().str.lower()))
+    capitals = set(list(places_esp[places_esp['ciudad']!='']['ciudad'].dropna().str.lower()))
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {        
+        'comunidad_autonoma': {'$exists': 0}
+    }
+    projection = {
+        '_id':0,
+        'id':1,
+        'user.location':1
+    }
+    tweets = dbm.find_all(query, projection)
+    total_tweets = tweets.count()
+    logging.info('Processing locations of {0:,} tweets'.format(total_tweets))
+    update_queries = []
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+    processing_counter = total_segs = 0
+    for tweet in tweets:
+        start_time = time.time()
+        tweet_id = tweet['id']
+        processing_counter += 1
+        ccaa_province = {
+            'comunidad_autonoma':'desconocido', 
+            'provincia':'desconocido'
+        }
+        user_location = tweet['user']['location']
+        if tweet['user']['location']:
+            user_location = user_location.replace('/',',')
+            user_location = user_location.replace('.',',')
+            user_location = user_location.replace(' ',',')
+            user_location = user_location.replace('-',',')
+            locations = user_location.split(',')
+            locations = set(locations)
+            found_place, found_esp = False, False
+            for location in locations:
+                if not location:
+                    continue
+                location = location.lower().strip().replace('.','').\
+                           replace('(','').replace(')','').replace('d’','').\
+                           replace('L’','')
+                if location in capitals:
+                    place = places_esp[places_esp['ciudad'].str.lower()==location]
+                    found_place=True
+                elif location in provinces:
+                    place = places_esp[places_esp['provincia'].str.lower()==location]
+                    found_place=True
+                elif location in ccaas:
+                    place = places_esp[places_esp['comunidad autonoma'].str.lower()==location]
+                    found_place=True
+                if found_place:
+                    ccaa_province['comunidad_autonoma'] = place.iloc[0]['comunidad autonoma']
+                    ccaa_province['provincia'] = place.iloc[0]['provincia'] 
+                    break
+                else:
+                    found_esp = location in ['españa', 'spain', 'espanya']
+            if not found_place and found_esp:
+                ccaa_province['comunidad_autonoma'] = ccaa_province['provincia'] = 'España'
+        update_queries.append(
+            {
+                'filter': {'id': int(tweet_id)},
+                'new_values': ccaa_province
+            }                        
+        )
+        if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
