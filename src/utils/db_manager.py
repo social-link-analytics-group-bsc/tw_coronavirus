@@ -110,8 +110,8 @@ class DBManager:
         return self.__db[self.__collection].update(filter_query, {'$unset': old_values},
                                                    multi=apply_to_multiple_records)
 
-    def search(self, query):
-        return self.__db[self.__collection].find(query, no_cursor_timeout=True)
+    def search(self, query, no_cursor_timeout=True):
+        return self.__db[self.__collection].find(query, no_cursor_timeout=no_cursor_timeout)
 
     def remove_record(self, query):
         self.__db[self.__collection].delete_one(query)
@@ -120,11 +120,11 @@ class DBManager:
         query = {'user.screen_name': author_screen_name}
         return self.search(query)
 
-    def find_all(self, projection=None):
+    def find_all(self, query={}, projection=None):
         if projection:
-            return self.__db[self.__collection].find({}, projection)
+            return self.__db[self.__collection].find(query, projection)
         else:
-            return self.__db[self.__collection].find()
+            return self.__db[self.__collection].find(query)
 
     def find_tweets_by_hashtag(self, hashtag, **kwargs):
         pass
@@ -587,26 +587,14 @@ class DBManager:
                                                         ordered=ordered)
         
 
-    def get_tweets_reduced(self, filters={}):    
-        results = self.search(filters)
+    def get_tweets_reduced(self, filters={}, projection={}):        
+        results = self.find_all(filters, projection)
         reduced_tweets = []
+        special_keys = ['date','date_time','place','sentiment',
+                        'retweeted_status', 'is_quote_status',
+                        'in_reply_to_status_id_str']
         for tweet in results:
-            reduced_tweet = {
-                'id': tweet['id'],                                
-                'user_id': tweet['user']['id'],
-                'username': tweet['user']['screen_name'],
-                'user_location': tweet['user']['location'],
-                'user_followers_count': tweet['user']['followers_count'],
-                'user_friends_count': tweet['user']['friends_count'],
-                'user_verified': tweet['user']['verified'],
-                #'user_description': tweet['user']['description'],
-                'lang': tweet['lang'],
-                'place_country': None,
-                'retweet_count': tweet['retweet_count'],
-                'favorite_count': tweet['favorite_count'],
-                'quote_count': tweet['quote_count'],
-                'reply_count': tweet['reply_count']                
-            }
+            reduced_tweet = {}
             if 'date' in tweet:
                 reduced_tweet['date'] = datetime.strptime(tweet['date'], "%d/%m/%Y")
             if 'date_time' in tweet:
@@ -623,6 +611,14 @@ class DBManager:
                 reduced_tweet['type'] = 'rp'
             else:
                 reduced_tweet['type'] = 'og'
+            for key, value in tweet.items():
+                if key not in special_keys:
+                    if isinstance(value,dict):
+                        for k, v in value.items():
+                            combined_key = key + '_' + k
+                            reduced_tweet[combined_key] = tweet[key][k]
+                    else:
+                        reduced_tweet[key] = tweet[key]
             reduced_tweets.append(reduced_tweet)
         
         return reduced_tweets
