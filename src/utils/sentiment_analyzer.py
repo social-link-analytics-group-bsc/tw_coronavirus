@@ -17,6 +17,7 @@ Supported languages:
  - Aragones: an
  - Asturian: ast
  - Galician: gl
+ - English: en
 
 Polyglot needs the languages to download before used.
 To download run polyglot download sentiment2.[language_code]
@@ -29,7 +30,7 @@ logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_
 
 class SentimentAnalyzer:
 
-    supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl']
+    supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl', 'en']
     sp_classifier = af_classifier = translator = vader_classifier = None
 
     def __init__(self):
@@ -51,11 +52,11 @@ class SentimentAnalyzer:
         standard -1 to 1. 
         
         In general, Polyglot is used to compute the 
-        sentiment score of text. 
-        
-        For Spanish, two additional languages are used in
-        the sentiment analysis. An average of
-        the three analyzers are returned.
+        sentiment score of text. For Spanish, two additional 
+        languages are used in the sentiment analysis. An 
+        average of the three analyzers are returned.
+
+        For English, only Vader is applied.
         """
 
         if language not in self.supported_languages:
@@ -63,9 +64,15 @@ class SentimentAnalyzer:
                          'languages are: {}'.format(language, self.supported_languages))
             return None
         
+        sentiment_dict = {}
+
+        if language == 'en':
+            va_sentiment_score = self.analyze_sentiment_vader(text)
+            sentiment_dict['sentiment_score_vader'] = \
+                sentiment_dict['sentiment_score'] = va_sentiment_score
+
         num_applied_analyzers = 0
         total_scores = 0.0
-        sentiment_dict = {}
 
         # Apply Polyglot analyzer
         pg_sentiment_score = None
