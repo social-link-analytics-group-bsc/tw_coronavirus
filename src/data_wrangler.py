@@ -685,16 +685,3 @@ def add_esp_location_flags(collection, config_fn):
                                                         total_tweets)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
-
-
-if __name__ == "__main__":
-    ccaa_province = {
-        'comunidad_autonoma':'desconocido', 
-        'provincia':'desconocido'
-    }
-    places_esp = pd.read_csv('../data/places_spain.csv')
-    ccaas = set(list(places_esp['comunidad autonoma'].str.lower()))
-    provinces = set(list(places_esp[places_esp['provincia']!='']['provincia'].dropna().str.lower()))
-    cities = set(list(places_esp[places_esp['ciudad']!='']['ciudad'].dropna().str.lower()))
-    identify_location('Euskal Herria/Spain/La Zona', places_esp, cities, provinces, ccaas, ccaa_province)
-    print(ccaa_province)
