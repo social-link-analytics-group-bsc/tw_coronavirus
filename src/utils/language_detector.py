@@ -6,12 +6,21 @@ from collections import defaultdict
 
 # Language detection tools
 import fasttext
+import wget
 from langdetect import detect_langs
 from polyglot.detect import Detector
 from langid.langid import LanguageIdentifier, model
 
 # Load module for fasttext
+fasttext_lib_url='https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin'
+lib_dir = str(pathlib.Path(__file__).parents[1].joinpath('lib'))
 lib_path = str(pathlib.Path(__file__).parents[1].joinpath('lib','lid.176.bin'))
+if not os.path.exists(lib_dir):
+    os.mkdir(lib_dir)
+    wget.download(fasttext_lib_url, lib_dir)
+else:
+    if not os.path.exists(lib_path):
+        wget.download(fasttext_lib_url, lib_dir)
 ft_model = fasttext.load_model(lib_path)
 
 # Instiantiate a langid language identifier object
