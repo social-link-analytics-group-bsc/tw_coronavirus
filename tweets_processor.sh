@@ -9,9 +9,9 @@ else
 fi
 
 
-LOGFILE=${PROJECT_DIR}/tweets_processor.log
-ERRORFILE=${PROJECT_DIR}/tweets_processor.err
-EVENT_LOG=${PROJECT_DIR}/process_events_log.csv
+LOGFILE=${PROJECT_DIR}/log/tweets_processor.log
+ERRORFILE=${PROJECT_DIR}/log/tweets_processor.err
+EVENT_LOG=${PROJECT_DIR}/log/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
 COLLECTION_NAME='processed'
 CONFIG_FILE_NAME='config_mongo_inb.json'
