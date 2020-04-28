@@ -52,11 +52,13 @@ class SentimentAnalyzer:
         standard -1 to 1. 
         
         In general, Polyglot is used to compute the 
-        sentiment score of text. For Spanish, two additional 
+        sentiment score of text. 
+        
+        For Spanish, two additional 
         languages are used in the sentiment analysis. An 
         average of the three analyzers are returned.
 
-        For English, only Vader is applied.
+        For English, vader is applied together with polyglot.
         """
 
         if language not in self.supported_languages:
@@ -65,14 +67,15 @@ class SentimentAnalyzer:
             return None
         
         sentiment_dict = {}
-
-        if language == 'en':
-            va_sentiment_score = self.analyze_sentiment_vader(text)
-            sentiment_dict['sentiment_score_vader'] = \
-                sentiment_dict['sentiment_score'] = va_sentiment_score
-
         num_applied_analyzers = 0
         total_scores = 0.0
+
+        # Apply Vader analyzer
+        if language == 'en':
+            va_sentiment_score = self.analyze_sentiment_vader(text)
+            total_scores += va_sentiment_score
+            num_applied_analyzers += 1
+            sentiment_dict['sentiment_score_vader'] = va_sentiment_score
 
         # Apply Polyglot analyzer
         pg_sentiment_score = None
