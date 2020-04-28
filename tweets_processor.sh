@@ -44,7 +44,7 @@ fi
 ####
 # Run sentiment analysis
 ####
-if [ $? -eq 0 ]
+if [ $? -eq 0 && $error -eq 0 ]
 then
     cd src
     echo "[1/4] Running sentiment analysis..."
@@ -59,7 +59,7 @@ fi
 # Run language detection
 # for spanish tweets
 ####
-if [ $? -eq 0 ]
+if [ $? -eq 0 && $error -eq 0 ]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
@@ -74,7 +74,7 @@ fi
 ####
 # Add Spain location flags
 ####
-if [ $? -eq 0 ]
+if [ $? -eq 0 && $error -eq 0 ]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'detecting_languages',,${end_time}" >> $EVENT_LOG
@@ -90,7 +90,7 @@ fi
 ####
 # Add query version flag
 ####
-if [ $? -eq 0 ]
+if [ $? -eq 0 && $error -eq 0 ]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_locations',,${end_time}" >> $EVENT_LOG
@@ -102,7 +102,7 @@ else
     error=1
 fi
 
-if [ $? -eq 0 ]
+if [ $? -eq 0 && $error -eq 0 ]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_query_versions',,${end_time}" >> $EVENT_LOG
@@ -113,7 +113,7 @@ else
 fi
 
 
-if [ $error -eq 0 ]
+if [ $error -eq 0 && $error -eq 0 ]
 then
     echo "Process has finished successfully"
     echo "For more information, check $LOGFILE"
