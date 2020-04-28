@@ -9,9 +9,10 @@ else
 fi
 
 
-LOGFILE=${PROJECT_DIR}/tweets_downloader.log
-ERRORFILE=${PROJECT_DIR}/tweets_downloader.err
+LOGFILE=${PROJECT_DIR}/tweets_processor.log
+ERRORFILE=${PROJECT_DIR}/tweets_processor.err
 EVENT_LOG=${PROJECT_DIR}/process_events_log.csv
+ENV_DIR="${PROJECT_DIR}/env"
 COLLECTION_NAME='processed'
 CONFIG_FILE_NAME='config_mongo_inb.json'
 error=0
@@ -35,8 +36,13 @@ cd $PROJECT_DIR
 ####
 if [ $? -eq 0 ]
 then
-    echo "Activating virtual environment..."
-    source env/bin/activate
+    if [[ -f $ENV_DIR ]]
+    then
+        echo "Activating virtual environment..."
+        source env/bin/activate
+    else
+        error=0
+    fi
 else
     error=1
 fi
