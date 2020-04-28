@@ -618,7 +618,7 @@ def identify_location(user_location, places_esp, cities, provinces, ccaas,
             continue
         location = location.lower().strip().replace('.','').\
                     replace('(','').replace(')','').replace('d’','').\
-                    replace('L’','')
+                    replace('L’','').replace(']').replace('[')
         if location in cities:
             place = places_esp[places_esp['ciudad'].str.lower()==location]
             found_place=True
