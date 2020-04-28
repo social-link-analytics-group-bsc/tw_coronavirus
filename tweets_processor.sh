@@ -10,7 +10,7 @@ fi
 
 LOG_DIR="${PROJECT_DIR}/log"
 
-if [[ -d $LOG_DIR ]]
+if [[ ! -d $LOG_DIR ]]
 then
     `mkdir $LOG_DIR`
 fi
