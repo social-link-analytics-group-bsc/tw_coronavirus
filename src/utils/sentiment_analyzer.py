@@ -34,12 +34,13 @@ class SentimentAnalyzer:
     supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl', 'en']
     sp_classifier = af_classifier = translator = vader_classifier = None
 
-    def __init__(self):
+    def __init__(self, with_translation_support=False):
         self.sp_classifier = SentimentClassifier()
-        self.af_classifier = Afinn(language='es')
-        self.translator = translate.Client()
+        self.af_classifier = Afinn(language='es')        
         self.vader_classifier = SentimentIntensityAnalyzer()
         self._download_polyglot_languages()
+        if with_translation_support:
+            self.translator = translate.Client()
 
     def _download_polyglot_languages(self):
         for lang in self.supported_languages:
