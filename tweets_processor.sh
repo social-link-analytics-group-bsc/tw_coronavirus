@@ -10,7 +10,7 @@ fi
 
 LOG_DIR="${PROJECT_DIR}/log"
 
-if [[ -f $LOG_DIR ]]
+if [[ -d $LOG_DIR ]]
 then
     `mkdir $LOG_DIR`
 fi
@@ -42,7 +42,7 @@ cd $PROJECT_DIR
 ####
 if [ $? -eq 0 ]
 then
-    if [[ -f $ENV_DIR ]]
+    if [[ -d $ENV_DIR ]]
     then
         echo "Activating virtual environment..."
         source env/bin/activate
