@@ -1,4 +1,4 @@
-afinn==0.2.dev0
+-e git+https://github.com/mmaguero/afinn.git#egg=afinn
 altair==4.0.1
 astor==0.8.1
 astroid==2.3.3
