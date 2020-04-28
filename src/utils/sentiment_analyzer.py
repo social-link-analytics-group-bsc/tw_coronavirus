@@ -1,6 +1,7 @@
 from afinn import Afinn
 from classifier import SentimentClassifier
 from google.cloud import translate_v2 as translate
+from polyglot.downloader import downloader
 from polyglot.text import Text
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -38,6 +39,13 @@ class SentimentAnalyzer:
         self.af_classifier = Afinn(language='es')
         self.translator = translate.Client()
         self.vader_classifier = SentimentIntensityAnalyzer()
+        self._download_polyglot_languages()
+
+    def _download_polyglot_languages(self):
+        for lang in self.supported_languages:
+            lang_resource = 'sentiment2.{}'.format(lang)
+            if not downloader.is_installed(lang_resource):
+                downloader.download('sentiment2.es')
 
     def normalize_score(self, score):
         # Currently the Hyperbolic Tangent Function is implemented.
