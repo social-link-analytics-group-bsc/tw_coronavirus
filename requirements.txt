@@ -149,6 +149,7 @@ validators==0.14.2
 watchdog==0.10.2
 wcwidth==0.1.8
 webencodings==0.5.1
+wget==3.2
 widgetsnbextension==3.5.1
 wordcloud==1.6.0
 wrapt==1.11.2
