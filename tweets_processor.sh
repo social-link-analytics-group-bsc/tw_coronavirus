@@ -49,7 +49,7 @@ then
         source env/bin/activate
     else
         `conda init bash`
-        `conda activate $CONDA_ENV`
+        `conda activate ${CONDA_ENV}`
     fi
 else
     error=1
