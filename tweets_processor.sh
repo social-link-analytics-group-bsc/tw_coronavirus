@@ -48,7 +48,7 @@ then
     then
         source env/bin/activate
     else
-        source /opt/conda/bin/conda
+        source /opt/conda/etc/profile.d/conda.sh
         `conda activate $CONDA_ENV`
     fi
 else
