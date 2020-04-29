@@ -21,6 +21,7 @@ EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
 COLLECTION_NAME='processed'
 CONFIG_FILE_NAME='config_mongo_inb.json'
+CONDA_ENV='twcovid'
 error=0
 
 ####
@@ -42,12 +43,12 @@ cd $PROJECT_DIR
 ####
 if [ $? -eq 0 ]
 then
+    echo "Activating virtual environment..."
     if [[ -d $ENV_DIR ]]
     then
-        echo "Activating virtual environment..."
         source env/bin/activate
     else
-        error=0
+        `conda activate $CONDA_ENV`
     fi
 else
     error=1
