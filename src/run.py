@@ -5,19 +5,19 @@ import pathlib
 import sys
 
 from data_exporter import save_tweet_sentiments_to_csv, \
-    save_tweet_sentiment_scores_to_csv
+      save_tweet_sentiment_scores_to_csv
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
-    check_datasets_intersection, check_performance_language_detection, \
-    compute_sentiment_analysis_tweets, identify_duplicates, \
-    add_covid_keywords_flag, add_lang_flag, add_place_flag, sentiment_evaluation, \
-    update_sentiment_score_fields, do_drop_collection, do_add_language_flag, \
-    add_esp_location_flags, do_add_query_version_flag
+      check_datasets_intersection, check_performance_language_detection, \
+      compute_sentiment_analysis_tweets, identify_duplicates, \
+      add_covid_keywords_flag, add_lang_flag, add_place_flag, sentiment_evaluation, \
+      update_sentiment_score_fields, do_drop_collection, do_add_language_flag, \
+      add_esp_location_flags, do_add_query_version_flag
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
-                        do_update_collection
+     do_update_collection
 from network_analysis import NetworkAnalyzer
 
 # Add the directory to the sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
