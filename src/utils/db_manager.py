@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from pymongo import MongoClient, UpdateOne, ASCENDING, DESCENDING
-from utils.utils import get_config, get_tweet_datetime
+from .utils import get_config, get_tweet_datetime
 
 import logging
 import pathlib
