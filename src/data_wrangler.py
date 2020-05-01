@@ -9,12 +9,12 @@ import re
 import time
 
 from datetime import datetime, timedelta
-from src.utils.language_detector import detect_language
-from src.utils.db_manager import DBManager
-from src.utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
+from utils.language_detector import detect_language
+from utils.db_manager import DBManager
+from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         get_covid_keywords, get_spain_places_regex, get_spain_places, \
         calculate_remaining_execution_time
-from src.utils.sentiment_analyzer import SentimentAnalyzer
+from utils.sentiment_analyzer import SentimentAnalyzer
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
