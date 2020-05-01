@@ -1,17 +1,15 @@
-from datetime import datetime
-from src.utils.db_manager import DBManager
-
-import click
 import os
 import sys
 
-
 # Add the directory to the sys.path
 path_current_file = os.path.dirname(os.path.abspath(__file__))
-path_src = os.path.join(path_current_file, 'src')
-sys.path.append(os.path.dirname(path_src))
-path_utils = os.path.join(path_src, 'utils')
+path_utils = os.path.join(path_current_file, 'src', 'utils')
 sys.path.append(os.path.dirname(path_utils))
+
+from datetime import datetime
+from utils.db_manager import DBManager
+
+import click
 
 
 @click.group()
