@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from pymongo import MongoClient, UpdateOne, ASCENDING, DESCENDING
-from utils.utils import get_config, get_tweet_datetime
+from src.utils.utils import get_config, get_tweet_datetime
 
 import logging
 import pathlib
@@ -43,6 +43,15 @@ class DBManager:
         if collection:
             self.__collection = collection
 
+    def create_view(self, name, source, query):
+        self.__db.command(
+            {
+                "create": name,
+                "viewOn": source,
+                "pipeline": query
+            }            
+        )
+
     def create_collection(self, name):
         existing_collections = self.__db.list_collection_names()
         exists_collection = False
@@ -63,8 +72,11 @@ class DBManager:
     def get_db_collections(self):
         return self.__db.list_collection_names()
 
-    def drop_collection(self):
-        return self.__db[self.__collection].drop()    
+    def drop_collection(self, name=None):
+        if not name:
+            return self.__db[self.__collection].drop()
+        else:
+            return self.__db[name].drop()
 
     def clear_collection(self):
         self.__db[self.__collection].remove({})
@@ -95,7 +107,7 @@ class DBManager:
                                                        upsert=create_if_doesnt_exist)
 
     def bulk_update(self, update_queries):
-        # create list of update objects
+        # create list of objects to update
         update_objs = []
         for update_query in update_queries:
             update_objs.append(
