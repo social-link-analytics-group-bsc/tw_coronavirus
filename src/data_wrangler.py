@@ -604,14 +604,8 @@ def do_add_query_version_flag(collection, config_fn=None):
                          format(ret_update.matched_count, ret_update.modified_count))
 
 
-def identify_location(user_location, places_esp, cities, provinces, ccaas, 
+def identify_location(locations, places_esp, cities, provinces, ccaas, 
                       ccaa_province):
-    user_location = user_location.replace('/',',')
-    user_location = user_location.replace('.',',')
-    user_location = user_location.replace(' ',',')
-    user_location = user_location.replace('-',',')
-    locations = user_location.split(',')
-    locations = set(locations)
     found_place, found_esp = False, False
     for location in locations:
         if not location:
@@ -639,15 +633,54 @@ def identify_location(user_location, places_esp, cities, provinces, ccaas,
         ccaa_province['comunidad_autonoma'] = ccaa_province['provincia'] = 'España'
 
 
-def add_esp_location_flags(collection, config_fn):
+def identify_unknown_locations(locations, places_esp, cities, provinces, ccaas, 
+                               ccaa_province ):
+    found_place = False
+    for location in locations:
+        if not location:
+            continue
+        location = location.lower().strip().replace('.','').\
+                   replace('(','').replace(')','').replace('d’','').\
+                   replace('L’','').replace(']','').replace('[','')
+        for city in cities:
+            for sub_city in city.split():
+                if location == sub_city:
+                    place = places_esp[places_esp['ciudad'].str.lower()==city]
+                    found_place = True
+                    break
+        if not found_place:
+            for province in provinces:
+                for sub_province in province.split():
+                    if location == sub_province:
+                        place = places_esp[places_esp['provincia'].str.lower()==province]
+                        found_place = True
+                        break
+        if not found_place:
+            for ccaa in ccaas:
+                for sub_ccaa in ccaa.split():
+                    if location == sub_ccaa:
+                        place = places_esp[places_esp['comunidad autonoma'].str.lower()==ccaa]
+                        found_place = True
+                        break
+        if found_place:
+            ccaa_province['comunidad_autonoma'] = place.iloc[0]['comunidad autonoma']
+            ccaa_province['provincia'] = place.iloc[0]['provincia']
+
+
+def add_esp_location_flags(collection, config_fn, unknown=False):
     places_esp = pd.read_csv('../data/places_spain.csv')
     ccaas = set(list(places_esp['comunidad autonoma'].str.lower()))
     provinces = set(list(places_esp[places_esp['provincia']!='']['provincia'].dropna().str.lower()))
     cities = set(list(places_esp[places_esp['ciudad']!='']['ciudad'].dropna().str.lower()))
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {        
-        'comunidad_autonoma': {'$exists': 0}
-    }
+    if unknown:
+        query = {        
+            'comunidad_autonoma': 'desconocido'
+        }
+    else:
+        query = {        
+            'comunidad_autonoma': {'$exists': 0}
+        }
     projection = {
         '_id':0,
         'id':1,
@@ -668,9 +701,19 @@ def add_esp_location_flags(collection, config_fn):
             'comunidad_autonoma':'desconocido', 
             'provincia':'desconocido'
         }
-        if user_location:            
-            identify_location(user_location, places_esp, cities, provinces, 
-                              ccaas, ccaa_province)
+        if user_location: 
+            user_location = user_location.replace('/',',')
+            user_location = user_location.replace('.',',')
+            user_location = user_location.replace(' ',',')
+            user_location = user_location.replace('-',',')
+            locations = user_location.split(',')
+            locations = set(locations)
+            if not unknown:           
+                identify_location(locations, places_esp, cities, provinces, 
+                                  ccaas, ccaa_province)
+            else:
+                identify_unknown_locations(locations, places_esp, cities, provinces,
+                                           ccaas, ccaa_province)
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
