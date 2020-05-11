@@ -179,15 +179,13 @@ def add_language_flag(collection_name, config_file):
 @click.argument('collection_name') # Name of collections that contain tweets
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-@click.option('--unknown_loc', help='Indicate whether flags of unknown locations should be updated', \
-              default=False, is_flag=True)
-def add_location_flags(collection_name, config_file, unknown_loc):
+def add_location_flags(collection_name, config_file):
     """
     Add Spain location flags to tweets
     """
     check_current_directory()
     print('Adding location flags')
-    add_esp_location_flags(collection_name, config_file, unknown_loc)
+    add_esp_location_flags(collection_name, config_file)
 
 
 @run.command()
