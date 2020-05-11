@@ -708,14 +708,7 @@ def add_esp_location_flags(collection, config_fn):
                               ccaas, ccaa_province)                
             if ccaa_province['comunidad_autonoma'] == 'desconocido':
                 identify_unknown_locations(locations, places_esp, cities, provinces,
-                                           ccaas, ccaa_province)
-                if ccaa_province['comunidad_autonoma'] == 'desconocido':
-                    if tweet['lang'] == 'ca':
-                        ccaa_province['comunidad_autonoma'] = 'Catalulña'
-                    elif tweet['lang'] == 'eu':
-                        ccaa_province['comunidad_autonoma'] = 'País Vasco'
-                    elif tweet['lang'] == 'gl':
-                        ccaa_province['comunidad_autonoma'] = 'Galicia'
+                                           ccaas, ccaa_province)                
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
