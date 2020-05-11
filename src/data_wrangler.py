@@ -667,24 +667,20 @@ def identify_unknown_locations(locations, places_esp, cities, provinces, ccaas,
             ccaa_province['provincia'] = place.iloc[0]['provincia']
 
 
-def add_esp_location_flags(collection, config_fn, unknown=False):
+def add_esp_location_flags(collection, config_fn):
     places_esp = pd.read_csv('../data/places_spain.csv')
     ccaas = set(list(places_esp['comunidad autonoma'].str.lower()))
     provinces = set(list(places_esp[places_esp['provincia']!='']['provincia'].dropna().str.lower()))
     cities = set(list(places_esp[places_esp['ciudad']!='']['ciudad'].dropna().str.lower()))
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    if unknown:
-        query = {        
-            'comunidad_autonoma': 'desconocido'
-        }
-    else:
-        query = {        
-            'comunidad_autonoma': {'$exists': 0}
-        }
+    query = {        
+        'comunidad_autonoma': {'$exists': 0}
+    }
     projection = {
         '_id':0,
         'id':1,
-        'user.location':1
+        'user.location':1,
+        'lang':1
     }
     tweets = dbm.find_all(query, projection)
     total_tweets = tweets.count()
@@ -707,13 +703,19 @@ def add_esp_location_flags(collection, config_fn, unknown=False):
             user_location = user_location.replace(' ',',')
             user_location = user_location.replace('-',',')
             locations = user_location.split(',')
-            locations = set(locations)
-            if not unknown:           
-                identify_location(locations, places_esp, cities, provinces, 
-                                  ccaas, ccaa_province)
-            else:
+            locations = set(locations)    
+            identify_location(locations, places_esp, cities, provinces, 
+                              ccaas, ccaa_province)                
+            if ccaa_province['comunidad_autonoma'] == 'desconocido':
                 identify_unknown_locations(locations, places_esp, cities, provinces,
                                            ccaas, ccaa_province)
+                if ccaa_province['comunidad_autonoma'] == 'desconocido':
+                    if tweet['lang'] == 'ca':
+                        ccaa_province['comunidad_autonoma'] = 'Catalulña'
+                    elif tweet['lang'] == 'eu':
+                        ccaa_province['comunidad_autonoma'] = 'País Vasco'
+                    elif tweet['lang'] == 'gl':
+                        ccaa_province['comunidad_autonoma'] = 'Galicia'
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
