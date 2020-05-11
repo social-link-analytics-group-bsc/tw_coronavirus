@@ -679,8 +679,7 @@ def add_esp_location_flags(collection, config_fn):
     projection = {
         '_id':0,
         'id':1,
-        'user.location':1,
-        'lang':1
+        'user.location':1
     }
     tweets = dbm.find_all(query, projection)
     total_tweets = tweets.count()
@@ -708,7 +707,7 @@ def add_esp_location_flags(collection, config_fn):
                               ccaas, ccaa_province)                
             if ccaa_province['comunidad_autonoma'] == 'desconocido':
                 identify_unknown_locations(locations, places_esp, cities, provinces,
-                                           ccaas, ccaa_province)                
+                                           ccaas, ccaa_province)
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
