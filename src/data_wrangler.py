@@ -15,7 +15,6 @@ from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         get_covid_keywords, get_spain_places_regex, get_spain_places, \
         calculate_remaining_execution_time, get_config
 from utils.sentiment_analyzer import SentimentAnalyzer
-from utils.twitter_api_manager import TwitterAPIManager
 from twarc import Twarc
 
 
