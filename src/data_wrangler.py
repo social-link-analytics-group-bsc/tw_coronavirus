@@ -13,12 +13,16 @@ from utils.language_detector import detect_language
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         get_covid_keywords, get_spain_places_regex, get_spain_places, \
-        calculate_remaining_execution_time
+        calculate_remaining_execution_time, get_config
 from utils.sentiment_analyzer import SentimentAnalyzer
+from utils.twitter_api_manager import TwitterAPIManager
+from twarc import Twarc
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
+
+logging.getLogger("oauthlib").setLevel(logging.WARNING)
 
 
 # set option of preprocessor
@@ -720,5 +724,88 @@ def add_esp_location_flags(collection, config_fn):
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_tweets)
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)
+
+
+def update_metric_tweets(collection, config_fn):
+    config = get_config('config.json')
+    twm = Twarc(config['twitter_api']['consumer_key'], 
+                config['twitter_api']['consumer_secret'],
+                config['twitter_api']['access_token'],
+                config['twitter_api']['access_token_secret'])
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {        
+        #'retweeted_status': {'$exists': 0}
+    }
+    projection = {
+        '_id':0,
+        'id':1
+    }
+    logging.info('Finding tweets...')
+    tweets = dbm.find_all(query, projection)    
+    total_tweets = tweets.count()
+    logging.info('Found {:,} tweets'.format(total_tweets))
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+    processing_counter = total_segs = 0
+    tweet_ids, rts = [], []
+    org_tweets = {}
+
+    # processing tweets
+    logging.info('Processing original tweets...')
+    for tweet in tweets:
+        start_time = time.time()
+        processing_counter += 1        
+        if 'retweeted_status' not in tweet.keys():
+            tweet_ids.append(tweet['id'])
+        else:
+            rts.append({
+                'id': tweet['id'],
+                'parent_id': tweet['retweeted_status']['id']
+            })
+        if len(tweet_ids) == max_batch:
+            logging.info('Hydratating tweets...')
+            update_queries = []
+            for tweet_obj in twm.hydrate(tweet_ids):
+                new_values = {
+                    'retweet_count': tweet_obj['retweet_count'],
+                    'favorite_count': tweet_obj['favorite_count']
+                }
+                org_tweets[tweet_obj['id']] = new_values
+                update_queries.append(
+                    {
+                        'filter': {'id': int(tweet_obj['id'])},
+                        'new_values': new_values
+                    }                        
+                )
+            add_fields(dbm, update_queries)
+            tweet_ids = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)
+
+    # processing rts
+    logging.info('Processing original retweets...')
+    update_queries = []
+    processing_counter = total_segs = 0
+    total_tweets = len(rts)
+    for rt in rts:        
+        if rt['parent_id'] in org_tweets:
+            start_time = time.time()
+            processing_counter += 1
+            update_queries.append(
+                {
+                    'filter': {'id': int(rt['id'])},
+                    'new_values': org_tweets[rt['parent_id']]
+                }                        
+            )
+            if len(update_queries) == max_batch:
+                add_fields(dbm, update_queries)
+                update_queries = []
+            total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                            processing_counter, 
+                                                            total_tweets)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
