@@ -22,7 +22,7 @@ from twarc import Twarc
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
 
-logging.getLogger("oauthlib").setLevel(logging.WARNING)
+logging.getLogger('requests').setLevel(logging.CRITICAL)
 
 
 # set option of preprocessor
