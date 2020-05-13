@@ -765,10 +765,12 @@ def update_metric_tweets(collection, config_fn):
         if len(tweet_ids) == max_batch:
             logging.info('Hydratating tweets...')
             update_queries = []
+            current_date = datetime.now().strftime('%Y-%m-%d')
             for tweet_obj in twm.hydrate(tweet_ids):
                 new_values = {
                     'retweet_count': tweet_obj['retweet_count'],
-                    'favorite_count': tweet_obj['favorite_count']
+                    'favorite_count': tweet_obj['favorite_count'],
+                    'last_metric_update_date': current_date
                 }
                 org_tweets[tweet_obj['id']] = new_values
                 update_queries.append(
