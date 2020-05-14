@@ -771,7 +771,7 @@ def update_metric_tweets(collection, config_fn):
             update_queries = []
             current_date = datetime.today()
             current_date_str = current_date.strftime('%Y-%m-%d')
-            tweet_date = tweet['created_at_date'].strptime('%Y-%m-%d')
+            tweet_date = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
             diff_date = current_date - tweet_date
             next_update_date = current_date + timedelta(days=diff_date.days)
             next_update_date_str = next_update_date.strftime('%Y-%m-%d')
@@ -820,3 +820,4 @@ def update_metric_tweets(collection, config_fn):
                                                             total_tweets)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
+
