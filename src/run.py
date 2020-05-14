@@ -166,13 +166,15 @@ def update_collection(collection_name, source_collection, end_date, start_date,
 @click.argument('collection_name') # Name of collections that contain tweets
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def add_language_flag(collection_name, config_file):
+@click.option('--tweets_date', help='Date of tweets that should be updated', \
+              default=None, is_flag=False)              
+def add_language_flag(collection_name, config_file, tweets_date):
     """
     Add language flags to Spanish tweets
     """
     check_current_directory()
     print('Detecting language')
-    do_add_language_flag(collection_name, config_file)  
+    do_add_language_flag(collection_name, config_file, tweets_date)  
 
 
 @run.command()

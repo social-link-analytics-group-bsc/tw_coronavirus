@@ -507,12 +507,14 @@ def add_fields(dbm, update_queries):
     logging.info('Added fields to {0:,} tweets'.format(modified_tweets))
 
 
-def do_add_language_flag(collection, config_fn=None):
+def do_add_language_flag(collection, config_fn=None, tweets_date=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'lang': 'es',
         'lang_detection': {'$exists': 0}
     }
+    if tweets_date:
+        query['created_at_date'] = tweets_date
     projection = {
         '_id': 0,
         'id': 1,
@@ -735,15 +737,17 @@ def update_metric_tweets(collection, config_fn):
                 config['twitter_api']['access_token_secret'])
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
-        #'retweeted_status': {'$exists': 0}
+        'last_metric_update_date': {'$exists': 0}
     }
     projection = {
         '_id':0,
-        'id':1
+        'id':1,
+        'created_at_date':1
     }
     logging.info('Finding tweets...')
-    tweets = dbm.find_all(query, projection)    
-    total_tweets = tweets.count()
+    tweet_objs = dbm.find_all(query, projection)
+    tweets = [tweet_obj for tweet_obj in tweet_objs]
+    total_tweets = len(tweets)
     logging.info('Found {:,} tweets'.format(total_tweets))
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
     processing_counter = total_segs = 0
@@ -765,12 +769,18 @@ def update_metric_tweets(collection, config_fn):
         if len(tweet_ids) == max_batch:
             logging.info('Hydratating tweets...')
             update_queries = []
-            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_date = datetime.today()
+            current_date_str = current_date.strftime('%Y-%m-%d')
+            tweet_date = tweet['created_at_date'].strptime('%Y-%m-%d')
+            diff_date = current_date - tweet_date
+            next_update_date = current_date + timedelta(days=diff_date.days)
+            next_update_date_str = next_update_date.strftime('%Y-%m-%d')
             for tweet_obj in twm.hydrate(tweet_ids):
                 new_values = {
                     'retweet_count': tweet_obj['retweet_count'],
                     'favorite_count': tweet_obj['favorite_count'],
-                    'last_metric_update_date': current_date
+                    'last_metric_update_date': current_date_str,
+                    'next_metric_update_date': next_update_date_str
                 }
                 org_tweets[tweet_obj['id']] = new_values
                 update_queries.append(
