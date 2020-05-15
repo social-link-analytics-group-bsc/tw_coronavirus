@@ -223,7 +223,7 @@ def update_tweet_metrics(collection_name, config_file):
               default=None, is_flag=False)
 def add_complete_text_flag(collection_name, config_file):
     """
-    A complete_text flad
+    A complete_text flag
     """
     check_current_directory()
     print('Adding complete_text flag')
