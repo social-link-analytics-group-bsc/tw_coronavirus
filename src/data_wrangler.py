@@ -737,8 +737,10 @@ def update_metric_tweets(collection, config_fn):
                 config['twitter_api']['access_token'],
                 config['twitter_api']['access_token_secret'])
     dbm = DBManager(collection=collection, config_fn=config_fn)
+    current_date = datetime.today()
+    current_date_str = current_date.strftime('%Y-%m-%d')
     query = {        
-        'last_metric_update_date': {'$exists': 0}
+        'next_metric_update_date': current_date_str
     }
     projection = {
         '_id':0,
@@ -771,8 +773,6 @@ def update_metric_tweets(collection, config_fn):
         if len(tweet_ids) == max_batch:
             logging.info('Hydratating tweets...')
             update_queries = []
-            current_date = datetime.today()
-            current_date_str = current_date.strftime('%Y-%m-%d')
             tweet_date = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
             diff_date = current_date - tweet_date
             next_update_date = current_date + timedelta(days=diff_date.days)
@@ -844,19 +844,30 @@ def update_metric_tweets(collection, config_fn):
 
 def do_add_complete_text_flag(collection, config_fn):
     dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
-    # add flag complete_text to tweets that do not have the extended_tweet attribute
     logging.info('Adding flag complete_text to tweets that do not have the extended_tweet attribute')
-    ret_update = dbm.update_record_many(
-        {'$and': [{'extended_tweet': {'$exists': 0}}, {'complete_tweet': {'$exists': 0}}]},
-        {'complete_text': '$text'},
-    )
-    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
-                 format(ret_update.matched_count, ret_update.modified_count))
-    # add flag complete_text to tweets that have the extended_tweet attribute
-    logging.info('Adding flag complete_text to tweets that have the extended_tweet attribute')
-    ret_update = dbm.update_record_many(
-        {'$and': [{'extended_tweet': {'$exists': 1}}, {'complete_tweet': {'$exists': 0}}]},
-        {'complete_text': '$extended_tweet.full_text'},
-    )
-    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
-                 format(ret_update.matched_count, ret_update.modified_count))
+    query = {
+        'complete_tweet': {'$exists': 0}
+    }
+    logging.info('Finding tweets...')
+    tweets = dbm.find_all(query, {'_id':0, 'id':1, 'text':1, 'extended_tweet.full_text': 1})
+    total_tweets = tweets.count()
+    logging.info('Found {:,} tweets'.format(total_tweets))
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+    update_queries = []
+    processing_counter = total_segs = 0
+    for tweet in tweets:
+        start_time = time.time()
+        processing_counter += 1
+        complete_text = get_tweet_text(tweet)
+        update_queries.append({
+            'filter': {'id': int(tweet['id'])},
+            'new_values': {'complete_text': complete_text}
+        })
+        if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)
+    if len(update_queries) > 0:
+        add_fields(dbm, update_queries)
