@@ -730,7 +730,8 @@ def add_esp_location_flags(collection, config_fn):
 
 
 def update_metric_tweets(collection, config_fn):
-    config = get_config('config.json')
+    current_path = pathlib.Path(__file__).parent.resolve()
+    config = get_config(os.path.join(current_path, 'config.json'))
     twm = Twarc(config['twitter_api']['consumer_key'], 
                 config['twitter_api']['consumer_secret'],
                 config['twitter_api']['access_token'],
@@ -742,7 +743,8 @@ def update_metric_tweets(collection, config_fn):
     projection = {
         '_id':0,
         'id':1,
-        'created_at_date':1
+        'created_at_date':1,
+        'retweeted_status': 1
     }
     logging.info('Finding tweets...')
     tweet_objs = dbm.find_all(query, projection)
@@ -775,6 +777,7 @@ def update_metric_tweets(collection, config_fn):
             diff_date = current_date - tweet_date
             next_update_date = current_date + timedelta(days=diff_date.days)
             next_update_date_str = next_update_date.strftime('%Y-%m-%d')
+            hydrated_tweet_ids = []
             for tweet_obj in twm.hydrate(tweet_ids):
                 new_values = {
                     'retweet_count': tweet_obj['retweet_count'],
@@ -789,7 +792,13 @@ def update_metric_tweets(collection, config_fn):
                         'new_values': new_values
                     }                        
                 )
-            add_fields(dbm, update_queries)
+                hydrated_tweet_ids.append(tweet_obj['id'])
+            diff_ids = set(tweet_ids) - set(hydrated_tweet_ids)
+            if len(diff_ids) > 0:
+                logging.info('Out of the {} tweets searched to be hydrated, {} '\
+                             'do not exist anymore'.format(len(tweet_ids),len(diff_ids)))
+            if len(update_queries) > 0:
+                add_fields(dbm, update_queries)
             tweet_ids = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
@@ -798,7 +807,7 @@ def update_metric_tweets(collection, config_fn):
         add_fields(dbm, update_queries)
 
     # processing rts
-    logging.info('Processing original retweets...')
+    logging.info('Processing retweets...')
     update_queries = []
     processing_counter = total_segs = 0
     total_tweets = len(rts)
@@ -821,3 +830,22 @@ def update_metric_tweets(collection, config_fn):
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
 
+
+def do_add_complete_text_flag(collection, config_fn):
+    dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
+    # add flag complete_text to tweets that do not have the extended_tweet attribute
+    logging.info('Adding flag complete_text to tweets that do not have the extended_tweet attribute')
+    ret_update = dbm.update_record_many(
+        {'$and': [{'extended_tweet': {'$exists': 0}}, {'complete_tweet': {'$exists': 0}}]},
+        {'complete_text': '$text'},
+    )
+    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
+                 format(ret_update.matched_count, ret_update.modified_count))
+    # add flag complete_text to tweets that have the extended_tweet attribute
+    logging.info('Adding flag complete_text to tweets that have the extended_tweet attribute')
+    ret_update = dbm.update_record_many(
+        {'$and': [{'extended_tweet': {'$exists': 1}}, {'complete_tweet': {'$exists': 0}}]},
+        {'complete_text': '$extended_tweet.full_text'},
+    )
+    logging.info('Out of {0:,} tweets matched, {1:,} of them were updated'.\
+                 format(ret_update.matched_count, ret_update.modified_count))
