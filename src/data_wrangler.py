@@ -793,10 +793,21 @@ def update_metric_tweets(collection, config_fn):
                     }                        
                 )
                 hydrated_tweet_ids.append(tweet_obj['id'])
-            diff_ids = set(tweet_ids) - set(hydrated_tweet_ids)
-            if len(diff_ids) > 0:
-                logging.info('Out of the {} tweets searched to be hydrated, {} '\
-                             'do not exist anymore'.format(len(tweet_ids),len(diff_ids)))
+            miss_ids = set(tweet_ids) - set(hydrated_tweet_ids)
+            logging.info('Out of the {} tweets searched to be hydrated, {} '\
+                         'do not exist anymore'.format(len(tweet_ids),len(miss_ids)))
+            for miss_id in miss_ids:
+                new_values = {
+                    'last_metric_update_date': current_date_str,
+                    'next_metric_update_date': '2080-01-01'
+                }
+                org_tweets[miss_id] = new_values
+                update_queries.append(
+                    {
+                        'filter': {'id': int(miss_id)},
+                        'new_values': new_values
+                    }                        
+                )
             if len(update_queries) > 0:
                 add_fields(dbm, update_queries)
             tweet_ids = []
