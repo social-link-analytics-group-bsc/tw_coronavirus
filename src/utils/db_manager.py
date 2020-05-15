@@ -617,9 +617,9 @@ class DBManager:
                 reduced_tweet['place_country'] = tweet['place']['country']
             if 'retweeted_status' in tweet:
                 reduced_tweet['type'] = 'rt'
-            elif tweet['is_quote_status']:
+            elif 'is_quote_status' in tweet and tweet['is_quote_status']:
                 reduced_tweet['type'] = 'qt'
-            elif tweet['in_reply_to_status_id_str']:
+            elif 'in_reply_to_status_id_str' in tweet and tweet['in_reply_to_status_id_str']:
                 reduced_tweet['type'] = 'rp'
             else:
                 reduced_tweet['type'] = 'og'
