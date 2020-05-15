@@ -11,7 +11,8 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       compute_sentiment_analysis_tweets, identify_duplicates, \
       add_covid_keywords_flag, add_lang_flag, add_place_flag, sentiment_evaluation, \
       update_sentiment_score_fields, do_drop_collection, do_add_language_flag, \
-      add_esp_location_flags, do_add_query_version_flag, update_metric_tweets
+      add_esp_location_flags, do_add_query_version_flag, update_metric_tweets, \
+      do_add_complete_text_flag
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
      do_update_collection
 from network_analysis import NetworkAnalyzer
@@ -214,6 +215,19 @@ def update_tweet_metrics(collection_name, config_file):
     check_current_directory()
     print('Updating metrics of tweets')
     update_metric_tweets(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def add_complete_text_flag(collection_name, config_file):
+    """
+    A complete_text flad
+    """
+    check_current_directory()
+    print('Adding complete_text flag')
+    do_add_complete_text_flag(collection_name, config_file)
 
 
 if __name__ == "__main__":
