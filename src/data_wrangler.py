@@ -739,8 +739,12 @@ def update_metric_tweets(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     current_date = datetime.today()
     current_date_str = current_date.strftime('%Y-%m-%d')
-    query = {        
-        'next_metric_update_date': current_date_str
+    query = {
+        '$or': [
+            {'last_metric_update_date': {'$exists': 0}},
+            {'next_metric_update_date': current_date_str}            
+        ]        
+        
     }
     projection = {
         '_id':0,
