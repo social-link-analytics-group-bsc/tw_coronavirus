@@ -844,7 +844,6 @@ def update_metric_tweets(collection, config_fn):
 
 def do_add_complete_text_flag(collection, config_fn):
     dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
-    logging.info('Adding flag complete_text to tweets that do not have the extended_tweet attribute')
     query = {
         'complete_tweet': {'$exists': 0}
     }
