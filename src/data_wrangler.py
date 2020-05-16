@@ -761,6 +761,7 @@ def update_metric_tweets(collection, config_fn):
     processing_counter = total_segs = 0
     tweet_ids, rts = [], []
     org_tweets = {}
+    update_queries = []
 
     # processing tweets
     logging.info('Processing original tweets...')
