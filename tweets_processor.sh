@@ -80,7 +80,7 @@ then
     echo "[2/6] Running language detection..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'detecting_languages',${start_time}," >> $EVENT_LOG
-    yesterday_date = `date --date=yesterday +%Y-%m-%d`
+    yesterday_date=`date --date=yesterday +%Y-%m-%d`
     python run.py add-language-flag $COLLECTION_NAME --config_file $CONFIG_FILE_NAME --tweets_date $yesterday_date >> $LOGFILE 2>> $ERRORFILE    
 else
     error=1
