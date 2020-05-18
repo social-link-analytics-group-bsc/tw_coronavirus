@@ -850,7 +850,7 @@ def update_metric_tweets(collection, config_fn):
 def do_add_complete_text_flag(collection, config_fn):
     dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
     query = {
-        #'complete_text': {'$exists': 0}
+        'complete_text': {'$exists': 0}
     }
     projection = {
         '_id': 0,
