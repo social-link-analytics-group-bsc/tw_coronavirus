@@ -850,10 +850,17 @@ def update_metric_tweets(collection, config_fn):
 def do_add_complete_text_flag(collection, config_fn):
     dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
     query = {
-        'complete_text': {'$exists': 0}
+        #'complete_text': {'$exists': 0}
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'text': 1,
+        'extended_tweet.full_text': 1,
+        'retweeted_status': 1
     }
     logging.info('Finding tweets...')
-    tweets = dbm.find_all(query, {'_id':0, 'id':1, 'text':1, 'extended_tweet.full_text': 1})
+    tweets = dbm.find_all(query, projection)
     total_tweets = tweets.count()
     logging.info('Found {:,} tweets'.format(total_tweets))
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
@@ -862,7 +869,8 @@ def do_add_complete_text_flag(collection, config_fn):
     for tweet in tweets:
         start_time = time.time()
         processing_counter += 1
-        complete_text = get_tweet_text(tweet)
+        org_tweet = tweet if 'retweeted_status' not in tweet else tweet['retweeted_status']
+        complete_text = get_tweet_text(org_tweet)
         update_queries.append({
             'filter': {'id': int(tweet['id'])},
             'new_values': {'complete_text': complete_text}
