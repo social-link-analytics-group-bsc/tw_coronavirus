@@ -1,6 +1,7 @@
 import csv
 import demoji
 import logging
+import numpy as np
 import pathlib
 import os
 import pandas as pd
@@ -684,9 +685,9 @@ def add_esp_location_flags(collection, config_fn):
     n_places_esp['provincia'] = n_places_esp['provincia'].str.lower().apply(normalize_text)
     n_places_esp['ciudad'] = n_places_esp['ciudad'].str.lower().apply(normalize_text)    
     ccaas = n_places_esp['comunidad autonoma'].unique()
-    provinces = [province for province in n_places_esp['provincia'].unique() if province != '']
-    cities = [city for city in n_places_esp['ciudad'].unique() if city != '']
-    
+    provinces = [province for province in n_places_esp['provincia'].unique() if isinstance(province, str) and province != '']
+    cities = [city for city in n_places_esp['ciudad'].unique() if isinstance(city, str) and city != '']
+
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
         'comunidad_autonoma': {'$exists': 0}

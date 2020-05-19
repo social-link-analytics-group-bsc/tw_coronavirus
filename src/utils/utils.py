@@ -90,4 +90,7 @@ def get_covid_keywords():
 
 
 def normalize_text(text):
-    return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode()
+    if isinstance(text,str):
+        return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode()
+    else:
+        return text
