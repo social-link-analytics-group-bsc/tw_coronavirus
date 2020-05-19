@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import time
+import unicodedata
 
 from datetime import datetime, timedelta
 
@@ -86,3 +87,7 @@ def get_covid_keywords():
             if line not in covid_keywords:
                 covid_keywords.append(line.replace('\n',''))
     return covid_keywords
+
+
+def normalize_text(text):
+    return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode()
