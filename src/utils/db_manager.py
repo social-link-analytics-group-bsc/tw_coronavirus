@@ -560,7 +560,7 @@ class DBManager:
                     {'$sort': {'date': 1}}]
         results.extend(self.aggregate(pipeline))
         return results
-    
+
     def insert_tweet(self, tweet):
         """
         Save a tweet in the database
@@ -634,3 +634,15 @@ class DBManager:
             reduced_tweets.append(reduced_tweet)
         
         return reduced_tweets
+    
+    def get_sample(self, sample_size, projection=None):
+        pipeline = [
+            {'$sample': {'size': int(sample_size)}}
+        ]
+        if projection:
+            pipeline.append(
+                {
+                    '$project': projection
+                }
+            )
+        return self.aggregate(pipeline)
