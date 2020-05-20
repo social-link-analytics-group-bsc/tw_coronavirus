@@ -1,5 +1,6 @@
 import csv
 import demoji
+import json
 import logging
 import numpy as np
 import pathlib
@@ -869,7 +870,7 @@ def update_metric_tweets(collection, config_fn):
 
 
 def do_add_complete_text_flag(collection, config_fn):
-    dbm = DBManager(collection='processed', config_fn='config_mongo_inb.json')
+    dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'complete_text': {'$exists': 0}
     }
@@ -904,3 +905,4 @@ def do_add_complete_text_flag(collection, config_fn):
                                                         total_tweets)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
+        
