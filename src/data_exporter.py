@@ -1,6 +1,8 @@
 import csv
+import json
 import logging
 import pathlib
+import os
 
 from random import seed, random
 from utils.db_manager import DBManager
@@ -59,7 +61,6 @@ def save_tweet_sentiment_scores_to_csv(sentiment_file):
             csv_writer.writerow(tweet_selected)
 
 
-
 def save_tweet_sentiments_to_csv():
     dbm = DBManager(collection='tweets_esp_hpai')
     sentiment_tweets = dbm.search({'sentiment_score': {'$exists': 1}})
@@ -111,4 +112,35 @@ def save_tweet_sentiments_to_csv():
             csv_writer.writerow(positive_tweets[i])
             csv_writer.writerow(negative_tweets[i])
             csv_writer.writerow(neutral_tweets[i])
-    
+
+
+def export_tweet_sample(sample_size, collection, config_file=None, output_filename=None):
+    current_path = pathlib.Path(__file__).parents[1].resolve()
+    if not output_filename:
+        output_filename = 'tweet_sample.jsonl'
+    output = os.path.join(current_path, 'data', output_filename)
+    dbm = DBManager(collection=collection, config_fn=config_file)    
+    projection = {
+        '_id': 0, 
+        'created_at_date': 0,
+        'created_at_js': 0,
+        'timestamp_ms': 0,
+        'sentiment': 0,
+        'lang_detection': 0,
+        'comunidad_autonoma': 0,
+        'provincia': 0,
+        'query_version': 0,
+        'last_metric_update': 0,
+        'next_metric_update': 0,
+        'complete_text': 0
+    }
+    logging.info('Getting sample, please wait...')
+    tweets = dbm.get_sample(int(sample_size), projection)
+    total_tweets = len(tweets)
+    logging.info('Saving {} tweets to file'.format(total_tweets))
+    with open(output, 'w') as f:
+        for i in range(total_tweets):
+            logging.info('[{0}/{1}] Saving tweet: {2}'.format((i+1), total_tweets, tweets[i]['id_str']))
+            json.dump(tweets[i], f)
+            if i < (total_tweets-1):
+                f.write('\n')
