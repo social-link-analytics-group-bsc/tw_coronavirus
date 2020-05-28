@@ -6,6 +6,7 @@ import pathlib
 import re
 import time
 import unicodedata
+import urllib.request
 
 from datetime import datetime, timedelta
 
@@ -94,3 +95,16 @@ def normalize_text(text):
         return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode()
     else:
         return text
+
+
+def exists_user(user):
+    """
+    Check if the given user still exists
+    """
+    logging.info('Checking if the user {} still exists'.format(user['screen_name']))
+    img_url = user['profile_image_url_https']
+    try:
+        _ = urllib.request.urlopen(img_url)
+        return True
+    except urllib.error.HTTPError as err:
+        return False
