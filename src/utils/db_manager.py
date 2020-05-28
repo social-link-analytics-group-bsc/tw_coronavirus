@@ -132,9 +132,16 @@ class DBManager:
         query = {'user.screen_name': author_screen_name}
         return self.search(query)
 
-    def find_all(self, query={}, projection=None):
-        if projection:
+    def find_all(self, query={}, projection=None, sort=None):
+        order_by = []
+        for clause in sort:
+            order_by.append((clause['key'], clause['direction']))
+        if projection and sort:
+            return self.__db[self.__collection].find(query, projection).sort(order_by)
+        elif projection and not sort:
             return self.__db[self.__collection].find(query, projection)
+        elif not projection and sort:
+            return self.__db[self.__collection].find(query).sort(order_by)
         else:
             return self.__db[self.__collection].find(query)
 
@@ -227,7 +234,7 @@ class DBManager:
         pipeline = [
             {
                 '$group': {
-                    '_id': '$user.id_str',
+                    '_id': '$user.id',
                     'screen_name': {'$first': '$user.screen_name'},
                     'verified': {'$first': '$user.verified'},
                     'location': {'$first': '$user.location'},
@@ -244,84 +251,14 @@ class DBManager:
                     'default_profile_image': {'$last': '$user.default_profile_image'},
                     'favourites_count': {'$last': '$user.favourites_count'},
                     'listed_count': {'$last': '$user.listed_count'},
-                    'tweets_count': {'$sum': 1},
-                    'tweets': {'$push': {'text': '$text',
-                                         'mentions': '$entities.user_mentions',
-                                         'quote': '$quoted_status_id',
-                                         'quoted_user_id': '$quoted_status.user.screen_name',
-                                         'reply': '$in_reply_to_status_id_str',
-                                         'replied_user_id': '$in_reply_to_screen_name',
-                                         'retweet': '$retweeted_status.id_str',
-                                         'retweeted_user_id': '$retweeted_status.user.screen_name'
-                                         }
-                                }
+                    'tweets_count': {'$sum': 1}
                 }
             },
             {
                 '$sort': {'tweets_count': -1}
             }
         ]
-        results = self.aggregate(pipeline)
-        # calculate the number of rts, rps, and qts
-        # compute the users' interactions
-        for result in results:
-            ret_tweets = result['tweets']
-            rt_count = 0
-            qt_count = 0
-            rp_count = 0
-            interactions = defaultdict(dict)
-            for tweet in ret_tweets:
-                if 'retweet' in tweet.keys():
-                    rt_count += 1
-                    user_id = tweet['retweeted_user_id']
-                    if user_id in interactions.keys():
-                        interactions[user_id]['total'] += 1
-                        if 'retweets' in interactions[user_id].keys():
-                            interactions[user_id]['retweets'] += 1
-                        else:
-                            interactions[user_id].update({'retweets': 1})
-                    else:
-                        interactions[user_id] = {'retweets': 1, 'total': 1}
-                elif 'quote' in tweet.keys():
-                    qt_count += 1
-                    user_id = tweet['quoted_user_id']
-                    if user_id in interactions.keys():
-                        interactions[user_id]['total'] += 1
-                        if 'quotes' in interactions[user_id].keys():
-                            interactions[user_id]['quotes'] += 1
-                        else:
-                            interactions[user_id].update({'quotes': 1})
-                    else:
-                        interactions[user_id] = {'quotes': 1, 'total': 1}
-                elif tweet['reply'] or tweet['replied_user_id']:
-                    rp_count += 1
-                    user_id = tweet['replied_user_id']
-                    if user_id in interactions.keys():
-                        interactions[user_id]['total'] += 1
-                        if 'replies' in interactions[user_id].keys():
-                            interactions[user_id]['replies'] += 1
-                        else:
-                            interactions[user_id].update({'replies': 1})
-                    else:
-                        interactions[user_id] = {'replies': 1, 'total': 1}
-                else:
-                    if 'mentions' in tweet.keys():
-                        mentions = tweet['mentions']
-                        for mention in mentions:
-                            user_id = mention['screen_name']
-                            if user_id in interactions.keys():
-                                interactions[user_id]['total'] += 1
-                                if 'mentions' in interactions[user_id].keys():
-                                    interactions[user_id]['mentions'] += 1
-                                else:
-                                    interactions[user_id].update({'mentions': 1})
-                            else:
-                                interactions[user_id] = {'mentions': 1, 'total': 1}
-            result['retweets_count'] = rt_count
-            result['quotes_count'] = qt_count
-            result['replies_count'] = rp_count
-            result['original_count'] = result['tweets_count'] - (rt_count+qt_count+rp_count)
-            result['interactions'] = interactions
+        results = self.__db[self.__collection].aggregate(pipeline, allowDiskUse=True)
         return results
     
     def get_id_duplicated_tweets(self):
@@ -594,9 +531,8 @@ class DBManager:
             return False
 
 
-    def insert_many_tweets(self, tweets, ordered=True):
-        return self.__db[self.__collection].insert_many(tweets, 
-                                                        ordered=ordered)
+    def insert_many(self, docs, ordered=True):
+        return self.__db[self.__collection].insert_many(docs, ordered=ordered)
         
 
     def get_tweets_reduced(self, filters={}, projection={}):        
@@ -635,10 +571,16 @@ class DBManager:
         
         return reduced_tweets
     
-    def get_sample(self, sample_size, projection=None):
+    def get_sample(self, sample_size, query_filter=None, projection=None):
         pipeline = [
             {'$sample': {'size': int(sample_size)}}
         ]
+        if query_filter:
+            pipeline.append(
+                {
+                    '$match': query_filter
+                }
+            )
         if projection:
             pipeline.append(
                 {
