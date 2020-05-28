@@ -5,7 +5,7 @@ import pathlib
 import sys
 
 from data_exporter import save_tweet_sentiments_to_csv, \
-      save_tweet_sentiment_scores_to_csv
+      save_tweet_sentiment_scores_to_csv, export_user_sample
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       check_datasets_intersection, check_performance_language_detection, \
       compute_sentiment_analysis_tweets, identify_duplicates, \
@@ -223,11 +223,27 @@ def update_tweet_metrics(collection_name, config_file):
               default=None, is_flag=False)
 def add_complete_text_flag(collection_name, config_file):
     """
-    A complete_text flag
+    Add complete_text flag
     """
     check_current_directory()
     print('Adding complete_text flag')
     do_add_complete_text_flag(collection_name, config_file)
+
+
+@run.command()
+@click.argument('sample_size') # Sample size
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+@click.option('--output_file', help='Name of file where to save the output', \
+              default=None, is_flag=False)
+def extract_user_sample(sample_size, collection_name, config_file, output_file):
+    """
+    Extract sample of tweets and save it into a json file
+    """
+    check_current_directory()
+    print('Extracting sample of users')
+    export_user_sample(sample_size, collection_name, config_file, output_file)
 
 
 if __name__ == "__main__":
