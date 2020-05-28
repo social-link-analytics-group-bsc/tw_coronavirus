@@ -7,6 +7,7 @@ import os
 from random import seed, random
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
+from utils.utils import exists_user
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
@@ -114,33 +115,30 @@ def save_tweet_sentiments_to_csv():
             csv_writer.writerow(neutral_tweets[i])
 
 
-def export_tweet_sample(sample_size, collection, config_file=None, output_filename=None):
-    current_path = pathlib.Path(__file__).parents[1].resolve()
+def export_user_sample(sample_size, collection, config_file=None, output_filename=None):
+    root_dir = pathlib.Path(__file__).parents[1].resolve()
     if not output_filename:
-        output_filename = 'tweet_sample.jsonl'
-    output = os.path.join(current_path, 'data', output_filename)
-    dbm = DBManager(collection=collection, config_fn=config_file)    
+        output_filename = 'user_sample.jsonl'
+    output = os.path.join(root_dir, 'data', output_filename)
+    dbm = DBManager(collection=collection, config_fn=config_file)
+    query_filter = {
+        'lang': 'es'
+    }    
     projection = {
         '_id': 0, 
-        'created_at_date': 0,
-        'created_at_js': 0,
-        'timestamp_ms': 0,
-        'sentiment': 0,
-        'lang_detection': 0,
-        'comunidad_autonoma': 0,
-        'provincia': 0,
-        'query_version': 0,
-        'last_metric_update': 0,
-        'next_metric_update': 0,
-        'complete_text': 0
+        'user': 1
     }
-    logging.info('Getting sample, please wait...')
-    tweets = dbm.get_sample(int(sample_size), projection)
+    logging.info('Getting sample of users, please wait...')
+    tweets = dbm.get_sample(int(sample_size), query_filter, projection)
     total_tweets = len(tweets)
-    logging.info('Saving {} tweets to file'.format(total_tweets))
+    logging.info('Found {} users'.format(total_tweets))
+    saved_tweets = 0
     with open(output, 'w') as f:
         for i in range(total_tweets):
-            logging.info('[{0}/{1}] Saving tweet: {2}'.format((i+1), total_tweets, tweets[i]['id_str']))
-            json.dump(tweets[i], f)
-            if i < (total_tweets-1):
-                f.write('\n')
+            user_obj = tweets[i]['user']
+            if exists_user(user_obj):            
+                saved_tweets += 1
+                logging.info('[{0}] Saving user: {1}'.format(saved_tweets, user_obj['screen_name']))
+                json.dump(user_obj, f)
+                if i < (total_tweets-1):
+                    f.write('\n')            
