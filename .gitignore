@@ -141,3 +141,5 @@ data/bsc
 reports
 
 log
+
+src/utils/twitter_cache
