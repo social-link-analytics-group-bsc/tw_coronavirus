@@ -1081,7 +1081,7 @@ def do_update_users_collection(collection, config_fn):
             if len(users_to_insert) >= max_batch:
                 logging.info('Inserting {} users'.format(len(users_to_insert)))                
                 dbm_users.insert_many(process_user_batch(twm, users_to_insert))
-                users_to_insert = []
+                users_to_insert = {}
             if len(users_to_update) >= max_batch:
                 logging.info('Updating {} users'.format(len(users_to_update)))
                 processed_users = process_user_batch(twm, users_to_update)
@@ -1091,7 +1091,7 @@ def do_update_users_collection(collection, config_fn):
                         'new_values': processed_user
                     })
                 add_fields(dbm_users, user_update_queries)
-                users_to_update = []
+                users_to_update = {}
             if len(tweet_update_queries) >= max_batch:
                 logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
                 add_fields(dbm, tweet_update_queries)
