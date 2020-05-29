@@ -920,7 +920,7 @@ def get_tweet_type(tweet):
     return tweet_type
 
 
-def add_tweet_type_flag(collection, config_fn):
+def do_add_tweet_type_flag(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'type': {'$exists': 0}
