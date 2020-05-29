@@ -752,13 +752,18 @@ def add_esp_location_flags(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
-def update_metric_tweets(collection, config_fn):
+def get_twm_obj():
     current_path = pathlib.Path(__file__).parent.resolve()
     config = get_config(os.path.join(current_path, 'config.json'))
     twm = Twarc(config['twitter_api']['consumer_key'], 
                 config['twitter_api']['consumer_secret'],
                 config['twitter_api']['access_token'],
                 config['twitter_api']['access_token_secret'])
+    return twc
+
+
+def update_metric_tweets(collection, config_fn):    
+    twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     current_date = datetime.today()
     current_date_str = current_date.strftime('%Y-%m-%d')
@@ -957,7 +962,27 @@ def do_add_tweet_type_flag(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
+def check_status_users(twm, user_ids):
+    existing_users = []
+    for user in twm.user_lookup(user_ids, id_type="user_id"):
+        existing_users.append(str(user['id']))
+    return existing_users
+
+
+def process_user_batch(twm, users_batch):
+    processed_records = []
+    existing_users = check_status_users(twm, users_batch.keys())
+    for user_id, user_dict in users_batch.items():
+        if user_id in existing_users:
+            user_dict['exists'] = 1
+        else:
+            user_dict['exists'] = 0
+        processed_records.append(user_dict)
+    return processed_records
+
+
 def do_update_users_collection(collection, config_fn):
+    twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
@@ -989,14 +1014,13 @@ def do_update_users_collection(collection, config_fn):
         if total_tweets == 0:
             break
         max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
-        user_update_queries, tweet_update_queries, insert_queries = [], [], []
+        user_update_queries, tweet_update_queries = [], []
         users_to_insert, users_to_update = {}, {}
         # Iterate over page
         for tweet in tweets:
             start_time = time.time()
             processing_counter += 1
             user = tweet['user']
-            does_user_exists = exists_user(user)
             user_obj = dbm_users.find_record({'id': int(user['id'])})
             tweet_type = get_tweet_type(tweet)
             if user_obj:
@@ -1006,7 +1030,7 @@ def do_update_users_collection(collection, config_fn):
                     user_to_update = user_obj                            
                 else:
                     user_to_update = users_to_update[user['id_str']]                            
-                user_to_update['exists'] = does_user_exists
+                user_to_update['exists'] = 0
                 user_to_update['total_tweets'] += 1
                 user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_update['provincia'] = tweet['provincia']
@@ -1025,7 +1049,7 @@ def do_update_users_collection(collection, config_fn):
                 # in the batch or not
                 if user['id_str'] not in users_to_insert:                
                     new_fields = {
-                        'exists': does_user_exists,
+                        'exists': 0,
                         'total_tweets': 1,
                         'retweets': 0,
                         'replies': 0,
@@ -1038,7 +1062,6 @@ def do_update_users_collection(collection, config_fn):
                     user_to_insert = user
                 else:
                     user_to_insert = users_to_insert[user['id_str']]
-                user_to_insert['exists'] = does_user_exists
                 user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_insert['provincia'] = tweet['provincia']
                 if tweet_type == 'retweet':
@@ -1055,19 +1078,16 @@ def do_update_users_collection(collection, config_fn):
                 'new_values': {'processed_user': 1}
             })
             if len(users_to_insert) >= max_batch:
-                logging.info('Inserting {} users'.format(len(users_to_insert)))
-                insert_queries = []
-                for _, user_to_insert in users_to_insert.items():
-                    insert_queries.append(user_to_insert)            
-                dbm_users.insert_many(insert_queries)
+                logging.info('Inserting {} users'.format(len(users_to_insert)))                
+                dbm_users.insert_many(process_user_batch(twm, users_to_insert))
                 users_to_insert = []
             if len(users_to_update) >= max_batch:
                 logging.info('Updating {} users'.format(len(users_to_update)))
-                user_update_queries = []
-                for _, user_to_update in users_to_update.items():
+                processed_users = process_user_batch(twm, users_to_update)
+                for processed_user in processed_users:
                     user_update_queries.append({
-                        'filter': {'id': int(user_to_update['id'])},
-                        'new_values': user_to_update
+                        'filter': {'id': int(processed_user['id'])},
+                        'new_values': processed_user
                     })
                 add_fields(dbm_users, user_update_queries)
                 users_to_update = []
@@ -1080,17 +1100,14 @@ def do_update_users_collection(collection, config_fn):
                                                             total_tweets)
         if len(users_to_insert) > 0:
             logging.info('Inserting {} users'.format(len(users_to_insert)))
-            insert_queries = []
-            for _, user_to_insert in users_to_insert.items():
-                insert_queries.append(user_to_insert)
-            dbm_users.insert_many(insert_queries)
+            dbm_users.insert_many(process_user_batch(twm, users_to_insert))
         if len(users_to_update) > 0:
             logging.info('Updating {} users'.format(len(users_to_update)))
-            user_update_queries = []
-            for _, user_to_update in users_to_update.items():
+            processed_users = process_user_batch(twm, users_to_update)
+            for processed_user in processed_users:
                 user_update_queries.append({
-                    'filter': {'id': int(user_to_update['id'])},
-                    'new_values': user_to_update
+                    'filter': {'id': int(processed_user['id'])},
+                    'new_values': processed_user
                 })
             add_fields(dbm_users, user_update_queries)
         if len(tweet_update_queries) > 0:
