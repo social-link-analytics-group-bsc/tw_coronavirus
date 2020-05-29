@@ -957,7 +957,7 @@ def do_add_tweet_type_flag(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
-def update_users_collection(collection, config_fn):
+def do_update_users_collection(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
@@ -1096,7 +1096,3 @@ def update_users_collection(collection, config_fn):
         if len(tweet_update_queries) > 0:
             logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
             add_fields(dbm, tweet_update_queries)
-
-
-if __name__ == "__main__":
-    update_users_collection('processed', 'src/config_mongo_inb.json')
