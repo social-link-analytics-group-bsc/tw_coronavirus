@@ -974,85 +974,117 @@ def update_users_collection(collection, config_fn):
         'provincia': 1
     }
     sort = [{'key': 'created_at_date', 'direction': 1}]
-    logging.info('Retrieving tweets...')
-    tweet_objs = dbm.find_all(query, projection, sort)
-    tweets = [tweet_obj for tweet_obj in tweet_objs]
-    total_tweets = len(tweets)
-    logging.info('Found {:,} tweets'.format(total_tweets))
-    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
-    user_update_queries, tweet_update_queries, insert_queries = [], [], []
-    users_to_insert, users_to_update = {}, {}
+    PAGE_SIZE = 50000
+    page_num = 0
+    records_to_read = True
     processing_counter = total_segs = 0
-    for tweet in tweets:
-        start_time = time.time()
-        processing_counter += 1
-        user = tweet['user']
-        does_user_exists = exists_user(user)
-        user_obj = dbm_users.find_record({'id': int(user['id'])})
-        tweet_type = get_tweet_type(tweet)
-        if user_obj:
-            # it the user exists in the database, she might exists already
-            # in the batch or not
-            if user['id_str'] not in users_to_update:
-                user_to_update = user_obj                            
+    while records_to_read:
+        page_num += 1
+        pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+        logging.info('Retrieving tweets...')
+        tweet_objs = dbm.find_all(query, projection, sort, pagination)
+        tweets = [tweet_obj for tweet_obj in tweet_objs]
+        total_tweets = len(tweets)
+        logging.info('Found {:,} tweets'.format(total_tweets))
+        if total_tweets == 0:
+            break
+        max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+        user_update_queries, tweet_update_queries, insert_queries = [], [], []
+        users_to_insert, users_to_update = {}, {}
+        # Iterate over page
+        for tweet in tweets:
+            start_time = time.time()
+            processing_counter += 1
+            user = tweet['user']
+            does_user_exists = exists_user(user)
+            user_obj = dbm_users.find_record({'id': int(user['id'])})
+            tweet_type = get_tweet_type(tweet)
+            if user_obj:
+                # it the user exists in the database, she might exists already
+                # in the batch or not
+                if user['id_str'] not in users_to_update:
+                    user_to_update = user_obj                            
+                else:
+                    user_to_update = users_to_update[user['id_str']]                            
+                user_to_update['exists'] = does_user_exists
+                user_to_update['total_tweets'] += 1
+                user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
+                user_to_update['provincia'] = tweet['provincia']
+                if tweet_type == 'retweet':
+                    user_to_update['retweets'] += 1
+                elif tweet_type == 'reply':
+                    user_to_update['replies'] += 1
+                elif tweet_type == 'quote':
+                    user_to_update['quotes'] += 1
+                else:
+                    user_to_update['originals'] += 1
+                users_to_update[user['id_str']] = user_to_update            
+                logging.info('Updating the user {}'.format(user['screen_name']))
             else:
-                user_to_update = users_to_update[user['id_str']]                            
-            user_to_update['exists'] = does_user_exists
-            user_to_update['total_tweets'] += 1
-            user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
-            user_to_update['provincia'] = tweet['provincia']
-            if tweet_type == 'retweet':
-                user_to_update['retweets'] += 1
-            elif tweet_type == 'reply':
-                user_to_update['replies'] += 1
-            elif tweet_type == 'quote':
-                user_to_update['quotes'] += 1
-            else:
-                user_to_update['originals'] += 1
-            users_to_update[user['id_str']] = user_to_update            
-            logging.info('Updating the user {}'.format(user['screen_name']))
-        else:
-            # it the users does not exists in the database, she might exists already
-            # in the batch or not
-            if user['id_str'] not in users_to_insert:                
-                new_fields = {
-                    'exists': does_user_exists,
-                    'total_tweets': 1,
-                    'retweets': 0,
-                    'replies': 0,
-                    'quotes': 0,
-                    'originals': 0,
-                    'comunidad_autonoma': tweet['comunidad_autonoma'],
-                    'provincia': tweet['provincia']
-                }
-                user.update(new_fields)            
-                user_to_insert = user
-            else:
-                user_to_insert = users_to_insert[user['id_str']]
-            user_to_insert['exists'] = does_user_exists
-            user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
-            user_to_insert['provincia'] = tweet['provincia']
-            if tweet_type == 'retweet':
-                user_to_insert['retweets'] += 1
-            elif tweet_type == 'reply':
-                user_to_insert['replies'] += 1
-            elif tweet_type == 'quote':
-                user_to_insert['quotes'] += 1
-            else:
-                user_to_insert['originals'] += 1            
-            logging.info('Adding the user {}'.format(user['screen_name']))
-        tweet_update_queries.append({
-            'filter': {'id': int(tweet['id'])},
-            'new_values': {'processed_user': 1}
-        })
-        if len(users_to_insert) >= max_batch:
+                # it the users does not exists in the database, she might exists already
+                # in the batch or not
+                if user['id_str'] not in users_to_insert:                
+                    new_fields = {
+                        'exists': does_user_exists,
+                        'total_tweets': 1,
+                        'retweets': 0,
+                        'replies': 0,
+                        'quotes': 0,
+                        'originals': 0,
+                        'comunidad_autonoma': tweet['comunidad_autonoma'],
+                        'provincia': tweet['provincia']
+                    }
+                    user.update(new_fields)            
+                    user_to_insert = user
+                else:
+                    user_to_insert = users_to_insert[user['id_str']]
+                user_to_insert['exists'] = does_user_exists
+                user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
+                user_to_insert['provincia'] = tweet['provincia']
+                if tweet_type == 'retweet':
+                    user_to_insert['retweets'] += 1
+                elif tweet_type == 'reply':
+                    user_to_insert['replies'] += 1
+                elif tweet_type == 'quote':
+                    user_to_insert['quotes'] += 1
+                else:
+                    user_to_insert['originals'] += 1            
+                logging.info('Adding the user {}'.format(user['screen_name']))
+            tweet_update_queries.append({
+                'filter': {'id': int(tweet['id'])},
+                'new_values': {'processed_user': 1}
+            })
+            if len(users_to_insert) >= max_batch:
+                logging.info('Inserting {} users'.format(len(users_to_insert)))
+                insert_queries = []
+                for _, user_to_insert in users_to_insert.items():
+                    insert_queries.append(user_to_insert)            
+                dbm_users.insert_many(insert_queries)
+                users_to_insert = []
+            if len(users_to_update) >= max_batch:
+                logging.info('Updating {} users'.format(len(users_to_update)))
+                user_update_queries = []
+                for _, user_to_update in users_to_update.items():
+                    user_update_queries.append({
+                        'filter': {'id': int(user_to_update['id'])},
+                        'new_values': user_to_update
+                    })
+                add_fields(dbm_users, user_update_queries)
+                users_to_update = []
+            if len(tweet_update_queries) >= max_batch:
+                logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
+                add_fields(dbm, tweet_update_queries)
+                tweet_update_queries = []
+            total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                            processing_counter, 
+                                                            total_tweets)
+        if len(users_to_insert) > 0:
             logging.info('Inserting {} users'.format(len(users_to_insert)))
             insert_queries = []
             for _, user_to_insert in users_to_insert.items():
-                insert_queries.append(user_to_insert)            
+                insert_queries.append(user_to_insert)
             dbm_users.insert_many(insert_queries)
-            users_to_insert = []
-        if len(users_to_update) >= max_batch:
+        if len(users_to_update) > 0:
             logging.info('Updating {} users'.format(len(users_to_update)))
             user_update_queries = []
             for _, user_to_update in users_to_update.items():
@@ -1061,33 +1093,10 @@ def update_users_collection(collection, config_fn):
                     'new_values': user_to_update
                 })
             add_fields(dbm_users, user_update_queries)
-            users_to_update = []
-        if len(tweet_update_queries) >= max_batch:
+        if len(tweet_update_queries) > 0:
             logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
             add_fields(dbm, tweet_update_queries)
-            tweet_update_queries = []
-        total_segs = calculate_remaining_execution_time(start_time, total_segs,
-                                                        processing_counter, 
-                                                        total_tweets)
-    if len(users_to_insert) > 0:
-        logging.info('Inserting {} users'.format(len(users_to_insert)))
-        insert_queries = []
-        for _, user_to_insert in users_to_insert.items():
-            insert_queries.append(user_to_insert)
-        dbm_users.insert_many(insert_queries)
-    if len(users_to_update) > 0:
-        logging.info('Updating {} users'.format(len(users_to_update)))
-        user_update_queries = []
-        for _, user_to_update in users_to_update.items():
-            user_update_queries.append({
-                'filter': {'id': int(user_to_update['id'])},
-                'new_values': user_to_update
-            })
-        add_fields(dbm_users, user_update_queries)
-    if len(tweet_update_queries) > 0:
-        logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
-        add_fields(dbm, tweet_update_queries)
 
 
 if __name__ == "__main__":
-    update_users_collection('processed', 'config_mongo_inb.json')
+    update_users_collection('processed', 'src/config_mongo_inb.json')
