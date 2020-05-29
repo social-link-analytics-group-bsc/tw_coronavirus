@@ -22,6 +22,7 @@ ENV_DIR="${PROJECT_DIR}/env"
 COLLECTION_NAME='processed'
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
+NUM_TASKS=7
 error=0
 
 ####
@@ -61,7 +62,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     cd src
-    echo "[1/6] Running sentiment analysis..."
+    echo "[1/${NUM_TASKS}] Running sentiment analysis..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'analyzing_sentiments',${start_time}," >> $EVENT_LOG
     python run.py preprocess $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE    
@@ -77,7 +78,7 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
-    echo "[2/6] Running language detection..."
+    echo "[2/${NUM_TASKS}] Running language detection..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'detecting_languages',${start_time}," >> $EVENT_LOG
     yesterday_date=`date --date=yesterday +%Y-%m-%d`
@@ -93,7 +94,7 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'detecting_languages',,${end_time}" >> $EVENT_LOG
-    echo "[3/6] Adding Spain location flags..."
+    echo "[3/${NUM_TASKS}] Adding Spain location flags..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_locations',${start_time}," >> $EVENT_LOG
     python run.py add-location-flags $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
@@ -109,7 +110,7 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_locations',,${end_time}" >> $EVENT_LOG
-    echo "[4/6] Adding query version flag..."
+    echo "[4/${NUM_TASKS}] Adding query version flag..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_query_versions',${start_time}," >> $EVENT_LOG
     python run.py add-query-version-flag $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
@@ -124,7 +125,7 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_query_versions',,${end_time}" >> $EVENT_LOG
-    echo "[5/6] Adding complete text flag..."
+    echo "[5/${NUM_TASKS}] Adding complete text flag..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_complete_text',${start_time}," >> $EVENT_LOG
     python run.py add-complete-text-flag $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
@@ -139,7 +140,7 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'adding_complete_text',,${end_time}" >> $EVENT_LOG
-    echo "[6/6] Updating metrics..."
+    echo "[6/${NUM_TASKS}] Updating metrics..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'updating_metrics',${start_time}," >> $EVENT_LOG
     python run.py update-tweet-metrics $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
@@ -147,10 +148,25 @@ else
     error=1
 fi
 
+####
+# Add tweet type flag
+####
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
+    echo "[7/${NUM_TASKS}] Adding tweet type flag..."
+    start_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'add_type_flag',${start_time}," >> $EVENT_LOG
+    python run.py add-tweet-type-flag $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+else
+    error=1
+fi
+
+if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
+then
+    end_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'add_type_flag',,${end_time}" >> $EVENT_LOG
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'finished_processor',,${end_time}" >> $EVENT_LOG
 else
