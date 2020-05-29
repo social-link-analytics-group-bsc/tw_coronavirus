@@ -1071,7 +1071,8 @@ def do_update_users_collection(collection, config_fn):
                 elif tweet_type == 'quote':
                     user_to_insert['quotes'] += 1
                 else:
-                    user_to_insert['originals'] += 1            
+                    user_to_insert['originals'] += 1
+                users_to_insert[user['id_str']] = user_to_insert           
                 logging.info('Adding the user {}'.format(user['screen_name']))
             tweet_update_queries.append({
                 'filter': {'id': int(tweet['id'])},
@@ -1098,6 +1099,9 @@ def do_update_users_collection(collection, config_fn):
             total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                             processing_counter, 
                                                             total_tweets)
+            logging.info('Total users to insert: {0:,} - Total users to update: '\
+                         '{1:,} - Total tweets to update: {2:,}'.\
+                          format(len(users_to_insert), len(users_to_update), len(tweet_update_queries)))
         if len(users_to_insert) > 0:
             logging.info('Inserting {} users'.format(len(users_to_insert)))
             dbm_users.insert_many(process_user_batch(twm, users_to_insert))
