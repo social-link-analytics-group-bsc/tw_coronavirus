@@ -134,8 +134,9 @@ class DBManager:
 
     def find_all(self, query={}, projection=None, sort=None, pagination=None):
         order_by = []
-        for clause in sort:
-            order_by.append((clause['key'], clause['direction']))
+        if sort:
+            for clause in sort:
+                order_by.append((clause['key'], clause['direction']))
         if pagination:
             skips = pagination['page_size'] * (pagination['page_num']-1)
         if projection and sort and pagination:            
