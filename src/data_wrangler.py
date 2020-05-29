@@ -759,7 +759,7 @@ def get_twm_obj():
                 config['twitter_api']['consumer_secret'],
                 config['twitter_api']['access_token'],
                 config['twitter_api']['access_token_secret'])
-    return twc
+    return twm
 
 
 def update_metric_tweets(collection, config_fn):    
