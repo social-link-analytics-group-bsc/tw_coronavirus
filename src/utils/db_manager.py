@@ -132,16 +132,31 @@ class DBManager:
         query = {'user.screen_name': author_screen_name}
         return self.search(query)
 
-    def find_all(self, query={}, projection=None, sort=None):
+    def find_all(self, query={}, projection=None, sort=None, pagination=None):
         order_by = []
         for clause in sort:
             order_by.append((clause['key'], clause['direction']))
-        if projection and sort:
-            return self.__db[self.__collection].find(query, projection).sort(order_by)
-        elif projection and not sort:
+        if pagination:
+            skips = pagination['page_size'] * (pagination['page_num']-1)
+        if projection and sort and pagination:            
+            return self.__db[self.__collection].find(query, projection).\
+                skip(skips).limit(pagination['page_size']).sort(order_by)
+        elif projection and pagination and not sort:
+            return self.__db[self.__collection].find(query, projection).\
+                skip(skips).limit(pagination['page_size'])
+        elif projection and sort and not pagination:
+            return self.__db[self.__collection].find(query, projection).\
+                sort(order_by)
+        elif not projection and pagination and sort:
+            return self.__db[self.__collection].find(query).\
+                skip(skips).limit(pagination['page_size']).sort(order_by)
+        elif projection and not sort and not pagination:
             return self.__db[self.__collection].find(query, projection)
-        elif not projection and sort:
+        elif sort and not projection and not pagination:
             return self.__db[self.__collection].find(query).sort(order_by)
+        elif pagination and not projection and not sort:
+            return self.__db[self.__collection].find(query).skip(skips).\
+                limit(pagination['page_size'])
         else:
             return self.__db[self.__collection].find(query)
 
