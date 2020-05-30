@@ -991,6 +991,7 @@ def do_update_users_collection(collection, config_fn):
     projection = {
         '_id': 0,
         'id': 1,
+        'created_at_date': 1,
         'user': 1,
         'retweeted_status.id': 1,
         'is_quote_status': 1,
