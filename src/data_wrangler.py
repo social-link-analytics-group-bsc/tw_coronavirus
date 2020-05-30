@@ -1027,13 +1027,23 @@ def do_update_users_collection(collection, config_fn):
                 # it the user exists in the database, she might exists already
                 # in the batch or not
                 if user['id_str'] not in users_to_update:
-                    user_to_update = user_obj                            
+                    user_to_update = user_obj
+                    user_to_update['tweets'] = []              
                 else:
                     user_to_update = users_to_update[user['id_str']]                            
                 user_to_update['exists'] = 0
                 user_to_update['total_tweets'] += 1
                 user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_update['provincia'] = tweet['provincia']
+                tweet_dict = {
+                    'id': tweet['id_str'],
+                    'date': tweet['created_at_date'],                    
+                }
+                if 'sentiment' in tweet:
+                    tweet_dict['sentiment'] = tweet['sentiment']
+                if 'emotion' in tweet:
+                    tweet_dict['emotion'] = tweet['emotion']
+                user_to_update['tweets'].append(tweet_dict)                
                 if tweet_type == 'retweet':
                     user_to_update['retweets'] += 1
                 elif tweet_type == 'reply':
@@ -1060,10 +1070,20 @@ def do_update_users_collection(collection, config_fn):
                     }
                     user.update(new_fields)            
                     user_to_insert = user
+                    user_to_insert['tweets'] = []
                 else:
                     user_to_insert = users_to_insert[user['id_str']]
                 user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_insert['provincia'] = tweet['provincia']
+                tweet_dict = {
+                    'id': tweet['id_str'],
+                    'date': tweet['created_at_date'],                    
+                }
+                if 'sentiment' in tweet:
+                    tweet_dict['sentiment'] = tweet['sentiment']
+                if 'emotion' in tweet:
+                    tweet_dict['emotion'] = tweet['emotion']
+                user_to_insert['tweets'].append(tweet_dict)
                 if tweet_type == 'retweet':
                     user_to_insert['retweets'] += 1
                 elif tweet_type == 'reply':
