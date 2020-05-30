@@ -1035,7 +1035,7 @@ def do_update_users_collection(collection, config_fn):
                 user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_update['provincia'] = tweet['provincia']
                 tweet_dict = {
-                    'id': tweet['id_str'],
+                    'id': tweet['id'],
                     'date': tweet['created_at_date'],                    
                 }
                 if 'sentiment' in tweet:
@@ -1077,7 +1077,7 @@ def do_update_users_collection(collection, config_fn):
                 user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
                 user_to_insert['provincia'] = tweet['provincia']
                 tweet_dict = {
-                    'id': tweet['id_str'],
+                    'id': tweet['id'],
                     'date': tweet['created_at_date'],                    
                 }
                 if 'sentiment' in tweet:
