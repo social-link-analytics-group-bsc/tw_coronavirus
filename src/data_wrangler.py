@@ -971,12 +971,12 @@ def check_status_users(twm, user_ids):
 
 def process_user_batch(twm, users_batch):
     processed_records = []
-    existing_users = check_status_users(twm, users_batch.keys())
+    #existing_users = check_status_users(twm, users_batch.keys())
     for user_id, user_dict in users_batch.items():
-        if user_id in existing_users:
-            user_dict['exists'] = 1
-        else:
-            user_dict['exists'] = 0
+        #if user_id in existing_users:
+        user_dict['exists'] = 1
+        #else:
+        #    user_dict['exists'] = 0
         processed_records.append(user_dict)
     return processed_records
 
@@ -1027,8 +1027,7 @@ def do_update_users_collection(collection, config_fn):
                 # it the user exists in the database, she might exists already
                 # in the batch or not
                 if user['id_str'] not in users_to_update:
-                    user_to_update = user_obj
-                    user_to_update['tweets'] = []              
+                    user_to_update = user_obj                                  
                 else:
                     user_to_update = users_to_update[user['id_str']]                            
                 user_to_update['exists'] = 0
@@ -1043,7 +1042,10 @@ def do_update_users_collection(collection, config_fn):
                     tweet_dict['sentiment'] = tweet['sentiment']
                 if 'emotion' in tweet:
                     tweet_dict['emotion'] = tweet['emotion']
-                user_to_update['tweets'].append(tweet_dict)                
+                if 'tweets' in user_to_update:
+                    user_to_update['tweets'].append(tweet_dict)
+                else:
+                    user_to_update['tweets'] = [tweet_dict]
                 if tweet_type == 'retweet':
                     user_to_update['retweets'] += 1
                 elif tweet_type == 'reply':
@@ -1069,8 +1071,7 @@ def do_update_users_collection(collection, config_fn):
                         'provincia': tweet['provincia']
                     }
                     user.update(new_fields)            
-                    user_to_insert = user
-                    user_to_insert['tweets'] = []
+                    user_to_insert = user                    
                 else:
                     user_to_insert = users_to_insert[user['id_str']]
                 user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
@@ -1083,7 +1084,10 @@ def do_update_users_collection(collection, config_fn):
                     tweet_dict['sentiment'] = tweet['sentiment']
                 if 'emotion' in tweet:
                     tweet_dict['emotion'] = tweet['emotion']
-                user_to_insert['tweets'].append(tweet_dict)
+                if 'tweets' in user_to_insert:
+                    user_to_insert['tweets'].append(tweet_dict)
+                else:
+                    user_to_insert['tweets'] = [tweet_dict]
                 if tweet_type == 'retweet':
                     user_to_insert['retweets'] += 1
                 elif tweet_type == 'reply':
