@@ -981,6 +981,30 @@ def process_user_batch(twm, users_batch):
     return processed_records
 
 
+def process_user(user, tweet):
+    tweet_type = get_tweet_type(tweet)
+    user['exists'] = 1
+    user['total_tweets'] += 1
+    user['comunidad_autonoma'] = tweet['comunidad_autonoma']
+    user['provincia'] = tweet['provincia']
+    if 'tweets' in user:
+        if tweet['id'] not in user['tweets']:
+            user['tweet_ids'].append(tweet['id'])
+            user['tweet_dates'].append(tweet['created_at_date'])
+    else:
+        user['tweet_ids'] = [tweet['id']]
+        user['tweet_dates'] = [tweet['created_at_date']]    
+    if tweet_type == 'retweet':
+        user['retweets'] += 1
+    elif tweet_type == 'reply':
+        user['replies'] += 1
+    elif tweet_type == 'quote':
+        user['quotes'] += 1
+    else:
+        user['originals'] += 1    
+    return user
+
+
 def do_update_users_collection(collection, config_fn):
     twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
@@ -1023,38 +1047,14 @@ def do_update_users_collection(collection, config_fn):
             processing_counter += 1
             user = tweet['user']
             user_obj = dbm_users.find_record({'id': int(user['id'])})
-            tweet_type = get_tweet_type(tweet)
             if user_obj:
                 # it the user exists in the database, she might exists already
                 # in the batch or not
                 if user['id_str'] not in users_to_update:
-                    user_to_update = user_obj                                  
+                    user_to_update = process_user(user_obj, tweet)    
                 else:
-                    user_to_update = users_to_update[user['id_str']]                            
-                user_to_update['exists'] = 0
-                user_to_update['total_tweets'] += 1
-                user_to_update['comunidad_autonoma'] = tweet['comunidad_autonoma']
-                user_to_update['provincia'] = tweet['provincia']
-                tweet_dict = {
-                    'id': tweet['id'],
-                    'date': tweet['created_at_date'],                    
-                }
-                if 'sentiment' in tweet:
-                    tweet_dict['sentiment'] = tweet['sentiment']
-                if 'emotion' in tweet:
-                    tweet_dict['emotion'] = tweet['emotion']
-                if 'tweets' in user_to_update:
-                    user_to_update['tweets'].append(tweet_dict)
-                else:
-                    user_to_update['tweets'] = [tweet_dict]
-                if tweet_type == 'retweet':
-                    user_to_update['retweets'] += 1
-                elif tweet_type == 'reply':
-                    user_to_update['replies'] += 1
-                elif tweet_type == 'quote':
-                    user_to_update['quotes'] += 1
-                else:
-                    user_to_update['originals'] += 1
+                    user_to_update = process_user(
+                        users_to_update[user['id_str']], tweet)
                 users_to_update[user['id_str']] = user_to_update            
                 logging.info('Updating the user {}'.format(user['screen_name']))
             else:
@@ -1071,32 +1071,11 @@ def do_update_users_collection(collection, config_fn):
                         'comunidad_autonoma': tweet['comunidad_autonoma'],
                         'provincia': tweet['provincia']
                     }
-                    user.update(new_fields)            
-                    user_to_insert = user                    
+                    user.update(new_fields)
+                    user_to_insert = process_user(user, tweet)                  
                 else:
-                    user_to_insert = users_to_insert[user['id_str']]
-                user_to_insert['comunidad_autonoma'] = tweet['comunidad_autonoma']
-                user_to_insert['provincia'] = tweet['provincia']
-                tweet_dict = {
-                    'id': tweet['id'],
-                    'date': tweet['created_at_date'],                    
-                }
-                if 'sentiment' in tweet:
-                    tweet_dict['sentiment'] = tweet['sentiment']
-                if 'emotion' in tweet:
-                    tweet_dict['emotion'] = tweet['emotion']
-                if 'tweets' in user_to_insert:
-                    user_to_insert['tweets'].append(tweet_dict)
-                else:
-                    user_to_insert['tweets'] = [tweet_dict]
-                if tweet_type == 'retweet':
-                    user_to_insert['retweets'] += 1
-                elif tweet_type == 'reply':
-                    user_to_insert['replies'] += 1
-                elif tweet_type == 'quote':
-                    user_to_insert['quotes'] += 1
-                else:
-                    user_to_insert['originals'] += 1
+                    user_to_insert = process_user(
+                        users_to_insert[user['id_str']], tweet)                
                 users_to_insert[user['id_str']] = user_to_insert           
                 logging.info('Adding the user {}'.format(user['screen_name']))
             tweet_update_queries.append({
