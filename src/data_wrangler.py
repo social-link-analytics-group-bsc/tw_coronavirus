@@ -987,8 +987,8 @@ def process_user(user, tweet):
     user['total_tweets'] += 1
     user['comunidad_autonoma'] = tweet['comunidad_autonoma']
     user['provincia'] = tweet['provincia']
-    if 'tweets' in user:
-        if tweet['id'] not in user['tweets']:
+    if 'tweets_ids' in user:
+        if tweet['id'] not in user['tweets_ids']:
             user['tweet_ids'].append(tweet['id'])
             user['tweet_dates'].append(tweet['created_at_date'])
     else:
