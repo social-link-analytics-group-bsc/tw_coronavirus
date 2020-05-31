@@ -1063,7 +1063,7 @@ def do_update_users_collection(collection, config_fn):
                 if user['id_str'] not in users_to_insert:                
                     new_fields = {
                         'exists': 0,
-                        'total_tweets': 1,
+                        'total_tweets': 0,
                         'retweets': 0,
                         'replies': 0,
                         'quotes': 0,
