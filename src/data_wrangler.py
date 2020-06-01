@@ -982,18 +982,21 @@ def process_user_batch(twm, users_batch):
 
 
 def process_user(user, tweet):
-    tweet_type = get_tweet_type(tweet)
+    if 'tweet_ids' in user and tweet['id'] in user['tweet_ids']:
+        return None
+    
+    if 'tweet_ids' not in user:
+        user['tweet_ids'] = [tweet['id']]
+        user['tweet_dates'] = [tweet['created_at_date']]
+    else:
+        user['tweet_ids'].append(tweet['id'])
+        user['tweet_dates'].append(tweet['created_at_date'])
+    
     user['exists'] = 1
     user['total_tweets'] += 1
     user['comunidad_autonoma'] = tweet['comunidad_autonoma']
-    user['provincia'] = tweet['provincia']
-    if 'tweet_ids' in user:
-        if tweet['id'] not in user['tweet_ids']:
-            user['tweet_ids'].append(tweet['id'])
-            user['tweet_dates'].append(tweet['created_at_date'])
-    else:
-        user['tweet_ids'] = [tweet['id']]
-        user['tweet_dates'] = [tweet['created_at_date']]    
+    user['provincia'] = tweet['provincia']    
+    tweet_type = get_tweet_type(tweet)
     if tweet_type == 'retweet':
         user['retweets'] += 1
     elif tweet_type == 'reply':
@@ -1055,8 +1058,9 @@ def do_update_users_collection(collection, config_fn):
                 else:
                     user_to_update = process_user(
                         users_to_update[user['id_str']], tweet)
-                users_to_update[user['id_str']] = user_to_update            
-                logging.info('Updating the user {}'.format(user['screen_name']))
+                if user_to_update:
+                    users_to_update[user['id_str']] = user_to_update            
+                    logging.info('Updating the user {}'.format(user['screen_name']))
             else:
                 # it the users does not exists in the database, she might exists already
                 # in the batch or not
@@ -1075,9 +1079,10 @@ def do_update_users_collection(collection, config_fn):
                     user_to_insert = process_user(user, tweet)                  
                 else:
                     user_to_insert = process_user(
-                        users_to_insert[user['id_str']], tweet)                
-                users_to_insert[user['id_str']] = user_to_insert           
-                logging.info('Adding the user {}'.format(user['screen_name']))
+                        users_to_insert[user['id_str']], tweet)
+                if user_to_insert:               
+                    users_to_insert[user['id_str']] = user_to_insert           
+                    logging.info('Adding the user {}'.format(user['screen_name']))
             tweet_update_queries.append({
                 'filter': {'id': int(tweet['id'])},
                 'new_values': {'processed_user': 1}
