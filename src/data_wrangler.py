@@ -769,7 +769,7 @@ def update_metric_tweets(collection, config_fn):
     current_date_str = current_date.strftime('%Y-%m-%d')
     query = {
         '$or': [
-            {'last_metric_update_date': {'$exists': 0}},
+            {'last_metric_update_date': {'$eq': None}},
             {'next_metric_update_date': current_date_str}            
         ]        
         
@@ -1013,7 +1013,7 @@ def do_update_users_collection(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
-        #'processed_user': {'$exists': 0}
+        'processed_user': {'$ne': 1}
     }
     projection = {
         '_id': 0,
