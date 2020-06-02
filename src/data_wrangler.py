@@ -780,99 +780,106 @@ def update_metric_tweets(collection, config_fn):
         'created_at_date':1,
         'retweeted_status': 1
     }
-    logging.info('Finding tweets...')
-    tweet_objs = dbm.find_all(query, projection)
-    tweets = [tweet_obj for tweet_obj in tweet_objs]
-    total_tweets = len(tweets)
-    logging.info('Found {:,} tweets'.format(total_tweets))
-    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+    PAGE_SIZE = 50000
+    page_num = 0
+    records_to_read = True
     processing_counter = total_segs = 0
-    tweet_ids, rts = [], []
-    org_tweets = {}
-    update_queries = []
-
-    # processing tweets
-    logging.info('Processing original tweets...')
-    for tweet in tweets:
-        start_time = time.time()
-        processing_counter += 1        
-        if 'retweeted_status' not in tweet.keys():
-            tweet_ids.append(tweet['id'])
-        else:
-            rts.append({
-                'id': tweet['id'],
-                'parent_id': tweet['retweeted_status']['id']
-            })
-        if len(tweet_ids) == max_batch:
-            logging.info('Hydratating tweets...')
-            update_queries = []
-            tweet_date = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
-            diff_date = current_date - tweet_date
-            next_update_date = current_date + timedelta(days=diff_date.days)
-            next_update_date_str = next_update_date.strftime('%Y-%m-%d')
-            hydrated_tweet_ids = []
-            for tweet_obj in twm.hydrate(tweet_ids):
-                new_values = {
-                    'retweet_count': tweet_obj['retweet_count'],
-                    'favorite_count': tweet_obj['favorite_count'],
-                    'last_metric_update_date': current_date_str,
-                    'next_metric_update_date': next_update_date_str
-                }
-                org_tweets[tweet_obj['id']] = new_values
-                update_queries.append(
-                    {
-                        'filter': {'id': int(tweet_obj['id'])},
-                        'new_values': new_values
-                    }                        
-                )
-                hydrated_tweet_ids.append(tweet_obj['id'])
-            miss_ids = set(tweet_ids) - set(hydrated_tweet_ids)
-            logging.info('Out of the {} tweets searched to be hydrated, {} '\
-                         'do not exist anymore'.format(len(tweet_ids),len(miss_ids)))
-            for miss_id in miss_ids:
-                new_values = {
-                    'last_metric_update_date': current_date_str,
-                    'next_metric_update_date': '2080-01-01'
-                }
-                org_tweets[miss_id] = new_values
-                update_queries.append(
-                    {
-                        'filter': {'id': int(miss_id)},
-                        'new_values': new_values
-                    }                        
-                )
-            if len(update_queries) > 0:
-                add_fields(dbm, update_queries)
-            tweet_ids = []
-        total_segs = calculate_remaining_execution_time(start_time, total_segs,
-                                                        processing_counter, 
-                                                        total_tweets)
-    if len(update_queries) > 0:
-        add_fields(dbm, update_queries)
-
-    # processing rts
-    logging.info('Processing retweets...')
-    update_queries = []
-    processing_counter = total_segs = 0
-    total_tweets = len(rts)
-    for rt in rts:        
-        if rt['parent_id'] in org_tweets:
+    while records_to_read:
+        page_num += 1
+        pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+        logging.info('Retrieving tweets...')
+        tweet_objs = dbm.find_all(query, projection, None, pagination)
+        tweets = [tweet_obj for tweet_obj in tweet_objs]
+        total_tweets = len(tweets)
+        logging.info('Found {:,} tweets'.format(total_tweets))
+        if total_tweets == 0:
+            break
+        max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+        processing_counter = total_segs = 0
+        tweet_ids, rts = [], []
+        org_tweets = {}
+        update_queries = []
+        # processing tweets
+        logging.info('Processing original tweets...')
+        for tweet in tweets:
             start_time = time.time()
-            processing_counter += 1
-            update_queries.append(
-                {
-                    'filter': {'id': int(rt['id'])},
-                    'new_values': org_tweets[rt['parent_id']]
-                }                        
-            )
-            if len(update_queries) == max_batch:
-                add_fields(dbm, update_queries)
+            processing_counter += 1        
+            if 'retweeted_status' not in tweet.keys():
+                tweet_ids.append(tweet['id'])
+            else:
+                rts.append({
+                    'id': tweet['id'],
+                    'parent_id': tweet['retweeted_status']['id']
+                })
+            if len(tweet_ids) == max_batch:
+                logging.info('Hydratating tweets...')
                 update_queries = []
+                tweet_date = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
+                diff_date = current_date - tweet_date
+                next_update_date = current_date + timedelta(days=diff_date.days)
+                next_update_date_str = next_update_date.strftime('%Y-%m-%d')
+                hydrated_tweet_ids = []
+                for tweet_obj in twm.hydrate(tweet_ids):
+                    new_values = {
+                        'retweet_count': tweet_obj['retweet_count'],
+                        'favorite_count': tweet_obj['favorite_count'],
+                        'last_metric_update_date': current_date_str,
+                        'next_metric_update_date': next_update_date_str
+                    }
+                    org_tweets[tweet_obj['id']] = new_values
+                    update_queries.append(
+                        {
+                            'filter': {'id': int(tweet_obj['id'])},
+                            'new_values': new_values
+                        }                        
+                    )
+                    hydrated_tweet_ids.append(tweet_obj['id'])
+                miss_ids = set(tweet_ids) - set(hydrated_tweet_ids)
+                logging.info('Out of the {} tweets searched to be hydrated, {} '\
+                            'do not exist anymore'.format(len(tweet_ids),len(miss_ids)))
+                for miss_id in miss_ids:
+                    new_values = {
+                        'last_metric_update_date': current_date_str,
+                        'next_metric_update_date': '2080-01-01'
+                    }
+                    org_tweets[miss_id] = new_values
+                    update_queries.append(
+                        {
+                            'filter': {'id': int(miss_id)},
+                            'new_values': new_values
+                        }                        
+                    )
+                if len(update_queries) > 0:
+                    add_fields(dbm, update_queries)
+                tweet_ids = []
             total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                             processing_counter, 
                                                             total_tweets)
-    if len(update_queries) > 0:
-        add_fields(dbm, update_queries)
+        if len(update_queries) > 0:
+            add_fields(dbm, update_queries)
+        # processing rts
+        logging.info('Processing retweets...')
+        update_queries = []
+        processing_counter = total_segs = 0
+        total_tweets = len(rts)
+        for rt in rts:        
+            if rt['parent_id'] in org_tweets:
+                start_time = time.time()
+                processing_counter += 1
+                update_queries.append(
+                    {
+                        'filter': {'id': int(rt['id'])},
+                        'new_values': org_tweets[rt['parent_id']]
+                    }                        
+                )
+                if len(update_queries) == max_batch:
+                    add_fields(dbm, update_queries)
+                    update_queries = []
+                total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                                processing_counter, 
+                                                                total_tweets)
+        if len(update_queries) > 0:
+            add_fields(dbm, update_queries)
 
 
 def do_add_complete_text_flag(collection, config_fn):
