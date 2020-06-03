@@ -1034,7 +1034,7 @@ def do_update_users_collection(collection, config_fn):
         'provincia': 1
     }
     sort = [{'key': 'created_at_date', 'direction': 1}]
-    PAGE_SIZE = 50000
+    PAGE_SIZE = 500000
     page_num = 0
     records_to_read = True
     processing_counter = total_segs = 0
