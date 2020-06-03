@@ -989,7 +989,7 @@ def process_user_batch(twm, users_batch):
 
 
 def process_user(user, tweet):
-    if 'tweet_ids' in user and tweet['id'] in user['tweet_ids']:
+    if 'tweet_ids' in user and tweet['id'] in set(user['tweet_ids']):
         return None
     
     if 'tweet_ids' not in user:
@@ -1020,7 +1020,7 @@ def do_update_users_collection(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
-        'processed_user': {'$ne': 1}
+        'processed_user': {'$eq': None}
     }
     projection = {
         '_id': 0,
