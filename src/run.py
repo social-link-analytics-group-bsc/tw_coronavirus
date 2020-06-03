@@ -16,6 +16,8 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
      do_update_collection
 from network_analysis import NetworkAnalyzer
+from pymongo.erros import AutoReconnect, ExecutionTimeout, NetworkTimeout
+
 
 # Add the directory to the sys.path
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -269,7 +271,12 @@ def update_users_collection(collection_name, config_file):
     """
     check_current_directory()
     print('Updating collection of users')
-    do_update_users_collection(collection_name, config_file)
+    while True:
+        try:
+            do_update_users_collection(collection_name, config_file)
+            break
+        except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
+            print('Timeout exception captured, re-launching the process')
 
 
 if __name__ == "__main__":
