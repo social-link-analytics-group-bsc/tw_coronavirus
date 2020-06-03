@@ -1020,7 +1020,7 @@ def do_update_users_collection(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
-        'processed_user': {'$eq': None}
+        'processed_user': {'$ne': 1}
     }
     projection = {
         '_id': 0,
