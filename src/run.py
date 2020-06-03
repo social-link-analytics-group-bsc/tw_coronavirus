@@ -16,7 +16,7 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
      do_update_collection
 from network_analysis import NetworkAnalyzer
-from pymongo.erros import AutoReconnect, ExecutionTimeout, NetworkTimeout
+from pymongo.errors import AutoReconnect, ExecutionTimeout, NetworkTimeout
 
 
 # Add the directory to the sys.path
