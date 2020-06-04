@@ -969,21 +969,55 @@ def do_add_tweet_type_flag(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
-def check_status_users(twm, user_ids):
-    existing_users = []
-    for user in twm.user_lookup(user_ids, id_type="user_id"):
-        existing_users.append(str(user['id']))
-    return existing_users
+def do_update_user_status(collection, config_fn):
+    twm = get_twm_obj()
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {        
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,        
+    }
+    logging.info('Retrieving users...')
+    user_objs = dbm.find_all(query, projection)
+    logging.info('Saving users into array...')
+    users = [user_obj for user_obj in user_objs]
+    total_users = len(users)
+    logging.info('Found {:,} users'.format(total_users))
+    processing_counter = total_segs = 0
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    user_ids = []
+    for user in users:
+        start_time = time.time()
+        processing_counter += 1
+        if len(user_ids) >= max_batch:
+            existing_users, users_to_update = [], []
+            for user in twm.user_lookup(user_ids, id_type="user_id"):
+                existing_users.append(user['id'])
+                users_to_update.append({
+                    'filter': {'id': int(user['id'])},
+                    'new_values': {'exists': 1}
+                })
+            non_existing_users = set(user_ids) - set(existing_users)
+            for non_existing_user in non_existing_users:
+                users_to_update.append({
+                    'filter': {'id': int(non_existing_user)},
+                    'new_values': {'exists': 0}
+                })
+            logging.info('Updating {} user'.format(len(users_to_update)))
+            add_fields(dbm, users_to_update)
+            user_ids = []
+        else:
+            user_ids.append(user['id'])
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
 
 
-def process_user_batch(twm, users_batch):
+def process_user_batch(users_batch):
     processed_records = []
-    #existing_users = check_status_users(twm, users_batch.keys())
-    for user_id, user_dict in users_batch.items():
-        #if user_id in existing_users:
-        user_dict['exists'] = 1
-        #else:
-        #    user_dict['exists'] = 0
+    for _, user_dict in users_batch.items():
+        user_dict['exists'] = 1        
         processed_records.append(user_dict)
     return processed_records
 
@@ -1016,7 +1050,6 @@ def process_user(user, tweet):
 
 
 def do_update_users_collection(collection, config_fn):
-    twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
@@ -1097,11 +1130,11 @@ def do_update_users_collection(collection, config_fn):
         })
         if len(users_to_insert) >= max_batch:
             logging.info('Inserting {} users'.format(len(users_to_insert)))                
-            dbm_users.insert_many(process_user_batch(twm, users_to_insert))
+            dbm_users.insert_many(process_user_batch(users_to_insert))
             users_to_insert = {}
         if len(users_to_update) >= max_batch:
             logging.info('Updating {} users'.format(len(users_to_update)))
-            processed_users = process_user_batch(twm, users_to_update)
+            processed_users = process_user_batch(users_to_update)
             for processed_user in processed_users:
                 user_update_queries.append({
                     'filter': {'id': int(processed_user['id'])},
@@ -1121,10 +1154,10 @@ def do_update_users_collection(collection, config_fn):
                         format(len(users_to_insert), len(users_to_update), len(tweet_update_queries)))
     if len(users_to_insert) > 0:
         logging.info('Inserting {} users'.format(len(users_to_insert)))
-        dbm_users.insert_many(process_user_batch(twm, users_to_insert))
+        dbm_users.insert_many(process_user_batch(users_to_insert))
     if len(users_to_update) > 0:
         logging.info('Updating {} users'.format(len(users_to_update)))
-        processed_users = process_user_batch(twm, users_to_update)
+        processed_users = process_user_batch(users_to_update)
         for processed_user in processed_users:
             user_update_queries.append({
                 'filter': {'id': int(processed_user['id'])},
