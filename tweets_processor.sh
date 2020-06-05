@@ -8,6 +8,7 @@ else
     COLLECTION_NAME='processed'
 fi
 
+PROJECT_DIR=`pwd`
 LOG_DIR="${PROJECT_DIR}/log"
 
 if [[ ! -d $LOG_DIR ]]
@@ -15,7 +16,6 @@ then
     `mkdir $LOG_DIR`
 fi
 
-PROJECT_DIR=`pwd`
 LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
