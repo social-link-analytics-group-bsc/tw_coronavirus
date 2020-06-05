@@ -2,10 +2,10 @@
 
 if [ -z "$1" ]
 then
-    # if no project directory is supplied, current is used
-    PROJECT_DIR=`pwd`
+    # if no collection supplied, use processed
+    COLLECTION_NAME=$1
 else
-    PROJECT_DIR=$1
+    COLLECTION_NAME='processed'
 fi
 
 LOG_DIR="${PROJECT_DIR}/log"
@@ -15,6 +15,7 @@ then
     `mkdir $LOG_DIR`
 fi
 
+PROJECT_DIR=`pwd`
 LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
