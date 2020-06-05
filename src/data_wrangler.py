@@ -563,49 +563,43 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
                 'lang_detection': source_tweet['lang_detection'],
                 'lang': source_tweet['lang'],
                 'lang_twitter': source_tweet['lang_twitter']
-            }
-            update_queries.append(
-                {
-                    'filter': {'id': int(tweet_id)},
-                    'new_values': new_values
-                }                        
-            )
+            }            
             logging.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
-            continue
-        if tweet_id not in processed_tweets:
-            logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
-                        format(processing_counter, total_tweets, tweet['text']))
-            if 'retweeted_status' not in tweet:
-                tweet_lang = tweet['lang']
-                tweet_txt = tw_preprocessor.clean(get_tweet_text(tweet))
-                lang_dict = detect_language(tweet_txt)
-                if lang_dict: processed_tweets[tweet_id] = lang_dict
-            else:
-                logging.info('Found a retweet')
-                original_tweet = tweet['retweeted_status']
-                id_org_tweet = original_tweet['id']                
-                tweet_lang = original_tweet['lang']
-                if id_org_tweet not in processed_tweets:
-                    tweet_txt = tw_preprocessor.clean(get_tweet_text(original_tweet))
-                    lang_dict = detect_language(tweet_txt)
-                    if lang_dict: processed_tweets[id_org_tweet] = lang_dict
-                else:
-                    lang_dict = processed_tweets[id_org_tweet]
         else:
-            lang_dict = processed_tweets[tweet_id]
-        new_values = {
-            'lang_detection': lang_dict
-        }
-        if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
-        lang_dict['pref_lang'] != tweet_lang and \
-        lang_dict['pref_lang'].find('_') == -1 and \
-        lang_dict['pref_lang'] in spain_languages:
-            new_values.update(
-                {
-                    'lang': lang_dict['pref_lang'],
-                    'lang_twitter': tweet_lang
-                }
-            )
+            if tweet_id not in processed_tweets:
+                logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
+                            format(processing_counter, total_tweets, tweet['text']))
+                if 'retweeted_status' not in tweet:
+                    tweet_lang = tweet['lang']
+                    tweet_txt = tw_preprocessor.clean(get_tweet_text(tweet))
+                    lang_dict = detect_language(tweet_txt)
+                    if lang_dict: processed_tweets[tweet_id] = lang_dict
+                else:
+                    logging.info('Found a retweet')
+                    original_tweet = tweet['retweeted_status']
+                    id_org_tweet = original_tweet['id']                
+                    tweet_lang = original_tweet['lang']
+                    if id_org_tweet not in processed_tweets:
+                        tweet_txt = tw_preprocessor.clean(get_tweet_text(original_tweet))
+                        lang_dict = detect_language(tweet_txt)
+                        if lang_dict: processed_tweets[id_org_tweet] = lang_dict
+                    else:
+                        lang_dict = processed_tweets[id_org_tweet]
+            else:
+                lang_dict = processed_tweets[tweet_id]
+            new_values = {
+                'lang_detection': lang_dict
+            }
+            if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
+            lang_dict['pref_lang'] != tweet_lang and \
+            lang_dict['pref_lang'].find('_') == -1 and \
+            lang_dict['pref_lang'] in spain_languages:
+                new_values.update(
+                    {
+                        'lang': lang_dict['pref_lang'],
+                        'lang_twitter': tweet_lang
+                    }
+                )
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
