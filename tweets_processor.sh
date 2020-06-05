@@ -20,7 +20,6 @@ LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
-COLLECTION_NAME='processed'
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
 NUM_TASKS=6
