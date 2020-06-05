@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "$1"
-
 if [ -z "$1" ]
 then
     # if no collection supplied, use processed
@@ -9,8 +7,6 @@ then
 else
     COLLECTION_NAME=$1
 fi
-
-echo "${COLLETION_NAME}"
 
 PROJECT_DIR=`pwd`
 LOG_DIR="${PROJECT_DIR}/log"
