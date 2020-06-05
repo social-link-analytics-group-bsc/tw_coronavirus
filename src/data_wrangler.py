@@ -527,7 +527,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_source = None
     if source_collection:
-        dbm = DBManager(collection=source_collection, config_fn=config_fn)
+        dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
     query = {
         'lang': 'es',
         'lang_detection': {'$exists': 0}
