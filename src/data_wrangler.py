@@ -557,21 +557,21 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
         source_tweet = None
         if dbm_source:
             source_tweet = dbm_source.find_record({'id': int(tweet_id)})
-        if source_tweet:
-            if 'lang_detection' in source_tweet:
-                new_values = {
-                    'lang_detection': source_tweet['lang_detection'],
-                    'lang': source_tweet['lang'],
-                    'lang_twitter': source_tweet['lang_twitter']
-                }
-                update_queries.append(
-                    {
-                        'filter': {'id': int(tweet_id)},
-                        'new_values': new_values
-                    }                        
-                )
-                logging.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
-                continue
+        if source_tweet and 'lang_detection' in source_tweet and \
+           'lang_twitter' in source_tweet:
+            new_values = {
+                'lang_detection': source_tweet['lang_detection'],
+                'lang': source_tweet['lang'],
+                'lang_twitter': source_tweet['lang_twitter']
+            }
+            update_queries.append(
+                {
+                    'filter': {'id': int(tweet_id)},
+                    'new_values': new_values
+                }                        
+            )
+            logging.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
+            continue
         if tweet_id not in processed_tweets:
             logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
                         format(processing_counter, total_tweets, tweet['text']))
