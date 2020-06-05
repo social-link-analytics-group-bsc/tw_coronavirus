@@ -1,12 +1,16 @@
 #!/bin/bash
 
+echo "$1"
+
 if [ -z "$1" ]
 then
     # if no collection supplied, use processed
-    COLLECTION_NAME=$1
-else
     COLLECTION_NAME='processed'
+else
+    COLLECTION_NAME=$1
 fi
+
+echo "${COLLETION_NAME}"
 
 PROJECT_DIR=`pwd`
 LOG_DIR="${PROJECT_DIR}/log"
