@@ -265,17 +265,18 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
     processed_sentiments = {}
     update_queries = []
     for tweet in tweets:
+        start_time = time.time()
+        processing_counter += 1
         tweet_id = tweet['id']
         source_tweet = None
         if dbm_source:
             source_tweet = dbm_source.find_record({'id': int(tweet_id)})
         if source_tweet:
-            logging.info('Found tweet in source collection')
             sentiment_dict = source_tweet['sentiment']            
+            logging.info('[{0}/{1}] Found tweet in source collection'.\
+                format(processing_counter, total_tweets))
         else:
-            if tweet_id not in processed_sentiments:
-                start_time = time.time()
-                processing_counter += 1
+            if tweet_id not in processed_sentiments:                
                 logging.info('[{0}/{1}] Computing sentiment of tweet:\n{2}'.\
                             format(processing_counter, total_tweets, tweet['text']))
                 if 'retweeted_status' not in tweet:
@@ -562,7 +563,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
                 'lang': source_tweet['lang'],
                 'lang_twitter': source_tweet['lang_twitter']
             }
-            logging.info('Found tweet in source collection...')
+            logging.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
         else:
             if tweet_id not in processed_tweets:
                 logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
@@ -849,7 +850,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
                         'new_values': new_values
                     }                        
                 )
-                logging.info('Found tweet in source collection...')
+                logging.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
                 continue
             if 'retweeted_status' not in tweet.keys():
                 tweet_ids.append(tweet['id'])
