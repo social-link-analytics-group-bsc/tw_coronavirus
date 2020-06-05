@@ -271,8 +271,8 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         source_tweet = None
         if dbm_source:
             source_tweet = dbm_source.find_record({'id': int(tweet_id)})
-        if source_tweet:
-            sentiment_dict = source_tweet['sentiment']            
+        if source_tweet and 'sentiment' in source_tweet:
+            sentiment_dict = source_tweet['sentiment']
             logging.info('[{0}/{1}] Found tweet in source collection'.\
                 format(processing_counter, total_tweets))
         else:
@@ -844,7 +844,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
             source_tweet = None
             if dbm_source:
                 source_tweet = dbm_source.find_record({'id': int(tweet['id'])})
-            if source_tweet:
+            if source_tweet and 'last_metric_update_date' in source_tweet:
                 new_values = {
                     'retweet_count': source_tweet['retweet_count'],
                     'favorite_count': source_tweet['favorite_count'],
