@@ -236,9 +236,13 @@ def prepare_sentiment_obj(sentiment_analysis_ret):
     return sentiment_dict
 
 
-def compute_sentiment_analysis_tweets(collection, config_fn=None):
+def compute_sentiment_analysis_tweets(collection, config_fn=None, 
+                                      source_collection=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {}
+    dbm_source = None
+    if source_collection:
+        dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
+    query = {}        
     query.update(
         {        
             'sentiment': {'$exists': 0}
@@ -262,29 +266,36 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None):
     update_queries = []
     for tweet in tweets:
         tweet_id = tweet['id']
-        if tweet_id not in processed_sentiments:
-            start_time = time.time()
-            processing_counter += 1
-            logging.info('[{0}/{1}] Computing sentiment of tweet:\n{2}'.\
-                        format(processing_counter, total_tweets, tweet['text']))
-            if 'retweeted_status' not in tweet:
-                sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
-                if sentiment_analysis_ret:
-                    sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
-                    processed_sentiments[tweet_id] = sentiment_dict
-            else:
-                logging.info('Found a retweet')
-                id_org_tweet = tweet['retweeted_status']['id']                
-                if id_org_tweet not in processed_sentiments:   
-                    original_tweet = tweet['retweeted_status']
-                    sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
+        source_tweet = None
+        if dbm_source:
+            source_tweet = dbm_source.find_record({'id': int(tweet_id)})
+        if source_tweet:
+            logging.info('Found tweet in source collection')
+            sentiment_dict = source_tweet['sentiment']            
+        else:
+            if tweet_id not in processed_sentiments:
+                start_time = time.time()
+                processing_counter += 1
+                logging.info('[{0}/{1}] Computing sentiment of tweet:\n{2}'.\
+                            format(processing_counter, total_tweets, tweet['text']))
+                if 'retweeted_status' not in tweet:
+                    sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
                     if sentiment_analysis_ret:
                         sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
-                        processed_sentiments[id_org_tweet] = sentiment_dict
+                        processed_sentiments[tweet_id] = sentiment_dict
                 else:
-                    sentiment_dict = processed_sentiments[id_org_tweet]
-        else:
-            sentiment_dict = processed_sentiments[tweet_id]
+                    logging.info('Found a retweet')
+                    id_org_tweet = tweet['retweeted_status']['id']                
+                    if id_org_tweet not in processed_sentiments:   
+                        original_tweet = tweet['retweeted_status']
+                        sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
+                        if sentiment_analysis_ret:
+                            sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
+                            processed_sentiments[id_org_tweet] = sentiment_dict
+                    else:
+                        sentiment_dict = processed_sentiments[id_org_tweet]
+            else:
+                sentiment_dict = processed_sentiments[tweet_id]
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
@@ -510,8 +521,12 @@ def add_fields(dbm, update_queries):
     logging.info('Added fields to {0:,} tweets'.format(modified_tweets))
 
 
-def do_add_language_flag(collection, config_fn=None, tweets_date=None):
+def do_add_language_flag(collection, config_fn=None, tweets_date=None, 
+                         source_collection=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
+    dbm_source = None
+    if source_collection:
+        dbm = DBManager(collection=source_collection, config_fn=config_fn)
     query = {
         'lang': 'es',
         'lang_detection': {'$exists': 0}
@@ -538,40 +553,51 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None):
         tweet_id = tweet['id']
         start_time = time.time()
         processing_counter += 1
-        if tweet_id not in processed_tweets:
-            logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
-                        format(processing_counter, total_tweets, tweet['text']))
-            if 'retweeted_status' not in tweet:
-                tweet_lang = tweet['lang']
-                tweet_txt = tw_preprocessor.clean(get_tweet_text(tweet))
-                lang_dict = detect_language(tweet_txt)
-                if lang_dict: processed_tweets[tweet_id] = lang_dict
-            else:
-                logging.info('Found a retweet')
-                original_tweet = tweet['retweeted_status']
-                id_org_tweet = original_tweet['id']                
-                tweet_lang = original_tweet['lang']
-                if id_org_tweet not in processed_tweets:
-                    tweet_txt = tw_preprocessor.clean(get_tweet_text(original_tweet))
-                    lang_dict = detect_language(tweet_txt)
-                    if lang_dict: processed_tweets[id_org_tweet] = lang_dict
-                else:
-                    lang_dict = processed_tweets[id_org_tweet]
+        source_tweet = None
+        if dbm_source:
+            source_tweet = dbm_source.find_record({'id': int(tweet_id)})
+        if source_tweet:
+            new_values = {
+                'lang_detection': source_tweet['lang_detection'],
+                'lang': source_tweet['lang'],
+                'lang_twitter': source_tweet['lang_twitter']
+            }
+            logging.info('Found tweet in source collection...')
         else:
-            lang_dict = processed_tweets[tweet_id]
-        new_values = {
-            'lang_detection': lang_dict
-        }
-        if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
-           lang_dict['pref_lang'] != tweet_lang and \
-           lang_dict['pref_lang'].find('_') == -1 and \
-           lang_dict['pref_lang'] in spain_languages:
-            new_values.update(
-                {
-                    'lang': lang_dict['pref_lang'],
-                    'lang_twitter': tweet_lang
-                }
-            )
+            if tweet_id not in processed_tweets:
+                logging.info('[{0}/{1}] Detecting language of tweet:\n{2}'.\
+                            format(processing_counter, total_tweets, tweet['text']))
+                if 'retweeted_status' not in tweet:
+                    tweet_lang = tweet['lang']
+                    tweet_txt = tw_preprocessor.clean(get_tweet_text(tweet))
+                    lang_dict = detect_language(tweet_txt)
+                    if lang_dict: processed_tweets[tweet_id] = lang_dict
+                else:
+                    logging.info('Found a retweet')
+                    original_tweet = tweet['retweeted_status']
+                    id_org_tweet = original_tweet['id']                
+                    tweet_lang = original_tweet['lang']
+                    if id_org_tweet not in processed_tweets:
+                        tweet_txt = tw_preprocessor.clean(get_tweet_text(original_tweet))
+                        lang_dict = detect_language(tweet_txt)
+                        if lang_dict: processed_tweets[id_org_tweet] = lang_dict
+                    else:
+                        lang_dict = processed_tweets[id_org_tweet]
+            else:
+                lang_dict = processed_tweets[tweet_id]
+            new_values = {
+                'lang_detection': lang_dict
+            }
+            if lang_dict and lang_dict['pref_lang'] != 'undefined' and \
+            lang_dict['pref_lang'] != tweet_lang and \
+            lang_dict['pref_lang'].find('_') == -1 and \
+            lang_dict['pref_lang'] in spain_languages:
+                new_values.update(
+                    {
+                        'lang': lang_dict['pref_lang'],
+                        'lang_twitter': tweet_lang
+                    }
+                )
         update_queries.append(
             {
                 'filter': {'id': int(tweet_id)},
@@ -762,9 +788,12 @@ def get_twm_obj():
     return twm
 
 
-def update_metric_tweets(collection, config_fn):    
+def update_metric_tweets(collection, config_fn=None, source_collection=None):    
     twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
+    dbm_source = None
+    if source_collection:
+        dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
     current_date = datetime.today()
     current_date_str = current_date.strftime('%Y-%m-%d')
     query = {
@@ -803,7 +832,25 @@ def update_metric_tweets(collection, config_fn):
         logging.info('Processing original tweets...')
         for tweet in tweets:
             start_time = time.time()
-            processing_counter += 1        
+            processing_counter += 1
+            source_tweet = None
+            if dbm_source:
+                source_tweet = dbm_source.find_record({'id': int(tweet['id'])})
+            if source_tweet:
+                new_values = {
+                    'retweet_count': source_tweet['retweet_count'],
+                    'favorite_count': source_tweet['favorite_count'],
+                    'last_metric_update_date': source_tweet['last_metric_update_date'],
+                    'next_metric_update_date': source_tweet['next_metric_update_date']
+                }
+                update_queries.append(
+                    {
+                        'filter': {'id': int(tweet['id'])},
+                        'new_values': new_values
+                    }                        
+                )
+                logging.info('Found tweet in source collection...')
+                continue
             if 'retweeted_status' not in tweet.keys():
                 tweet_ids.append(tweet['id'])
             else:

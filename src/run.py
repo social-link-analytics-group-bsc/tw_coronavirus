@@ -115,11 +115,13 @@ def add_flags(collection_name, config_file, flag_covid_keywords, flag_place):
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--source_collection', help='Name of source collection', \
+              default=None, is_flag=False)
 @click.option('--config_file', help='File name with Mongo configuration', \
               default=None, is_flag=False)
 @click.option('--add_date_fields', help='Indicate whether date fields should be created', \
               default=False, is_flag=True)              
-def preprocess(collection_name, config_file, add_date_fields):
+def preprocess(collection_name, source_collection, config_file, add_date_fields):
     """
     Add flags and run sentiment analysis
     """
@@ -127,7 +129,8 @@ def preprocess(collection_name, config_file, add_date_fields):
     print('Pre-processing process has started, follow updates on the log...')
     if add_date_fields:
         add_date_time_field_tweet_objs(collection_name, config_file)
-    compute_sentiment_analysis_tweets(collection_name, config_file)
+    compute_sentiment_analysis_tweets(collection_name, config_file, 
+                                      source_collection)
 
 @run.command()
 @click.argument('target_collection') # Name of the target collection
@@ -168,17 +171,19 @@ def update_collection(collection_name, source_collection, end_date, start_date,
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--source_collection', help='Name of source collection', \
+              default=None, is_flag=False)
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
 @click.option('--tweets_date', help='Date of tweets that should be updated', \
               default=None, is_flag=False)              
-def add_language_flag(collection_name, config_file, tweets_date):
+def add_language_flag(collection_name, source_collection, config_file, tweets_date):
     """
     Add language flags to Spanish tweets
     """
     check_current_directory()
     print('Detecting language')
-    do_add_language_flag(collection_name, config_file, tweets_date)  
+    do_add_language_flag(collection_name, config_file, tweets_date, source_collection)  
 
 
 @run.command()
@@ -209,15 +214,17 @@ def add_query_version_flag(collection_name, config_file):
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--source_collection', help='Name of source collection', \
+              default=None, is_flag=False)
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def update_tweet_metrics(collection_name, config_file):
+def update_tweet_metrics(collection_name, source_collection, config_file):
     """
     Update retweet and favorite metrics of tweets
     """
     check_current_directory()
     print('Updating metrics of tweets')
-    update_metric_tweets(collection_name, config_file)
+    update_metric_tweets(collection_name, config_file, source_collection)
 
 
 @run.command()
