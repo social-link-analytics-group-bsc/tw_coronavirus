@@ -143,3 +143,6 @@ reports
 log
 
 src/utils/twitter_cache
+
+
+download_results.sh
