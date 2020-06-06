@@ -304,7 +304,7 @@ def update_user_status(collection_name, config_file):
 @click.argument('source_collection') # Name of source collection
 @click.argument('target_collection') # Name of target collection
 @click.argument('start_date') # Date from when tweets should be replicated
-@click.option('--end_data', help='Date until when tweets should be replicated', \
+@click.option('--end_date', help='Date until when tweets should be replicated', \
               default=None, is_flag=False)
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
