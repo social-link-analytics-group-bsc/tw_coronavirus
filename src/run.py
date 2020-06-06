@@ -15,7 +15,7 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       do_add_complete_text_flag, do_add_tweet_type_flag, do_update_users_collection, \
       do_update_user_status
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
-     do_update_collection
+      do_update_collection, do_tweets_replication
 from network_analysis import NetworkAnalyzer
 from pymongo.errors import AutoReconnect, ExecutionTimeout, NetworkTimeout
 
@@ -298,7 +298,25 @@ def update_user_status(collection_name, config_file):
     check_current_directory()
     print('Updating status of users')
     do_update_user_status(collection_name, config_file)
-    
+
+
+@run.command()
+@click.argument('source_collection') # Name of source collection
+@click.argument('target_collection') # Name of target collection
+@click.argument('start_date') # Date from when tweets should be replicated
+@click.option('--end_data', help='Date until when tweets should be replicated', \
+              default=None, is_flag=False)
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def replicate_tweets(source_collection, target_collection, start_date, 
+                     end_date, config_file):
+    """
+    Replicate tweets created from start_date from source collection to target collection 
+    """
+    check_current_directory()
+    print('Replicating tweets')
+    do_tweets_replication(source_collection, target_collection, start_date, 
+                          end_date, config_file)
 
 
 if __name__ == "__main__":

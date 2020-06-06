@@ -5,6 +5,7 @@ import pathlib
 import time
 
 from datetime import datetime, timedelta
+from data_wrangler import BATCH_SIZE, add_fields
 from utils.db_manager import DBManager
 from utils.utils import calculate_remaining_execution_time, SPAIN_LANGUAGES, \
                          get_spain_places_regex
@@ -101,7 +102,7 @@ def do_collection_merging(master_collection, collections_to_merge,
 
 
 def do_update_collection(collection_name, source_collection, end_date, 
-                      start_date=None, config_fn=None):                             
+                         start_date=None, config_fn=None):                             
     dbm_weekly_collection = DBManager(config_fn=config_fn)
     # Create collection if does not exists
     created_collection = dbm_weekly_collection.create_collection(collection_name)
@@ -133,3 +134,37 @@ def do_update_collection(collection_name, source_collection, end_date,
                      format(insertion_counter, collection_name))
     except Exception as e:
         logging.error('Error when merging {}'.format(e))        
+
+
+def do_tweets_replication(source_collection, target_collection, start_date, 
+                          end_date=None, config_fn=None):
+    dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
+    dbm_target = DBManager(collection=target_collection, config_fn=config_fn)
+    query = {
+        'created_at_date':{'$gte': start_date}
+    }
+    if end_date:
+        query['created_at_date'].update(
+            {
+                '$lte': end_date
+            }
+        )
+    tweets_to_replicate = dbm_source.find_all(query)
+    total_tweets = tweets_to_replicate.count()
+    logging.info('Replicating {0:,} tweets'.format(total_tweets))
+    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets 
+    processing_counter = total_segs = 0
+    tweets_to_insert = []
+    for tweet in tweets_to_replicate:
+        start_time = time.time()
+        processing_counter += 1
+        tweets_to_insert.append(tweet)
+        if len(tweets_to_insert) >= max_batch:
+            logging.info('Inserting tweets in the target collection...')
+            dbm_target.insert_many_tweets(tweets_to_insert)
+            tweets_to_insert = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_tweets)
+        
+    
