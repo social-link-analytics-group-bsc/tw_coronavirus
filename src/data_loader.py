@@ -161,7 +161,7 @@ def do_tweets_replication(source_collection, target_collection, start_date,
         tweets_to_insert.append(tweet)
         if len(tweets_to_insert) >= max_batch:
             logging.info('Inserting tweets in the target collection...')
-            dbm_target.insert_many_tweets(tweets_to_insert)
+            dbm_target.insert_many(tweets_to_insert)
             tweets_to_insert = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
