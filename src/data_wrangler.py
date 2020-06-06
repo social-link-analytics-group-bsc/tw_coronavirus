@@ -985,7 +985,7 @@ def get_tweet_type(tweet):
 def do_add_tweet_type_flag(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        'type': {'$exists': 0}
+        'type': {'$eq': None}
     }
     projection = {
         '_id': 0,
