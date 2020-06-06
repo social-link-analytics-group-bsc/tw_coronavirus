@@ -3,7 +3,7 @@
 if [ -z "$1" ]
 then
     # if no collection supplied, use processed
-    COLLECTION_NAME='processed'
+    COLLECTION_NAME='processed_new'
 else
     COLLECTION_NAME=$1
 fi
