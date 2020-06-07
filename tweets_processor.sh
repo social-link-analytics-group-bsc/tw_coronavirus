@@ -56,6 +56,8 @@ else
     error=1
 fi
 
+echo "Updating collection ${COLLECTION_NAME}..."
+
 ####
 # Add tweet type flag
 ####
