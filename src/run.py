@@ -273,7 +273,9 @@ def add_tweet_type_flag(collection_name, config_file):
 @click.argument('collection_name') # Name of collections that contain tweets
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def update_users_collection(collection_name, config_file):
+@click.option('--log_file', help='Name of file to be used in logging messages', \
+              default=None, is_flag=False)
+def update_users_collection(collection_name, config_file, log_file):
     """
     Update users collection
     """
@@ -281,7 +283,7 @@ def update_users_collection(collection_name, config_file):
     print('Updating collection of users')
     while True:
         try:
-            do_update_users_collection(collection_name, config_file)
+            do_update_users_collection(collection_name, config_file, log_file)
             break
         except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
             print('Timeout exception captured, re-launching the process')
