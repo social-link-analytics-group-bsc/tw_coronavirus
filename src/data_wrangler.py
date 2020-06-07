@@ -23,6 +23,7 @@ from twarc import Twarc
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 
@@ -37,6 +38,17 @@ tw_preprocessor.set_options(tw_preprocessor.OPT.URL,
 
 
 BATCH_SIZE = 5000
+
+
+def setup_logger(name, log_file, level=logging.INFO):
+    handler = logging.FileHandler(log_file)        
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 
 def infer_language(data_folder, input_file_name, sample=False):
@@ -1099,11 +1111,18 @@ def process_user(user, tweet):
     return user
 
 
-def do_update_users_collection(collection, config_fn):
+def do_update_users_collection(collection, config_fn=None, log_fn=None):
+    current_path = pathlib.Path(__file__).parent.resolve()
+    logging_file = os.path.join(current_path, log_fn)
+    if log_fn:
+        user_logger = setup_logger('user_logger', logging_file)
+    else:
+        user_logger = logging
+
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_users = DBManager(collection='users', config_fn=config_fn)
     query = {
-        'processed_user': {'$ne': 1}
+        'processed_user': {'$eq': None}
     }
     projection = {
         '_id': 0,
@@ -1124,12 +1143,12 @@ def do_update_users_collection(collection, config_fn):
     #while records_to_read:
     #page_num += 1
     #pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
-    logging.info('Retrieving tweets...')
+    user_logger.info('Retrieving tweets...')
     #tweet_objs = dbm.find_all(query, projection, sort, pagination)
     tweet_objs = dbm.find_all(query, projection, sort)
     tweets = [tweet_obj for tweet_obj in tweet_objs]
     total_tweets = len(tweets)
-    logging.info('Found {:,} tweets'.format(total_tweets))
+    user_logger.info('Found {:,} tweets'.format(total_tweets))
     #if total_tweets == 0:
     #    break
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
@@ -1151,7 +1170,7 @@ def do_update_users_collection(collection, config_fn):
                     users_to_update[user['id_str']], tweet)
             if user_to_update:
                 users_to_update[user['id_str']] = user_to_update            
-                logging.info('Updating the user {}'.format(user['screen_name']))
+                user_logger.info('Updating the user {}'.format(user['screen_name']))
         else:
             # it the users does not exists in the database, she might exists already
             # in the batch or not
@@ -1173,7 +1192,7 @@ def do_update_users_collection(collection, config_fn):
                     users_to_insert[user['id_str']], tweet)
             if user_to_insert:               
                 users_to_insert[user['id_str']] = user_to_insert           
-                logging.info('Adding the user {}'.format(user['screen_name']))
+                user_logger.info('Adding the user {}'.format(user['screen_name']))
         tweet_update_queries.append({
             'filter': {'id': int(tweet['id'])},
             'new_values': {'processed_user': 1}
@@ -1199,14 +1218,14 @@ def do_update_users_collection(collection, config_fn):
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_tweets)
-        logging.info('Total users to insert: {0:,} - Total users to update: '\
+        user_logger.info('Total users to insert: {0:,} - Total users to update: '\
                         '{1:,} - Total tweets to update: {2:,}'.\
                         format(len(users_to_insert), len(users_to_update), len(tweet_update_queries)))
     if len(users_to_insert) > 0:
-        logging.info('Inserting {} users'.format(len(users_to_insert)))
+        user_logger.info('Inserting {} users'.format(len(users_to_insert)))
         dbm_users.insert_many(process_user_batch(users_to_insert))
     if len(users_to_update) > 0:
-        logging.info('Updating {} users'.format(len(users_to_update)))
+        user_logger.info('Updating {} users'.format(len(users_to_update)))
         processed_users = process_user_batch(users_to_update)
         for processed_user in processed_users:
             user_update_queries.append({
@@ -1215,5 +1234,5 @@ def do_update_users_collection(collection, config_fn):
             })
         add_fields(dbm_users, user_update_queries)
     if len(tweet_update_queries) > 0:
-        logging.info('Updating {} tweets'.format(len(tweet_update_queries)))
+        user_logger.info('Updating {} tweets'.format(len(tweet_update_queries)))
         add_fields(dbm, tweet_update_queries)
