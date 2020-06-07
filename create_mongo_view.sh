@@ -19,7 +19,7 @@ LOGFILE=${LOG_DIR}/create_mongo_view.log
 ERRORFILE=${LOG_DIR}/create_mongo_view.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
-SOURCE_COLLECTION_NAME='processed'
+SOURCE_COLLECTION_NAME='processed_new'
 CONFIG_FILE_NAME='src/config_mongo_inb.json'
 CONDA_ENV='twcovid'
 error=0
@@ -67,7 +67,7 @@ then
     end_day_month=`date --date='+5 days' +%d%m`
     view_name="week_${start_day_month}${end_day_month}"
     echo "${running_date},'creating_view_${view_name}',${start_time}," >> $EVENT_LOG
-    python mongo_view_manager.py create-week-view $view_name 'processed' --start_date $start_date  --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+    python mongo_view_manager.py create-week-view $view_name $SOURCE_COLLECTION_NAME --start_date $start_date  --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi

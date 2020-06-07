@@ -19,7 +19,7 @@ LOGFILE=${LOG_DIR}/update_mongo_view.log
 ERRORFILE=${LOG_DIR}/update_mongo_view.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
-SOURCE_COLLECTION_NAME='processed'
+SOURCE_COLLECTION_NAME='processed_new'
 CONFIG_FILE_NAME='src/config_mongo_inb.json'
 CONDA_ENV='twcovid'
 error=0
@@ -71,7 +71,7 @@ then
     # remove previously created view
     python mongo_view_manager.py remove-view $view_name --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
     # create new view
-    python mongo_view_manager.py create-week-view $view_name 'processed' --start_date $start_date  --end_date $end_date --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+    python mongo_view_manager.py create-week-view $view_name $SOURCE_COLLECTION_NAME --start_date $start_date  --end_date $end_date --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
