@@ -245,7 +245,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
     query = {}        
     query.update(
         {        
-            'sentiment': {'$exists': 0}
+            'sentiment': {'$eq': None}
         }
     )
     projection = {
@@ -530,7 +530,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
         dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
     query = {
         'lang': 'es',
-        'lang_detection': {'$exists': 0}
+        'lang_detection': {'$eq': None}
     }
     if tweets_date:
         query['created_at_date'] = tweets_date
@@ -720,7 +720,7 @@ def add_esp_location_flags(collection, config_fn):
 
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
-        'comunidad_autonoma': {'$exists': 0}
+        'comunidad_autonoma': {'$eq': None}
     }
     projection = {
         '_id':0,
@@ -800,7 +800,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
     current_date_str = current_date.strftime('%Y-%m-%d')
     query = {
         '$or': [
-            {'last_metric_update_date': {'$exists': 0}},
+            {'last_metric_update_date': {'$eq': None}},
             {'next_metric_update_date': current_date_str}            
         ]        
         
@@ -935,7 +935,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
 def do_add_complete_text_flag(collection, config_fn):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        'complete_text': {'$exists': 0}
+        'complete_text': {'$eq': None}
     }
     projection = {
         '_id': 0,
