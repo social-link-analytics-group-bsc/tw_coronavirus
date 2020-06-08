@@ -834,7 +834,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
         page_num += 1
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
         logger.info('Retrieving tweets...')
-        tweet_objs = dbm.find_all(query, projection)
+        tweet_objs = dbm.find_all(query=query, projection=projection, pagination=pagination)
         tweets = [tweet_obj for tweet_obj in tweet_objs]
         total_tweets = len(tweets)
         logger.info('Found {:,} tweets'.format(total_tweets))
