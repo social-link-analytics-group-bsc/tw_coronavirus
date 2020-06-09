@@ -1253,7 +1253,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
             add_fields(dbm, tweet_update_queries)
 
 
-def augment_user_data(collection, config_fn=None):
+def do_augment_user_data(collection, config_fn=None, log_fn=None):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
     user_pics_dir = 'user_pics'
@@ -1288,10 +1288,12 @@ def augment_user_data(collection, config_fn=None):
         processing_counter += 1
         fields_to_update = {'img_path': None, 'lang': 'und'}
         try:
+            logging.info('Augmenting data of user {}'.format(user['screen_name']))
             augmented_user = m3twitter.transform_jsonl_object(user)
             fields_to_update['img_path'] = augmented_user['img_path']
             fields_to_update['lang'] = augmented_user['lang']
         except:
+            logging.info('Could not augment data of user {}'.format(user['screen_name']))
             fields_to_update['img_path'] = '[no_img]'
         users_to_update.append(
             {
