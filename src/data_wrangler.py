@@ -7,6 +7,7 @@ import pathlib
 import os
 import pandas as pd
 import preprocessor as tw_preprocessor
+import pymongo
 import re
 import time
 
@@ -1100,8 +1101,10 @@ def process_user(user, tweet):
     
     user['exists'] = 1
     user['total_tweets'] += 1
-    user['comunidad_autonoma'] = tweet['comunidad_autonoma']
-    user['provincia'] = tweet['provincia']    
+    if tweet['comunidad_autonoma'] != 'desconocido':
+        user['comunidad_autonoma'] = tweet['comunidad_autonoma']
+    if tweet['provincia'] != 'desconocido':
+        user['provincia'] = tweet['provincia']    
     tweet_type = get_tweet_type(tweet)
     if tweet_type == 'retweet':
         user['retweets'] += 1
@@ -1137,7 +1140,6 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         'comunidad_autonoma': 1,
         'provincia': 1
     }
-    sort = [{'key': 'created_at_date', 'direction': 1}]
     PAGE_SIZE = 100000
     page_num = 0
     records_to_read = True
@@ -1146,14 +1148,12 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         page_num += 1
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
         user_logger.info('Retrieving tweets...')
-        tweets = dbm.find_all(query, projection, sort, pagination)
-        #user_logger.info('Fetched tweets, now saving them in a list...')
-        #tweets = [tweet_obj for tweet_obj in tweet_objs]
-        #total_tweets = len(tweets)
-        total_tweets = tweets.count()
+        tweets = list(dbm.find_all(query, projection, pagination=pagination))
+        user_logger.info('Fetched tweets, now saving them in a list...')
+        total_tweets = len(tweets)
         user_logger.info('Found {:,} tweets'.format(total_tweets))
-        #if total_tweets == 0:
-        #    break
+        if total_tweets == 0:
+            break
         max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
         user_update_queries, tweet_update_queries = [], []
         users_to_insert, users_to_update = {}, {}
@@ -1242,3 +1242,9 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         if len(tweet_update_queries) > 0:
             user_logger.info('Updating {} tweets'.format(len(tweet_update_queries)))
             add_fields(dbm, tweet_update_queries)
+
+
+if __name__ == "__main__":
+    import os
+    print(os.getcwd())
+    do_update_users_collection('processed_new', config_fn='./src/config_mongo_inb.json', log_fn='user_updates.log')
