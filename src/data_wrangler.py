@@ -1152,8 +1152,8 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         #total_tweets = len(tweets)
         total_tweets = tweets.count()
         user_logger.info('Found {:,} tweets'.format(total_tweets))
-        if total_tweets == 0:
-            break
+        #if total_tweets == 0:
+        #    break
         max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
         user_update_queries, tweet_update_queries = [], []
         users_to_insert, users_to_update = {}, {}
@@ -1162,6 +1162,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
             start_time = time.time()
             processing_counter += 1
             if 'comunidad_autonoma' not in tweet:
+                user_logger.info('The field comunidad_autonoma does not exist in the tweet, ignoring...')
                 continue
             user = tweet['user']
             user_obj = dbm_users.find_record({'id': int(user['id'])})
