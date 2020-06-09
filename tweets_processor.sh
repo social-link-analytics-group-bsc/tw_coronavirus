@@ -22,7 +22,7 @@ EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
-NUM_TASKS=6
+NUM_TASKS=7
 error=0
 
 ####
@@ -151,6 +151,21 @@ else
 fi
 
 ####
+# Update users collection
+####
+if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
+then
+    end_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
+    echo "[7/${NUM_TASKS}] Updating collection of users..."
+    start_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'updating_users',${start_time}," >> $EVENT_LOG
+    python run.py update-users-collection $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+else
+    error=1
+fi
+
+####
 # Add query version flag
 ####
 #if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
@@ -169,7 +184,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
+    echo "${running_date},'updating_users',,${end_time}" >> $EVENT_LOG
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'finished_processor',,${end_time}" >> $EVENT_LOG
 else
