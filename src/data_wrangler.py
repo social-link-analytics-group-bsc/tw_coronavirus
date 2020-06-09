@@ -1042,7 +1042,8 @@ def do_update_user_status(collection, config_fn):
     }
     projection = {
         '_id': 0,
-        'id': 1,        
+        'id': 1,
+        'screen_name': 1 
     }
     logging.info('Retrieving users...')
     user_objs = dbm.find_all(query, projection)
@@ -1056,6 +1057,7 @@ def do_update_user_status(collection, config_fn):
     for user in users:
         start_time = time.time()
         processing_counter += 1
+        logging.info('Updating user: {}'.format(user['screen_name']))
         if len(user_ids) >= max_batch:
             existing_users, users_to_update = [], []
             for user in twm.user_lookup(user_ids, id_type="user_id"):
@@ -1074,7 +1076,7 @@ def do_update_user_status(collection, config_fn):
             add_fields(dbm, users_to_update)
             user_ids = []
         else:
-            user_ids.append(user['id'])
+            user_ids.append(str(user['id']))
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_users)
