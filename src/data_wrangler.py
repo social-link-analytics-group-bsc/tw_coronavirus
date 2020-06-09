@@ -1286,11 +1286,17 @@ def augment_user_data(collection, config_fn=None):
     for user in users:
         start_time = time.time()
         processing_counter += 1
-        augmented_user = m3twitter.transform_jsonl_object(user)
+        fields_to_update = {'img_path': None, 'lang': 'und'}
+        try:
+            augmented_user = m3twitter.transform_jsonl_object(user)
+            fields_to_update['img_path'] = augmented_user['img_path']
+            fields_to_update['lang'] = augmented_user['lang']
+        except:
+            fields_to_update['img_path'] = '[no_img]'
         users_to_update.append(
             {
                 'filter': {'id': int(user['id'])},
-                'new_values': augmented_user
+                'new_values': fields_to_update
             }            
         )
         if len(users_to_update) >= max_batch:
