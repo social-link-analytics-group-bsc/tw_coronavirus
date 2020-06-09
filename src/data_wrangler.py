@@ -1147,6 +1147,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
         user_logger.info('Retrieving tweets...')
         tweet_objs = dbm.find_all(query, projection, sort, pagination)
+        user_logger.info('Fetched tweets, now saving them in a list...')
         tweets = [tweet_obj for tweet_obj in tweet_objs]
         total_tweets = len(tweets)
         user_logger.info('Found {:,} tweets'.format(total_tweets))
