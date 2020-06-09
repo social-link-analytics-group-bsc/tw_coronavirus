@@ -293,13 +293,15 @@ def update_users_collection(collection_name, config_file, log_file):
 @click.argument('collection_name') # Name of collections that contain users
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def update_user_status(collection_name, config_file):
+@click.option('--log_file', help='Name of file to be used in logging messages', \
+              default=None, is_flag=False)
+def update_user_status(collection_name, config_file, log_file):
     """
     Update status of users
     """
     check_current_directory()
     print('Updating status of users')
-    do_update_user_status(collection_name, config_file)
+    do_update_user_status(collection_name, config_file, log_file)
 
 
 @run.command()

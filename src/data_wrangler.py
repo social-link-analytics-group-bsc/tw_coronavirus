@@ -1035,7 +1035,13 @@ def do_add_tweet_type_flag(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
-def do_update_user_status(collection, config_fn):
+def do_update_user_status(collection, config_fn, log_fn):
+    current_path = pathlib.Path(__file__).parent.resolve()
+    logging_file = os.path.join(current_path, log_fn)
+    if log_fn:
+        user_logger = setup_logger('user_logger', logging_file)
+    else:
+        user_logger = logging
     twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
@@ -1045,19 +1051,19 @@ def do_update_user_status(collection, config_fn):
         'id': 1,
         'screen_name': 1 
     }
-    logging.info('Retrieving users...')
+    user_logger.info('Retrieving users...')
     user_objs = dbm.find_all(query, projection)
-    logging.info('Saving users into array...')
+    user_logger.info('Saving users into array...')
     users = [user_obj for user_obj in user_objs]
     total_users = len(users)
-    logging.info('Found {:,} users'.format(total_users))
+    user_logger.info('Found {:,} users'.format(total_users))
     processing_counter = total_segs = 0
     max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
     user_ids = []
     for user in users:
         start_time = time.time()
         processing_counter += 1
-        logging.info('Updating user: {}'.format(user['screen_name']))
+        user_logger.info('Updating user: {}'.format(user['screen_name']))
         if len(user_ids) >= max_batch:
             existing_users, users_to_update = [], []
             for user in twm.user_lookup(user_ids, id_type="user_id"):
