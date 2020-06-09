@@ -1159,6 +1159,8 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
         for tweet in tweets:
             start_time = time.time()
             processing_counter += 1
+            if 'comunidad_autonoma' not in tweet:
+                continue
             user = tweet['user']
             user_obj = dbm_users.find_record({'id': int(user['id'])})
             if user_obj:
