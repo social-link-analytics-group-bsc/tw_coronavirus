@@ -12,6 +12,7 @@ import re
 import time
 
 from datetime import datetime, timedelta
+from m3inference import M3Twitter
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
@@ -1252,7 +1253,51 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
             add_fields(dbm, tweet_update_queries)
 
 
-if __name__ == "__main__":
-    import os
-    print(os.getcwd())
-    do_update_users_collection('processed_new', config_fn='./src/config_mongo_inb.json', log_fn='user_updates.log')
+def augment_user_data(collection, config_fn=None):
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
+    user_pics_dir = 'user_pics'
+    user_pics_path = os.path.join(project_dir, user_pics_dir)
+    if not os.path.exists(user_pics_path):
+        os.mkdir(user_pics_path)
+    m3twitter = M3Twitter(cache_dir=user_pics_path)
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'exists': 1,
+        'img_path': {'$eq': None}
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'id_str': 1,
+        'name': 1,
+        'screen_name': 1,
+        'description': 1,
+        'default_profile_image': 1,
+        'profile_image_url_https': 1,
+    }
+    logging.info('Retriving users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    logging.info('Fetched {} users'.format(total_users))
+    processing_counter = total_segs = 0
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    users_to_update = []
+    for user in users:
+        start_time = time.time()
+        processing_counter += 1
+        augmented_user = m3twitter.transform_jsonl_object(user)
+        users_to_update.append(
+            {
+                'filter': {'id': int(user['id'])},
+                'new_values': augmented_user
+            }            
+        )
+        if len(users_to_update) >= max_batch:
+            add_fields(dbm, users_to_update)
+            users_to_update = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
+    if len(users_to_update) > 0:
+        add_fields(dbm, users_to_update)
