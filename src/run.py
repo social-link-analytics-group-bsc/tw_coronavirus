@@ -13,7 +13,7 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       update_sentiment_score_fields, do_drop_collection, do_add_language_flag, \
       add_esp_location_flags, do_add_query_version_flag, update_metric_tweets, \
       do_add_complete_text_flag, do_add_tweet_type_flag, do_update_users_collection, \
-      do_update_user_status, do_augment_user_data
+      do_update_user_status, do_augment_user_data, compute_user_demographics
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
       do_update_collection, do_tweets_replication
 from network_analysis import NetworkAnalyzer
@@ -336,6 +336,21 @@ def augment_user_data(collection_name, config_file, log_file):
     check_current_directory()
     print('Augmenting users\' data')
     do_augment_user_data(collection_name, config_file, log_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain users
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+@click.option('--log_file', help='Name of file to be used in logging messages', \
+              default=None, is_flag=False)
+def predict_user_demographics(collection_name, config_file, log_file):
+    """
+    Predict users' demographics
+    """
+    check_current_directory()
+    print('Predict users\' demographics')
+    compute_user_demographics(collection_name, config_file, log_file)
 
 
 if __name__ == "__main__":
