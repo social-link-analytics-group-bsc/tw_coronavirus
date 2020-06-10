@@ -1315,21 +1315,24 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
 
 def predict_demographics(users_to_predict, demog_detector, dbm):
     users_to_update = []
-    predictions = demog_detector.infer(users_to_predict)        
-    users_to_update = []
-    predicted_user_ids = []
-    for prediction in predictions:
-        user_id = prediction['id']
-        predicted_user_ids.append(user_id)
-        del prediction['id']
-        prediction['prediction'] = 'succeded'
-        users_to_update.append(
-            {
-                'filter': {'id': int(user_id)},
-                'new_values': prediction
-            }
-        )    
-    add_fields(dbm, users_to_update)
+    try:
+        predictions = demog_detector.infer(users_to_predict)        
+        users_to_update = []
+        predicted_user_ids = []
+        for prediction in predictions:
+            user_id = prediction['id']
+            predicted_user_ids.append(user_id)
+            del prediction['id']
+            prediction['prediction'] = 'succeded'
+            users_to_update.append(
+                {
+                    'filter': {'id': int(user_id)},
+                    'new_values': prediction
+                }
+            )    
+        add_fields(dbm, users_to_update)
+    except:
+        pass # TODO: Take action when prediction fails
 
 
 def compute_user_demographics(collection, config_fn=None):
