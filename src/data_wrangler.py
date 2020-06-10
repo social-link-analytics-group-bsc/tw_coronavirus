@@ -1253,6 +1253,29 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
             add_fields(dbm, tweet_update_queries)
 
 
+def process_demographic_inference(predictions):
+    user_predictions = []
+
+    for user_id in predictions:
+        res_user = predictions[user_id]
+        age_dict = sorted(res_user['age'].items(), key=lambda t: t[1], reverse=True)
+        gender_dict = sorted(res_user['gender'].items(), key=lambda t: t[1], reverse=True)
+        type_dict = sorted(res_user['org'].items(), key=lambda t: t[1], reverse=True)
+        age_range = age_dict[0][0]
+        gender = gender_dict[0][0]
+        type_user = type_dict[0][0]
+        user_predictions.append(
+            {
+                'id': user_id,                
+                'age_range': age_range,
+                'gender': gender,
+                'type': type_user
+            }
+        )
+    
+    return user_predictions
+
+
 def do_augment_user_data(collection, config_fn=None, log_fn=None):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
@@ -1263,8 +1286,7 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
     m3twitter = M3Twitter(cache_dir=user_pics_path)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        'exists': 1,
-        'img_path': {'$eq': None}
+        #'img_path': {'$eq': None}
     }
     projection = {
         '_id': 0,
@@ -1286,15 +1308,23 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
     for user in users:
         start_time = time.time()
         processing_counter += 1
-        fields_to_update = {'img_path': None, 'lang': 'und'}
+        fields_to_update = {}
         try:
             logging.info('Augmenting data of user {}'.format(user['screen_name']))
             augmented_user = m3twitter.transform_jsonl_object(user)
-            fields_to_update['img_path'] = augmented_user['img_path']
+            fields_to_update['img_path'] = '/'.join(augmented_user['img_path'].split('/')[-2:])
             fields_to_update['lang'] = augmented_user['lang']
+            fields_to_update['exists'] = 1
+            logging.info('Running demographic inference on user...')
+            predictions = m3twitter.infer([augmented_user])
+            processed_predictions = process_demographic_inference(predictions)
+            fields_to_update['age_range'] = processed_predictions[0]['age_range']
+            fields_to_update['gender'] = processed_predictions[0]['gender']
+            fields_to_update['type'] = processed_predictions[0]['type']
         except:
             logging.info('Could not augment data of user {}'.format(user['screen_name']))
             fields_to_update['img_path'] = '[no_img]'
+            fields_to_update['exists'] = 0
         users_to_update.append(
             {
                 'filter': {'id': int(user['id'])},
@@ -1309,3 +1339,7 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
                                                         total_users)
     if len(users_to_update) > 0:
         add_fields(dbm, users_to_update)
+
+
+def compute_user_demographic(collection, config_fn=None):
+    pass
