@@ -350,7 +350,7 @@ def predict_user_demographics(collection_name, config_file, log_file):
     """
     check_current_directory()
     print('Predict users\' demographics')
-    compute_user_demographics(collection_name, config_file, log_file)
+    compute_user_demographics(collection_name, config_file)
 
 
 if __name__ == "__main__":
