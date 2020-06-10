@@ -1336,8 +1336,10 @@ def compute_user_demographics(collection, config_fn=None):
     demog_detector = DemographicDetector(user_pics_path)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        'img_path': {'$ne': None},
-        'img_path': {'$ne': '[no_img]'}
+        '$and': [
+            {'img_path': {'$ne': None}},
+            {'img_path': {'$ne': '[no_img]'}}
+        ]                
     }
     projection = {
         '_id': 0,
