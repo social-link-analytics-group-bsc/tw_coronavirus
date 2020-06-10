@@ -1328,15 +1328,7 @@ def predict_demographics(users_to_predict, demog_detector, dbm):
                 'filter': {'id': int(user_id)},
                 'new_values': prediction
             }
-        )
-    for user_to_predict in users_to_predict:
-        if users_to_predict['id'] not in predicted_user_ids:
-            users_to_update.append(
-                {
-                    'filter': {'id': int(user_to_predict['id'])},
-                    'new_values': {'prediction': 'failed'}
-                }
-            )        
+        )    
     add_fields(dbm, users_to_update)
 
 
@@ -1370,30 +1362,50 @@ def compute_user_demographics(collection, config_fn=None):
     processing_counter = total_segs = 0
     max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
     users_to_predict = []
+    users_no_prediction = []
     for user in users:
         start_time = time.time()
         processing_counter += 1
         logging.info('Collecting user {}'.format(user['screen_name']))
         img_path = user['img_path']
         if 'tw_coronavirus' not in user['img_path']:
-            img_path = os.path.join(project_dir, user['img_path'])                   
-        users_to_predict.append(
-            {
-                'id': user['id_str'],
-                'name': user['name'],
-                'screen_name': user['screen_name'],
-                'description': user['description'],
-                'lang': user['lang'],
-                'img_path': img_path
-            }
-        )
+            img_path = os.path.join(project_dir, user['img_path'])
+        if os.path.exists(img_path):             
+            users_to_predict.append(
+                {
+                    'id': user['id_str'],
+                    'name': user['name'],
+                    'screen_name': user['screen_name'],
+                    'description': user['description'],
+                    'lang': user['lang'],
+                    'img_path': img_path
+                }
+            )
+        else:
+            logging.info('User without profile pic. Imposible to infer her demographic characteristics')
+            users_no_prediction.append(
+                {
+                    'filter': {'id': user['id']},
+                    'new_values': {
+                        'prediction': 'failed', 
+                        'prediction_error': 'image_missing'
+                    }
+                }
+            )
         if len(users_to_predict) >= max_batch:
             logging.info('Doing predictions...')
             predict_demographics(users_to_predict, demog_detector, dbm)
             users_to_predict = []
+        if len(users_no_prediction) >= max_batch:
+            logging.info('Updating users without profile pic')
+            add_fields(users_no_prediction, dbm)
+            users_no_prediction = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_users)
     if len(users_to_predict) > 0:
         logging.info('Doing final predictions...')
         predict_demographics(users_to_predict, demog_detector, dbm)
+    if len(users_no_prediction) > 0:
+        logging.info('Updating users without profile pic')
+        add_fields(users_no_prediction, dbm)
