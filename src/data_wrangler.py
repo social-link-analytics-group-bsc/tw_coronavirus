@@ -1315,12 +1315,12 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
             fields_to_update['img_path'] = '/'.join(augmented_user['img_path'].split('/')[-2:])
             fields_to_update['lang'] = augmented_user['lang']
             fields_to_update['exists'] = 1
-            logging.info('Running demographic inference on user...')
-            predictions = m3twitter.infer([augmented_user])
-            processed_predictions = process_demographic_inference(predictions)
-            fields_to_update['age_range'] = processed_predictions[0]['age_range']
-            fields_to_update['gender'] = processed_predictions[0]['gender']
-            fields_to_update['type'] = processed_predictions[0]['type']
+            #logging.info('Running demographic inference on user...')
+            #predictions = m3twitter.infer([augmented_user])
+            #processed_predictions = process_demographic_inference(predictions)
+            #fields_to_update['age_range'] = processed_predictions[0]['age_range']
+            #fields_to_update['gender'] = processed_predictions[0]['gender']
+            #fields_to_update['type'] = processed_predictions[0]['type']
         except:
             logging.info('Could not augment data of user {}'.format(user['screen_name']))
             fields_to_update['img_path'] = '[no_img]'
