@@ -1315,24 +1315,28 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
 
 def predict_demographics(users_to_predict, demog_detector, dbm):
     users_to_update = []
-    for user_to_predict in users_to_predict:
-        try:
-            prediction = demog_detector.infer([user_to_predict])
-            del prediction[0]['id']
-            new_values = prediction[0]
-            new_values['prediction'] = 'success'
-        except Exception as e:
-            new_values = {
-                'prediction': 'fail',
-                'prediction_error': str(e)
+    predictions = demog_detector.infer(users_to_predict)        
+    users_to_update = []
+    predicted_user_ids = []
+    for prediction in predictions:
+        user_id = prediction['id']
+        predicted_user_ids.append(user_id)
+        del prediction['id']
+        prediction['prediction'] = 'succeded'
+        users_to_update.append(
+            {
+                'filter': {'id': int(user_id)},
+                'new_values': prediction
             }
-        finally:
+        )
+    for user_to_predict in users_to_predict:
+        if users_to_predict['id'] not in predicted_user_ids:
             users_to_update.append(
                 {
                     'filter': {'id': int(user_to_predict['id'])},
-                    'new_values': new_values
+                    'new_values': {'prediction': 'failed'}
                 }
-            )
+            )        
     add_fields(dbm, users_to_update)
 
 
