@@ -2,13 +2,12 @@
 
 if [ -z "$1" ]
 then
-    # if no collection supplied, use processed
-    COLLECTION_NAME='processed_new'
+    # if no project directory is supplied, current is used
+    PROJECT_DIR=`pwd`
 else
-    COLLECTION_NAME=$1
+    PROJECT_DIR=$1
 fi
 
-PROJECT_DIR=`pwd`
 LOG_DIR="${PROJECT_DIR}/log"
 
 if [[ ! -d $LOG_DIR ]]
@@ -20,6 +19,7 @@ LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
+COLLECTION_NAME='processed_new'
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
 NUM_TASKS=7
