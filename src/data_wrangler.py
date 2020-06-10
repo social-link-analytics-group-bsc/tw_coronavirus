@@ -12,8 +12,8 @@ import re
 import time
 
 from datetime import datetime, timedelta
-from demographic_detector import DemographicDetector
 from m3inference import M3Twitter
+from utils.demographic_detector import DemographicDetector
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
