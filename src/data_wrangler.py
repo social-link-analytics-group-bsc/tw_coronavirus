@@ -1359,24 +1359,27 @@ def compute_user_demographics(collection, config_fn=None):
     for user in users:
         start_time = time.time()
         processing_counter += 1
-        if len(users_to_predict) < max_batch:
-            users_to_predict.append(
-                {
-                    'id': user['id_str'],
-                    'name': user['name'],
-                    'screen_name': user['screen_name'],
-                    'description': user['description'],
-                    'lang': user['lang'],
-                    'img_path': user['img_path']
-                }
-            )
-            logging.info('Collecting user {}'.format(user['screen_name']))
-        else:
-            logging.info('Doing prediction...')
+        logging.info('Collecting user {}'.format(user['screen_name']))
+        img_path = user['img_path']
+        if 'tw_coronavirus' in user['img_path']:
+            img_path = '/'.join(user['img_path'].split('/')[-2:])                    
+        users_to_predict.append(
+            {
+                'id': user['id_str'],
+                'name': user['name'],
+                'screen_name': user['screen_name'],
+                'description': user['description'],
+                'lang': user['lang'],
+                'img_path': img_path
+            }
+        )
+        if len(users_to_predict) >= max_batch:
+            logging.info('Doing predictions...')
             predict_demographics(users_to_predict, demog_detector, dbm)
             users_to_predict = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_users)
     if len(users_to_predict) > 0:
+        logging.info('Doing final predictions...')
         predict_demographics(users_to_predict, demog_detector, dbm)
