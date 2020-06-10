@@ -1363,8 +1363,8 @@ def compute_user_demographics(collection, config_fn=None):
         processing_counter += 1
         logging.info('Collecting user {}'.format(user['screen_name']))
         img_path = user['img_path']
-        if 'tw_coronavirus' in user['img_path']:
-            img_path = '/'.join(user['img_path'].split('/')[-2:])                    
+        if 'tw_coronavirus' not in user['img_path']:
+            img_path = os.path.join(project_dir, user['img_path'])                   
         users_to_predict.append(
             {
                 'id': user['id_str'],
