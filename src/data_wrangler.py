@@ -277,6 +277,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         'lang': 1,
         'extended_tweet': 1
     }
+    logging.info('Retrieving tweets...')
     tweets = dbm.find_all(query, projection)
     sa = SentimentAnalyzer()                       
     total_tweets = tweets.count()
