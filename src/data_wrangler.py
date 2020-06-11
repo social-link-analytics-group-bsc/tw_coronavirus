@@ -252,17 +252,23 @@ def prepare_sentiment_obj(sentiment_analysis_ret):
 
 
 def compute_sentiment_analysis_tweets(collection, config_fn=None, 
-                                      source_collection=None):
+                                      source_collection=None, date=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     dbm_source = None
     if source_collection:
         dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
-    query = {}        
+    query = {}
     query.update(
         {        
             'sentiment': {'$eq': None}
         }
     )
+    if date:
+        query.update(
+            {
+                'created_at_date': date
+            }
+        )
     projection = {
         '_id': 0,
         'id': 1,

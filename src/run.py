@@ -83,14 +83,16 @@ def add_date_fields(collection_name, config_file):
 @click.argument('collection_name') # Name of collections that contain tweets
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def sentiment_analysis(collection_name, config_file):
+@click.option('--date', help='Date for which the analysis should be run', \
+              default=None, is_flag=False)                                          
+def sentiment_analysis(collection_name, config_file, date):
     """
     Compute sentiment analysis of tweets
     """
     check_current_directory()
     print('Process of computing sentiment analysis has started, please ' \
           'check the log for updates...')    
-    compute_sentiment_analysis_tweets(collection_name, config_file)
+    compute_sentiment_analysis_tweets(collection_name, config_file, date=date)
 
 
 @run.command()
