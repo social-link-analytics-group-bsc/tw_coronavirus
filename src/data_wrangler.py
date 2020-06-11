@@ -1401,7 +1401,7 @@ def compute_user_demographics(collection, config_fn=None):
             users_to_predict = []
         if len(users_no_prediction) >= max_batch:
             logging.info('Updating users without profile pic')
-            add_fields(users_no_prediction, dbm)
+            add_fields(dbm, users_no_prediction)
             users_no_prediction = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
@@ -1411,4 +1411,4 @@ def compute_user_demographics(collection, config_fn=None):
         predict_demographics(users_to_predict, demog_detector, dbm)
     if len(users_no_prediction) > 0:
         logging.info('Updating users without profile pic')
-        add_fields(users_no_prediction, dbm)
+        add_fields(dbm, users_no_prediction)
