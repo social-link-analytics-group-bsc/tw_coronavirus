@@ -808,7 +808,8 @@ def get_twm_obj():
     return twm
 
 
-def update_metric_tweets(collection, config_fn=None, source_collection=None):
+def update_metric_tweets(collection, config_fn=None, source_collection=None,
+                         date=None):
     current_path = pathlib.Path(__file__).parent.resolve()
     logging_file = os.path.join(current_path, 'tw_coronavirus.log')    
     logger = setup_logger('logger', logging_file)
@@ -819,13 +820,17 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None):
         dbm_source = DBManager(collection=source_collection, config_fn=config_fn)
     current_date = datetime.today()
     current_date_str = current_date.strftime('%Y-%m-%d')
-    query = {
-        '$or': [
-            {'last_metric_update_date': {'$eq': None}},
-            {'next_metric_update_date': current_date_str}            
-        ]        
-        
-    }
+    if date:
+        query = {
+            'created_at_date': date
+        }
+    else:
+        query = {
+            '$or': [
+                {'last_metric_update_date': {'$eq': None}},
+                {'next_metric_update_date': current_date_str}            
+            ]                    
+        }
     projection = {
         '_id':0,
         'id':1,

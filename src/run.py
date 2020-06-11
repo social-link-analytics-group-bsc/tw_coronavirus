@@ -220,13 +220,15 @@ def add_query_version_flag(collection_name, config_file):
               default=None, is_flag=False)
 @click.option('--config_file', help='File with Mongo configuration', \
               default=None, is_flag=False)
-def update_tweet_metrics(collection_name, source_collection, config_file):
+@click.option('--date', help='Date for which the analysis should be run', \
+              default=None, is_flag=False)
+def update_tweet_metrics(collection_name, source_collection, config_file, date):
     """
     Update retweet and favorite metrics of tweets
     """
     check_current_directory()
     print('Updating metrics of tweets')
-    update_metric_tweets(collection_name, config_file, source_collection)
+    update_metric_tweets(collection_name, config_file, source_collection, date)
 
 
 @run.command()
