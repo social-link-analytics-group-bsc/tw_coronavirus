@@ -1273,7 +1273,7 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
     m3twitter = M3Twitter(cache_dir=user_pics_path)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        #'img_path': {'$eq': None}
+        'img_path': {'$eq': None}
     }
     projection = {
         '_id': 0,
@@ -1454,10 +1454,11 @@ def check_user_pictures(collection, config_fn=None):
     }
     CORRECT_IMG_SIZE = (224, 224)
     print('Analyzing picture of users, please wait...')
-    processing_counter = total_segs = 0
+    processing_counter, total_segs = 0, 0
     for user in users:
         start_time = time.time()
         processing_counter += 1
+        print('[{0}/{1}] Processing user: {2}'.format(processing_counter, total_users, user['id_str']))
         if 'prediction' in user:
             continue
         img_path = user['img_path']
