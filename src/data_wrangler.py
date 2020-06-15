@@ -6,6 +6,7 @@ import numpy as np
 import pathlib
 import os
 import pandas as pd
+import PIL
 import preprocessor as tw_preprocessor
 import pymongo
 import re
@@ -1420,3 +1421,75 @@ def compute_user_demographics(collection, config_fn=None):
     if len(users_no_prediction) > 0:
         logging.info('Updating users without profile pic')
         add_fields(dbm, users_no_prediction)
+
+
+def check_user_pictures(collection, config_fn=None):
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
+    user_pics_dir = 'user_pics'
+    user_pics_path = os.path.join(project_dir, user_pics_dir)
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        '$and': [
+            {'img_path': {'$ne': None}},
+            {'img_path': {'$ne': '[no_img]'}}
+        ]                
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,        
+        'img_path': 1
+    }
+    print('Retriving users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    print('Fetched {} users'.format(total_users))
+    res_dict = {
+        'img_ok': 0,
+        'img_missing': 0,
+        'img_incorrect_size': 0,
+        'incorrect_sizes': [],
+        'img_incorrect_path': 0,
+        'incorrect_paths': []
+    }
+    CORRECT_IMG_SIZE = (224, 224)
+    print('Analyzing picture of users, please wait...')
+    for user in users:
+        if 'prediction' in user:
+            continue
+        img_path = user['img_path']
+        if 'user_pics' in img_path:
+            if 'tw_coronavirus' not in img_path:
+                img_path = os.path.join(project_dir, user['img_path'])
+            if os.path.exists(img_path):
+                image = PIL.Image.open(img_path)
+                img_size = image.size
+                if img_size == CORRECT_IMG_SIZE:
+                    res_dict['img_ok'] += 1
+                else:
+                    res_dict['img_incorrect_size'] += 1
+                    res_dict['incorrect_sizes'].append(img_size)
+            else:
+                res_dict['img_missing'] += 1
+        else:
+            res_dict['img_incorrect_path'] += 1
+            res_dict['incorrect_paths'].append(img_path)
+
+    print('Users with ok images: {0:,} ({1}%)'.\
+        format(res_dict['img_ok'], round(res_dict['img_ok']/total_users,0)))
+    print('\n\n')
+    print('Users with missing images: {0:,} ({1}%)'.\
+        format(res_dict['img_missing'], round(res_dict['img_missing']/total_users,0)))
+    print('\n\n')
+    print('Users with images of incorrect size: {0:,} ({1}%)'.\
+        format(res_dict['img_incorrect_size'], round(res_dict['img_incorrect_size']/total_users,0)))
+    print('Incorrect sizes: {0}'.format(res_dict['incorrect_sizes']))
+    print('\n\n')
+    print('Users with images of incorrect path: {0:,} ({1}%)'.\
+        format(res_dict['img_incorrect_path'], round(res_dict['img_incorrect_path']/total_users,0)))
+    print('Incorrect paths: {0}'.format(res_dict['incorrect_paths']))
+
+
+if __name__ == "__main__":
+    check_user_pictures('users', 'config_mongo_inb.json')
+    
