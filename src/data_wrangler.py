@@ -1454,7 +1454,10 @@ def check_user_pictures(collection, config_fn=None):
     }
     CORRECT_IMG_SIZE = (224, 224)
     print('Analyzing picture of users, please wait...')
+    processing_counter = total_segs = 0
     for user in users:
+        start_time = time.time()
+        processing_counter += 1
         if 'prediction' in user:
             continue
         img_path = user['img_path']
@@ -1474,7 +1477,9 @@ def check_user_pictures(collection, config_fn=None):
         else:
             res_dict['img_incorrect_path'] += 1
             res_dict['incorrect_paths'].append(img_path)
-
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
     print('Users with ok images: {0:,} ({1}%)'.\
         format(res_dict['img_ok'], round(res_dict['img_ok']/total_users,0)))
     print('\n\n')
