@@ -1062,7 +1062,9 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
     projection = {
         '_id': 0,
         'id': 1,
-        'screen_name': 1 
+        'screen_name': 1,
+        'img_path': 1,
+        'prediction': 1
     }
     user_logger.info('Retrieving users...')
     users = list(dbm.find_all(query, projection))
