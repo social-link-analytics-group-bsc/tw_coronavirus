@@ -1065,9 +1065,7 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
         'screen_name': 1 
     }
     user_logger.info('Retrieving users...')
-    user_objs = dbm.find_all(query, projection)
-    user_logger.info('Saving users into array...')
-    users = [user_obj for user_obj in user_objs]
+    users = list(dbm.find_all(query, projection))
     total_users = len(users)
     user_logger.info('Found {:,} users'.format(total_users))
     processing_counter = total_segs = 0
@@ -1126,6 +1124,8 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_users)
+    if len(users_to_update) >= 0:
+        add_fields(dbm, users_to_update)
 
 
 def process_user_batch(users_batch):
