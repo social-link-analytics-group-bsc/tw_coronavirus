@@ -11,6 +11,7 @@ import preprocessor as tw_preprocessor
 import pymongo
 import re
 import time
+import sys
 
 from datetime import datetime, timedelta
 from m3inference import M3Twitter
@@ -23,6 +24,7 @@ from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         exists_user
 from utils.sentiment_analyzer import SentimentAnalyzer
 from twarc import Twarc
+from tqdm import tqdm
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
@@ -1443,57 +1445,71 @@ def check_user_pictures(collection, config_fn=None):
     print('Retriving users...')
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
-    print('Fetched {} users'.format(total_users))
-    res_dict = {
-        'img_ok': 0,
-        'img_missing': 0,
-        'img_incorrect_size': 0,
-        'incorrect_sizes': [],
-        'img_incorrect_path': 0,
-        'incorrect_paths': []
-    }
+    print('Fetched {0,} users'.format(total_users))
     CORRECT_IMG_SIZE = (224, 224)
     print('Analyzing picture of users, please wait...')
-    processing_counter, total_segs = 0, 0
-    for user in users:
-        start_time = time.time()
-        processing_counter += 1
-        print('[{0}/{1}] Processing user: {2}'.format(processing_counter, total_users, user['id_str']))
-        if 'prediction' in user:
-            continue
-        img_path = user['img_path']
-        if 'user_pics' in img_path:
-            if 'tw_coronavirus' not in img_path:
-                img_path = os.path.join(project_dir, user['img_path'])
-            if os.path.exists(img_path):
-                image = PIL.Image.open(img_path)
-                img_size = image.size
-                if img_size == CORRECT_IMG_SIZE:
-                    res_dict['img_ok'] += 1
-                else:
-                    res_dict['img_incorrect_size'] += 1
-                    res_dict['incorrect_sizes'].append(img_size)
-            else:
-                res_dict['img_missing'] += 1
-        else:
-            res_dict['img_incorrect_path'] += 1
-            res_dict['incorrect_paths'].append(img_path)
-        total_segs = calculate_remaining_execution_time(start_time, total_segs,
-                                                        processing_counter, 
-                                                        total_users)
+    ok_users, problem_users = 0, 0
+    output_file = os.path.join(project_dir, 'data', 'users_pic.csv')
+    with tqdm(total=total_users, file=sys.stdout) as pbar:
+        with open(output_file, 'w') as output_file:
+            csv_writer = csv.DictWriter(output_file, fieldnames=['id','problem','problem_info'])
+            csv_writer.writeheader()            
+            for user in users:
+                if 'prediction' not in user:            
+                    img_path = user['img_path']
+                    if 'user_pics' in img_path:
+                        if 'tw_coronavirus' not in img_path:
+                            img_path = os.path.join(project_dir, user['img_path'])
+                        if os.path.exists(img_path):
+                            try:
+                                image = PIL.Image.open(img_path)
+                                img_size = image.size
+                                if img_size != CORRECT_IMG_SIZE:
+                                    ok_users += 1
+                                else:
+                                    problem_users += 1
+                                    csv_writer.writerow(
+                                        {
+                                            'id': user['id_str'],
+                                            'problem': 'img_incorrect_size',
+                                            'problem_info': str(img_size)
+                                        }
+                                    )                                
+                            except:
+                                problem_users += 1
+                                csv_writer.writerow(
+                                    {
+                                        'id': user['id_str'],
+                                        'problem': 'img_missing',
+                                        'problem_info': ''
+                                    }
+                                )
+                        else:
+                            problem_users += 1
+                            csv_writer.writerow(
+                                {
+                                    'id': user['id_str'],
+                                    'problem': 'img_missing',
+                                    'problem_info': ''
+                                }
+                            )
+                    else:
+                        problem_users += 1
+                        csv_writer.writerow(
+                            {
+                                'id': user['id_str'],
+                                'problem': 'img_incorrect_path',
+                                'problem_info': img_path
+                            }
+                        )
+                pbar.update(1)                
     print('Users with ok images: {0:,} ({1}%)'.\
-        format(res_dict['img_ok'], round(res_dict['img_ok']/total_users,0)))
+        format(ok_users, round(ok_users/total_users,0)))
     print('\n\n')
-    print('Users with missing images: {0:,} ({1}%)'.\
-        format(res_dict['img_missing'], round(res_dict['img_missing']/total_users,0)))
+    print('Users with problems: {0:,} ({1}%)'.\
+        format(problem_users, round(problem_users/total_users,0)))
     print('\n\n')
-    print('Users with images of incorrect size: {0:,} ({1}%)'.\
-        format(res_dict['img_incorrect_size'], round(res_dict['img_incorrect_size']/total_users,0)))
-    print('Incorrect sizes: {0}'.format(res_dict['incorrect_sizes']))
-    print('\n\n')
-    print('Users with images of incorrect path: {0:,} ({1}%)'.\
-        format(res_dict['img_incorrect_path'], round(res_dict['img_incorrect_path']/total_users,0)))
-    print('Incorrect paths: {0}'.format(res_dict['incorrect_paths']))
+    print('Checkout {}'.format(output_file))
 
 
 if __name__ == "__main__":
