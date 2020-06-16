@@ -1048,11 +1048,11 @@ def do_add_tweet_type_flag(collection, config_fn):
         add_fields(dbm, update_queries)
 
 
-def do_update_user_status(collection, config_fn, log_fn):
+def do_update_user_status(collection, config_fn=None, log_fn=None):
     current_path = pathlib.Path(__file__).parent.resolve()
-    project_dir = current_path.parents[1]
-    logging_file = os.path.join(current_path, log_fn)
+    project_dir = current_path.parents[1]    
     if log_fn:
+        logging_file = os.path.join(current_path, log_fn)
         user_logger = setup_logger('user_logger', logging_file)
     else:
         user_logger = logging
