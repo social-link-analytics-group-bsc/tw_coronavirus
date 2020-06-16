@@ -1050,12 +1050,12 @@ def do_add_tweet_type_flag(collection, config_fn):
 
 def do_update_user_status(collection, config_fn, log_fn):
     current_path = pathlib.Path(__file__).parent.resolve()
+    project_dir = current_path.parents[1]
     logging_file = os.path.join(current_path, log_fn)
     if log_fn:
         user_logger = setup_logger('user_logger', logging_file)
     else:
         user_logger = logging
-    twm = get_twm_obj()
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
     }
@@ -1072,30 +1072,55 @@ def do_update_user_status(collection, config_fn, log_fn):
     user_logger.info('Found {:,} users'.format(total_users))
     processing_counter = total_segs = 0
     max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
-    user_ids = []
+    users_to_update = []
     for user in users:
         start_time = time.time()
         processing_counter += 1
         user_logger.info('Updating user: {}'.format(user['screen_name']))
-        if len(user_ids) >= max_batch:
-            existing_users, users_to_update = [], []
-            for user in twm.user_lookup(user_ids, id_type="user_id"):
-                existing_users.append(user['id'])
+        if 'prediction' in user:
+            users_to_update.append({
+                'filter': {'id': int(user['id'])},
+                'new_values': {'exists': 1}
+            })
+        else:
+            img_path = user['img_path']
+            img_path_to_save = user['img_path']
+            if img_path == '[no_img]':
                 users_to_update.append({
                     'filter': {'id': int(user['id'])},
-                    'new_values': {'exists': 1}
-                })
-            non_existing_users = set(user_ids) - set(existing_users)
-            for non_existing_user in non_existing_users:
-                users_to_update.append({
-                    'filter': {'id': int(non_existing_user)},
                     'new_values': {'exists': 0}
                 })
-            logging.info('Updating {} user'.format(len(users_to_update)))
+            else:
+                if 'user_pics' in img_path:
+                    if 'tw_coronavirus' not in img_path:
+                        img_path = os.path.join(project_dir, user['img_path'])
+                    else:
+                        img_path_to_save = '/'.join(img_path.split('/')[-2:])
+                    if os.path.exists(img_path):
+                        try:
+                            PIL.Image.open(img_path)
+                            users_to_update.append({
+                                'filter': {'id': int(user['id'])},
+                                'new_values': {'exists': 1, 'img_path': img_path_to_save}
+                            })
+                        except:
+                            users_to_update.append({
+                                'filter': {'id': int(user['id'])},
+                                'new_values': {'exists': 2}
+                            })
+                    else:
+                        users_to_update.append({
+                            'filter': {'id': int(user['id'])},
+                            'new_values': {'exists': 0}
+                        })
+                else:
+                    users_to_update.append({
+                        'filter': {'id': int(user['id'])},
+                        'new_values': {'exists': 2}  # 2 means, the user exists but his/her picture could not be downloaded correctly
+                    })
+        if len(users_to_update) >= max_batch:            
             add_fields(dbm, users_to_update)
-            user_ids = []
-        else:
-            user_ids.append(str(user['id']))
+            users_to_update = []        
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
                                                         total_users)
@@ -1449,9 +1474,9 @@ def check_user_pictures(collection, config_fn=None):
     CORRECT_IMG_SIZE = (224, 224)
     print('Analyzing picture of users, please wait...')
     ok_users, problem_users = 0, 0
-    output_file = os.path.join(project_dir, 'data', 'users_pic.csv')
+    output_file_name = os.path.join(project_dir, 'data', 'users_pic.csv')
     with tqdm(total=total_users, file=sys.stdout) as pbar:
-        with open(output_file, 'w') as output_file:
+        with open(output_file_name, 'w') as output_file:
             csv_writer = csv.DictWriter(output_file, fieldnames=['id','problem','problem_info'])
             csv_writer.writeheader()            
             for user in users:
@@ -1509,7 +1534,7 @@ def check_user_pictures(collection, config_fn=None):
     print('Users with problems: {0:,} ({1}%)'.\
         format(problem_users, round(problem_users/total_users,0)))
     print('\n\n')
-    print('Checkout {}'.format(output_file))
+    print('Checkout {}'.format(output_file_name))
 
 
 if __name__ == "__main__":
