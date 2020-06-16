@@ -1464,7 +1464,7 @@ def check_user_pictures(collection, config_fn=None):
                             try:
                                 image = PIL.Image.open(img_path)
                                 img_size = image.size
-                                if img_size != CORRECT_IMG_SIZE:
+                                if img_size == CORRECT_IMG_SIZE:
                                     ok_users += 1
                                 else:
                                     problem_users += 1
