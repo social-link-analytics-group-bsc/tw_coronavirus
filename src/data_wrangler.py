@@ -1445,7 +1445,7 @@ def check_user_pictures(collection, config_fn=None):
     print('Retriving users...')
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
-    print('Fetched {0,} users'.format(total_users))
+    print('Fetched {0:,} users'.format(total_users))
     CORRECT_IMG_SIZE = (224, 224)
     print('Analyzing picture of users, please wait...')
     ok_users, problem_users = 0, 0
