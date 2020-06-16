@@ -5,7 +5,7 @@ import pathlib
 import sys
 
 from data_exporter import save_tweet_sentiments_to_csv, \
-      save_tweet_sentiment_scores_to_csv, export_user_sample
+      save_tweet_sentiment_scores_to_csv, export_user_sample, do_export_users
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       check_datasets_intersection, check_performance_language_detection, \
       compute_sentiment_analysis_tweets, identify_duplicates, \
@@ -355,6 +355,21 @@ def predict_user_demographics(collection_name, config_file, log_file):
     check_current_directory()
     print('Predict users\' demographics')
     compute_user_demographics(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+@click.option('--output_file', help='Name of file where to save the output', \
+              default=None, is_flag=False)
+def export_users(collection_name, config_file, output_file):
+    """
+    Export information of users
+    """
+    check_current_directory()
+    print('Exporting users')
+    do_export_users(collection_name, config_file, output_file)
 
 
 if __name__ == "__main__":

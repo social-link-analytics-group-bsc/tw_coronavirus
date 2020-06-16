@@ -62,64 +62,43 @@ def save_tweet_sentiment_scores_to_csv(sentiment_file):
             csv_writer.writerow(tweet_selected)
 
 
-def save_tweet_sentiments_to_csv():
-    dbm = DBManager(collection='tweets_esp_hpai')
-    sentiment_tweets = dbm.search({'sentiment_score': {'$exists': 1}})
-    positive_tweets, negative_tweets, neutral_tweets = [], [], []
-    thresholds = {'low': -0.05, 'high': 0.05}
-    max_tweets_to_export = 200
-    seed(1)
-    output_file = '../data/bsc/processing_outputs/sentiment_analysis_sample.csv'
-    logging.info('Collecting tweets, please wait...')
-    for tweet in sentiment_tweets:
-        if 'extended_tweet' not in tweet:
-            continue
-        sentiment_score = tweet['sentiment_score']        
-        if sentiment_score < thresholds['low']:
-            if random() > 0.5 and len(negative_tweets) < max_tweets_to_export:         
-                negative_tweets.append(
-                    {
-                        'texto': tweet['extended_tweet']['full_text'],
-                        'score': tweet['sentiment_score'],
-                        'sentimiento': 'negativo'
-                    }
-                )
-        elif sentiment_score > thresholds['high']:
-            if random() > 0.5 and len(positive_tweets) < max_tweets_to_export:         
-                positive_tweets.append(
-                    {
-                        'texto': tweet['extended_tweet']['full_text'],
-                        'score': tweet['sentiment_score'],
-                        'sentimiento': 'positivo'
-                    }
-                )
-        else:
-            if random() > 0.5 and len(neutral_tweets) < max_tweets_to_export:
-                neutral_tweets.append(
-                    {
-                        'texto': tweet['extended_tweet']['full_text'],
-                        'score': tweet['sentiment_score'],
-                        'sentimiento': 'neutral'
-                    }
-                )
-        if len(negative_tweets) >= max_tweets_to_export and \
-           len(positive_tweets) >= max_tweets_to_export and \
-           len(neutral_tweets) >= max_tweets_to_export:
-           break
-    logging.info('Saving tweets to the CSV {}'.format(output_file))
+def export_sentiment_sample(sample_size, collection, config_fn=None):
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'sentiment': {'$eq': None}
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'complete_text': 1,
+        'sentiment.score': 1
+    }
+    logging.info('Retrieving tweets...')
+    tweets = dbm.get_sample(int(sample_size), query, projection)
+    total_tweets = len(tweets)
+    logging.info('Found {} tweets'.format(total_tweets))
+    output_file = os.path.join(project_dir, 'data', 'sentiment_analysis_sample.csv')
+    logging.info('Processing and saving tweets into {}'.format(output_file))
     with open(output_file, 'w') as csv_file:
-        csv_writer = csv.DictWriter(csv_file, fieldnames=['texto', 'score', 'sentimiento'])
-        for i in range(200):
-            csv_writer.writerow(positive_tweets[i])
-            csv_writer.writerow(negative_tweets[i])
-            csv_writer.writerow(neutral_tweets[i])
+        csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'texto', 'score'])
+        csv_writer.writeheader()      
+        for tweet in tweets:
+            csv_writer.writerow(
+                {
+                    'id': tweet['id'],
+                    'texto': tweet['complete_text'],
+                    'score': tweet['sentiment']['score']
+                }
+            )
 
 
 def export_user_sample(sample_size, collection, config_file=None, output_filename=None):
-    root_dir = pathlib.Path(__file__).parents[1].resolve()
+    project_dir = pathlib.Path(__file__).parents[1].resolve()
     if not output_filename:
         output_filename = 'user_sample.jsonl'
-    output = os.path.join(root_dir, 'data', output_filename)
+    output = os.path.join(project_dir, 'data', output_filename)
     dbm = DBManager(collection=collection, config_fn=config_file)
     query_filter = {
         'lang': 'es'
@@ -139,6 +118,35 @@ def export_user_sample(sample_size, collection, config_file=None, output_filenam
             if exists_user(user_obj):            
                 saved_tweets += 1
                 logging.info('[{0}] Saving user: {1}'.format(saved_tweets, user_obj['screen_name']))
-                json.dump(user_obj, f)
-                if i < (total_tweets-1):
-                    f.write('\n')            
+                f.write("{}\n".format(json.dumps(user_obj)))                
+
+
+def do_export_users(collection, config_file=None, output_filename=None):
+    project_dir = pathlib.Path(__file__).parents[1].resolve()
+    if not output_filename:
+        output_filename = 'users.jsonl'
+    output = os.path.join(project_dir, 'data', output_filename)
+    dbm = DBManager(collection=collection, config_fn=config_file)
+    query = {
+        'exists': 1
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'name': 1,
+        'screen_name': 1,
+        'description': 1,
+        'lang': 1,
+        'img_path': 1
+    }
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    logging.info('Found {} users'.format(total_users))
+    with open(output, 'w') as f:
+        for user in users:
+            logging.info('Exporting user: {1}'.format(user['screen_name']))
+            f.write("{}\n".format(json.dumps(user)))
+
+
+if __name__ == "__main__":
+    export_sentiment_sample(600, 'processed_new', 'config_mongo_inb.json')
