@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 
-from data_exporter import save_tweet_sentiments_to_csv, \
+from data_exporter import export_sentiment_sample, \
       save_tweet_sentiment_scores_to_csv, export_user_sample, do_export_users
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       check_datasets_intersection, check_performance_language_detection, \
