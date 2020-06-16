@@ -1057,7 +1057,7 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
     else:
         user_logger = logging
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {        
+    query = {      
     }
     projection = {
         '_id': 0,
@@ -1074,6 +1074,8 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
     max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
     users_to_update = []
     for user in users:
+        if 'img_path' not in user:
+            continue
         start_time = time.time()
         processing_counter += 1
         user_logger.info('Updating user: {}'.format(user['screen_name']))
