@@ -1383,10 +1383,7 @@ def compute_user_demographics(collection, config_fn=None):
     demog_detector = DemographicDetector(user_pics_path)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        '$and': [
-            {'img_path': {'$ne': None}},
-            {'img_path': {'$ne': '[no_img]'}}
-        ]                
+        'exists': 1              
     }
     projection = {
         '_id': 0,
@@ -1407,6 +1404,8 @@ def compute_user_demographics(collection, config_fn=None):
     users_to_predict = []
     users_no_prediction = []
     for user in users:
+        if 'img_path' not in user:
+            continue
         start_time = time.time()
         processing_counter += 1
         logging.info('Collecting user {}'.format(user['screen_name']))
