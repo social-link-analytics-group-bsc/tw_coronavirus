@@ -277,10 +277,10 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         'extended_tweet': 1
     }
     logging.info('Retrieving tweets...')
-    tweets = dbm.find_all(query, projection)
+    tweets = list(dbm.find_all(query, projection))
     sa = SentimentAnalyzer()                       
-    total_tweets = tweets.count()
-    logging.info('Going to compute the sentiment of {0:,} tweets'.format(total_tweets))
+    total_tweets = len(tweets)
+    logging.info('Computing the sentiment of {0:,} tweets'.format(total_tweets))
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets 
     processing_counter = total_segs = 0
     processed_sentiments = {}
