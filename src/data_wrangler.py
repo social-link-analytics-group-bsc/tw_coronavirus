@@ -270,7 +270,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         }
     projection = {
         '_id': 0,
-        'id': 1,
+        'id_str': 1,
         'retweeted_status': 1,
         'text': 1,
         'lang': 1,
@@ -288,7 +288,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
     for tweet in tweets:
         start_time = time.time()
         processing_counter += 1
-        tweet_id = tweet['id']
+        tweet_id = tweet['id_str']
         source_tweet = None
         if dbm_source:
             source_tweet = dbm_source.find_record({'id': int(tweet_id)})
@@ -320,7 +320,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
                 sentiment_dict = processed_sentiments[tweet_id]
         update_queries.append(
             {
-                'filter': {'id': int(tweet_id)},
+                'filter': {'id_str': tweet_id},
                 'new_values': sentiment_dict
             }                        
         )
@@ -557,7 +557,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
         query['created_at_date'] = tweets_date
     projection = {
         '_id': 0,
-        'id': 1,
+        'id_str': 1,
         'retweeted_status': 1,
         'text': 1,
         'lang': 1,
@@ -572,7 +572,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
     update_queries = []
     spain_languages = ['ca', 'eu', 'gl']
     for tweet in tweets_es: 
-        tweet_id = tweet['id']
+        tweet_id = tweet['id_str']
         start_time = time.time()
         processing_counter += 1
         source_tweet = None
@@ -623,7 +623,7 @@ def do_add_language_flag(collection, config_fn=None, tweets_date=None,
                 )
         update_queries.append(
             {
-                'filter': {'id': int(tweet_id)},
+                'filter': {'id_str': tweet_id},
                 'new_values': new_values
             }                        
         )
@@ -745,7 +745,7 @@ def add_esp_location_flags(collection, config_fn):
     }
     projection = {
         '_id':0,
-        'id':1,
+        'id_str':1,
         'user.location':1,
         'place.full_name': 1
     }
@@ -757,7 +757,7 @@ def add_esp_location_flags(collection, config_fn):
     processing_counter = total_segs = 0
     for tweet in tweets:
         start_time = time.time()
-        tweet_id = tweet['id']
+        tweet_id = tweet['id_str']
         processing_counter += 1
         if tweet['user']['location'] != '':
             user_location = tweet['user']['location']
@@ -787,7 +787,7 @@ def add_esp_location_flags(collection, config_fn):
                                            cities, provinces, ccaas, ccaa_province)
         update_queries.append(
             {
-                'filter': {'id': int(tweet_id)},
+                'filter': {'id_str': tweet_id},
                 'new_values': ccaa_province
             }                        
         )
@@ -836,9 +836,9 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
         }
     projection = {
         '_id':0,
-        'id':1,
+        'id_str':1,
         'created_at_date':1,
-        'retweeted_status.id': 1
+        'retweeted_status.id_str': 1
     }
     #PAGE_SIZE = 500000
     #page_num = 0
@@ -866,7 +866,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
         processing_counter += 1
         source_tweet = None
         if dbm_source:
-            source_tweet = dbm_source.find_record({'id': int(tweet['id'])})
+            source_tweet = dbm_source.find_record({'id_str': tweet['id_str']})
         if source_tweet and 'last_metric_update_date' in source_tweet and \
             'next_metric_update_date' in source_tweet:
             new_values = {
@@ -877,18 +877,18 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
             }
             update_queries.append(
                 {
-                    'filter': {'id': int(tweet['id'])},
+                    'filter': {'id_str': tweet['id_str']},
                     'new_values': new_values
                 }                        
             )
             logger.info('[{0}/{1}] Found tweet in source collection'.format(processing_counter, total_tweets))
             continue
         if 'retweeted_status' not in tweet.keys():
-            tweet_ids.append(tweet['id'])
+            tweet_ids.append(tweet['id_str'])
         else:
             rts.append({
-                'id': tweet['id'],
-                'parent_id': tweet['retweeted_status']['id']
+                'id_str': tweet['id_str'],
+                'parent_id': tweet['retweeted_status']['id_str']
             })
         if len(tweet_ids) == max_batch:
             logger.info('Hydratating tweets...')
@@ -905,14 +905,14 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
                     'last_metric_update_date': current_date_str,
                     'next_metric_update_date': next_update_date_str
                 }
-                org_tweets[tweet_obj['id']] = new_values
+                org_tweets[tweet_obj['id_str']] = new_values
                 update_queries.append(
                     {
-                        'filter': {'id': int(tweet_obj['id'])},
+                        'filter': {'id_str': tweet_obj['id_str']},
                         'new_values': new_values
                     }                        
                 )
-                hydrated_tweet_ids.append(tweet_obj['id'])
+                hydrated_tweet_ids.append(tweet_obj['id_str'])
             miss_ids = set(tweet_ids) - set(hydrated_tweet_ids)
             logging.info('Out of the {} tweets searched to be hydrated, {} '\
                         'do not exist anymore'.format(len(tweet_ids),len(miss_ids)))
@@ -924,7 +924,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
                 org_tweets[miss_id] = new_values
                 update_queries.append(
                     {
-                        'filter': {'id': int(miss_id)},
+                        'filter': {'id_str': miss_id},
                         'new_values': new_values
                     }                        
                 )
@@ -947,7 +947,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
             processing_counter += 1
             update_queries.append(
                 {
-                    'filter': {'id': int(rt['id'])},
+                    'filter': {'id_str': rt['id_str']},
                     'new_values': org_tweets[rt['parent_id']]
                 }                        
             )
@@ -968,7 +968,7 @@ def do_add_complete_text_flag(collection, config_fn):
     }
     projection = {
         '_id': 0,
-        'id': 1,
+        'id_str': 1,
         'text': 1,
         'extended_tweet.full_text': 1,
         'retweeted_status': 1
@@ -986,7 +986,7 @@ def do_add_complete_text_flag(collection, config_fn):
         org_tweet = tweet if 'retweeted_status' not in tweet else tweet['retweeted_status']
         complete_text = get_tweet_text(org_tweet)
         update_queries.append({
-            'filter': {'id': int(tweet['id'])},
+            'filter': {'id_str': tweet['id_str']},
             'new_values': {'complete_text': complete_text}
         })
         if len(update_queries) == max_batch:
@@ -1018,7 +1018,7 @@ def do_add_tweet_type_flag(collection, config_fn):
     }
     projection = {
         '_id': 0,
-        'id': 1,
+        'id_str': 1,
         'retweeted_status': 1,
         'is_quote_status': 1,
         'in_reply_to_status_id_str': 1
@@ -1035,7 +1035,7 @@ def do_add_tweet_type_flag(collection, config_fn):
         processing_counter += 1
         tweet_type = get_tweet_type(tweet)        
         update_queries.append({
-            'filter': {'id': int(tweet['id'])},
+            'filter': {'id_str': tweet['id_str']},
             'new_values': {'type': tweet_type}
         })
         if len(update_queries) == max_batch:
