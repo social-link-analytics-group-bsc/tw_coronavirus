@@ -1139,14 +1139,14 @@ def process_user_batch(users_batch):
 
 
 def process_user(user, tweet):
-    if 'tweet_ids' in user and tweet['id'] in set(user['tweet_ids']):
+    if 'tweet_ids' in user and tweet['id_str'] in set(user['tweet_ids']):
         return None
     
     if 'tweet_ids' not in user:
-        user['tweet_ids'] = [tweet['id']]
+        user['tweet_ids'] = [tweet['id_str']]
         user['tweet_dates'] = [tweet['created_at_date']]
     else:
-        user['tweet_ids'].append(tweet['id'])
+        user['tweet_ids'].append(tweet['id_str'])
         user['tweet_dates'].append(tweet['created_at_date'])
     
     user['exists'] = 1
@@ -1181,7 +1181,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
     }
     projection = {
         '_id': 0,
-        'id': 1,
+        'id_str': 1,
         'created_at_date': 1,
         'user': 1,
         'retweeted_status.id': 1,
@@ -1215,7 +1215,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
                 user_logger.info('The field comunidad_autonoma does not exist in the tweet, ignoring...')
                 continue
             user = tweet['user']
-            user_obj = dbm_users.find_record({'id': int(user['id'])})
+            user_obj = dbm_users.find_record({'id_str': user['id_str']})
             if user_obj:
                 # it the user exists in the database, she might exists already
                 # in the batch or not
@@ -1250,7 +1250,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
                     users_to_insert[user['id_str']] = user_to_insert           
                     user_logger.info('Adding the user {}'.format(user['screen_name']))
             tweet_update_queries.append({
-                'filter': {'id': int(tweet['id'])},
+                'filter': {'id_str': tweet['id_str']},
                 'new_values': {'processed_user': 1}
             })
             if len(users_to_insert) >= max_batch:
@@ -1262,7 +1262,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
                 processed_users = process_user_batch(users_to_update)
                 for processed_user in processed_users:
                     user_update_queries.append({
-                        'filter': {'id': int(processed_user['id'])},
+                        'filter': {'id_str': processed_user['id_str']},
                         'new_values': processed_user
                     })
                 add_fields(dbm_users, user_update_queries)
@@ -1285,7 +1285,7 @@ def do_update_users_collection(collection, config_fn=None, log_fn=None):
             processed_users = process_user_batch(users_to_update)
             for processed_user in processed_users:
                 user_update_queries.append({
-                    'filter': {'id': int(processed_user['id'])},
+                    'filter': {'id_str': processed_user['id_str']},
                     'new_values': processed_user
                 })
             add_fields(dbm_users, user_update_queries)
