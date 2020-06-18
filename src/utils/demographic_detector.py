@@ -3,10 +3,15 @@ from m3inference import M3Twitter
 import csv
 from datetime import datetime
 import json
+import logging
 import os
 import pandas as pd
 import pathlib
 import pprint
+
+
+logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
+                    level=logging.DEBUG)
 
 
 class DemographicDetector:
@@ -54,12 +59,17 @@ class DemographicDetector:
             output_filename = 'users_pred_{}.csv'.format(datetime.now().strftime('%d%m%Y_%H%M%S'))
         output_file = os.path.join(root_dir, 'data', output_filename)
         user_objs = []
+        logging.info('Reading input file...')
         with open(input_file) as json_file:
             json_lines = json_file.readlines()
             for json_line in json_lines:
                 user_objs.append(json_line)
+        logging.info('Loading input file into a dataframe')
         user_sample_df = self.json_to_pandas(user_objs)
+        logging.info('Starting predictions...')
         predictions = self.m3twitter.infer(input_file)
+        logging.info('Finished predictions')
+        logging.info('Saving predictions into the file {}'.format(output_file))
         with open(output_file, 'w') as csv_file:
             csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'name', 'screen_name', 'age_range', 'gender', 'type'])
             csv_writer.writeheader()     
