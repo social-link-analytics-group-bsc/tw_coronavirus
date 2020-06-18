@@ -146,7 +146,10 @@ def do_export_users(collection, config_file=None, output_filename=None):
     output = os.path.join(project_dir, 'data', output_filename)
     dbm = DBManager(collection=collection, config_fn=config_file)
     query = {
-        'exists': 1
+        '$and': [
+            {'exists': 1},
+            {'predicted': {'$eq': None}}
+        ]        
     }
     projection = {
         '_id': 0,
