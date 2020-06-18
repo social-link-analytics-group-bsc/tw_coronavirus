@@ -167,6 +167,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 continue
             if 'img_path' not in user:
                 continue
+            user['img_path'] = os.path.join(project_dir, user['img_path'])
             logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
     logging.info('Process finished, output was saved into {}'.format(output))
