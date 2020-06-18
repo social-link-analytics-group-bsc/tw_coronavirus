@@ -14,5 +14,5 @@ module load mkl
 module load python/3.7.4
 source env/bin/activate
 cd src
-python run.py predict-user-demographics users --config_file 'config_mongo_inb.json'
+python run.py predict-user-demographics-from-file '../data/users.jsonl'
 echo $(date '+%Y-%m-%d %H:%M:%S')
