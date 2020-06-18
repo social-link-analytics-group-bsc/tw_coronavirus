@@ -146,10 +146,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
     output = os.path.join(project_dir, 'data', output_filename)
     dbm = DBManager(collection=collection, config_fn=config_file)
     query = {
-        '$and': [
-            {'exists': 1},
-            {'predicted': {'$eq': None}}
-        ]        
+        'exists': 1
     }
     projection = {
         '_id': 0,
@@ -166,6 +163,8 @@ def do_export_users(collection, config_file=None, output_filename=None):
     logging.info('Found {} users'.format(total_users))
     with open(output, 'w') as f:
         for user in users:
+            if 'predicted' in user:
+                continue
             logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
     logging.info('Process finished, output was saved into {}'.format(output))
