@@ -40,17 +40,6 @@ class DemographicDetector:
             )
         return user_predictions
 
-    def json_to_pandas(self, user_objs):
-        df = pd.DataFrame()
-        for user_obj in user_objs:
-            json_dict = json.loads(user_obj)
-            reduced_json_dict = {
-                'id': [json_dict['id']],
-                'name': [json_dict['name']],
-                'screen_name': [json_dict['screen_name']]
-            }
-            df = df.append(pd.DataFrame.from_dict(reduced_json_dict))
-        return df
 
     def infer_from_file(self, input_file, output_filename=None):
         current_path = pathlib.Path(__file__).resolve()
@@ -64,14 +53,12 @@ class DemographicDetector:
             json_lines = json_file.readlines()
             for json_line in json_lines:
                 user_objs.append(json_line)
-        logging.info('Loading input file into a dataframe')
-        user_sample_df = self.json_to_pandas(user_objs)
         logging.info('Starting predictions...')
         predictions = self.m3twitter.infer(input_file)
         logging.info('Finished predictions')
         logging.info('Saving predictions into the file {}'.format(output_file))
         with open(output_file, 'w') as csv_file:
-            csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'name', 'screen_name', 'age_range', 'gender', 'type'])
+            csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'age_range', 'gender', 'type'])
             csv_writer.writeheader()     
             for user_id in predictions:
                 res_user = predictions[user_id]
@@ -81,12 +68,8 @@ class DemographicDetector:
                 age_range = age_dict[0][0]
                 gender = gender_dict[0][0]
                 type_user = type_dict[0][0]
-                user_screen_name = user_sample_df.loc[user_sample_df['id']==user_id,'screen_name'].values[0]
-                user_name = user_sample_df.loc[user_sample_df['id']==user_id,'name'].values[0]
                 row = {
                     'id': user_id,
-                    'name': user_name,
-                    'screen_name': user_screen_name,
                     'age_range': age_range,
                     'gender': gender,
                     'type': type_user
