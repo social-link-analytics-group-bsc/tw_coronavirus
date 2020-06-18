@@ -165,6 +165,8 @@ def do_export_users(collection, config_file=None, output_filename=None):
         for user in users:
             if 'predicted' in user:
                 continue
+            if 'img_path' not in user:
+                continue
             logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
     logging.info('Process finished, output was saved into {}'.format(output))
