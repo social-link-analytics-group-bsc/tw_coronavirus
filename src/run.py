@@ -13,7 +13,8 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       update_sentiment_score_fields, do_drop_collection, do_add_language_flag, \
       add_esp_location_flags, do_add_query_version_flag, update_metric_tweets, \
       do_add_complete_text_flag, do_add_tweet_type_flag, do_update_users_collection, \
-      do_update_user_status, do_augment_user_data, compute_user_demographics
+      do_update_user_status, do_augment_user_data, compute_user_demographics, \
+      compute_user_demographics_from_file
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
       do_update_collection, do_tweets_replication
 from network_analysis import NetworkAnalyzer
@@ -370,6 +371,19 @@ def export_users(collection_name, config_file, output_file):
     check_current_directory()
     print('Exporting users')
     do_export_users(collection_name, config_file, output_file)
+
+
+@run.command()
+@click.argument('input_file') # Path to the input file
+@click.option('--output_file', help='Name of the outputfile', \
+              default=None, is_flag=False)
+def predict_user_demographics_from_file(input_file, output_file):
+    """
+    Predict users' demographics from an input file
+    """
+    check_current_directory()
+    print('Predict users\' demographics')
+    compute_user_demographics_from_file(input_file, output_file)
 
 
 if __name__ == "__main__":
