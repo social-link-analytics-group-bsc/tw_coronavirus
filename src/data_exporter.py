@@ -63,26 +63,29 @@ def save_tweet_sentiment_scores_to_csv(sentiment_file):
             csv_writer.writerow(tweet_selected)
 
 
-def export_sentiment_sample(sample_size, collection, config_fn=None):
+def export_sentiment_sample(sample_size, collection, config_fn=None, output_filename=None):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        #'sentiment': {'$ne': None}
+        'lang': 'es'
     }
     projection = {
         '_id': 0,
         'id': 1,
         'complete_text': 1,
         'sentiment.score': 1,
-        'created_at_date': 1
+        'created_at_date': 1,
+        'lang': 1
     }
     seed(1)
     logging.info('Retrieving tweets...')
     tweets = dbm.find_all(query, projection)
     total_tweets = tweets.count()
     logging.info('Found {} tweets'.format(total_tweets))
-    output_file = os.path.join(project_dir, 'data', 'sentiment_analysis_sample.csv')
+    if not output_filename:
+        output_filename = 'sentiment_analysis_sample.csv'
+    output_file = os.path.join(project_dir, 'data', output_filename)
     logging.info('Processing and saving tweets into {}'.format(output_file))
     sample_size = int(sample_size)
     saved_tweets = 0
@@ -100,6 +103,7 @@ def export_sentiment_sample(sample_size, collection, config_fn=None):
                         {
                             'id': tweet['id'],
                             'date': tweet['created_at_date'],
+                            'lang': tweet['lang'],
                             'texto': tweet['complete_text'],
                             'score': tweet['sentiment']['score']
                         }
@@ -160,3 +164,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
         for user in users:
             logging.info('Exporting user: {1}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
+    logging.info('Process finished, output was saved into {}'.format(output))
+
+if __name__ == "__main__":
+    export_sentiment_sample(600, 'processed_new', 'config_mongo_inb.json', 'sentiment_analysis_sample_es.csv')
