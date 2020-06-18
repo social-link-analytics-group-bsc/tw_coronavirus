@@ -82,7 +82,7 @@ class DBManager:
         self.__db[self.__collection].remove({})
 
     def num_records_collection(self):
-        return self.__db[self.__collection].find({}).count()
+        return self.__db[self.__collection].find({}, no_cursor_timeout=True).count()
 
     def create_index(self, name, sorting_type='desc', unique=False):
         if sorting_type == 'desc':
@@ -96,7 +96,7 @@ class DBManager:
         self.__db[self.__collection].insert(record_to_save)
 
     def find_record(self, query):
-        return self.__db[self.__collection].find_one(query)
+        return self.__db[self.__collection].find_one(query, no_cursor_timeout=True)
 
     def update_record(self, filter_query, new_values, create_if_doesnt_exist=False):
         return self.__db[self.__collection].update_one(filter_query, {'$set': new_values},
@@ -140,26 +140,26 @@ class DBManager:
         if pagination:
             skips = pagination['page_size'] * (pagination['page_num']-1)
         if projection and sort and pagination:            
-            return self.__db[self.__collection].find(query, projection).\
+            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
                 skip(skips).sort(order_by).limit(pagination['page_size'])
         elif projection and pagination and not sort:
-            return self.__db[self.__collection].find(query, projection).\
+            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
                 skip(skips).limit(pagination['page_size'])
         elif projection and sort and not pagination:
-            return self.__db[self.__collection].find(query, projection).\
+            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
                 sort(order_by)
         elif not projection and pagination and sort:
-            return self.__db[self.__collection].find(query).\
+            return self.__db[self.__collection].find(query, no_cursor_timeout=True).\
                 skip(skips).sort(order_by).limit(pagination['page_size'])
         elif projection and not sort and not pagination:
-            return self.__db[self.__collection].find(query, projection)
+            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True)
         elif sort and not projection and not pagination:
-            return self.__db[self.__collection].find(query).sort(order_by)
+            return self.__db[self.__collection].find(query, no_cursor_timeout=True).sort(order_by)
         elif pagination and not projection and not sort:
-            return self.__db[self.__collection].find(query).skip(skips).\
+            return self.__db[self.__collection].find(query, no_cursor_timeout=True).skip(skips).\
                 limit(pagination['page_size'])
         else:
-            return self.__db[self.__collection].find(query)
+            return self.__db[self.__collection].find(query, no_cursor_timeout=True)
 
     def find_tweets_by_hashtag(self, hashtag, **kwargs):
         pass
