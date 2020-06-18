@@ -1049,15 +1049,16 @@ def do_add_tweet_type_flag(collection, config_fn):
 
 
 def do_update_user_status(collection, config_fn=None, log_fn=None):
-    current_path = pathlib.Path(__file__).parent.resolve()
-    project_dir = current_path.parents[1]    
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
     if log_fn:
         logging_file = os.path.join(current_path, log_fn)
         user_logger = setup_logger('user_logger', logging_file)
     else:
         user_logger = logging
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {      
+    query = {
+        'predicted': {'$eq': None}
     }
     projection = {
         '_id': 0,
@@ -1541,5 +1542,5 @@ def check_user_pictures(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    check_user_pictures('users', 'config_mongo_inb.json')
+    do_update_user_status('users', 'src/config_mongo_inb.json')
     
