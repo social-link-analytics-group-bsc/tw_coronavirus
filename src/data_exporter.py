@@ -4,6 +4,7 @@ import logging
 import pathlib
 import os
 
+from collections import defaultdict
 from random import seed, random
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
@@ -67,31 +68,44 @@ def export_sentiment_sample(sample_size, collection, config_fn=None):
     project_dir = current_path.parents[1]
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
-        'sentiment': {'$eq': None}
+        #'sentiment': {'$ne': None}
     }
     projection = {
         '_id': 0,
         'id': 1,
         'complete_text': 1,
-        'sentiment.score': 1
+        'sentiment.score': 1,
+        'created_at_date': 1
     }
+    seed(1)
     logging.info('Retrieving tweets...')
-    tweets = dbm.get_sample(int(sample_size), query, projection)
-    total_tweets = len(tweets)
+    tweets = dbm.find_all(query, projection)
+    total_tweets = tweets.count()
     logging.info('Found {} tweets'.format(total_tweets))
     output_file = os.path.join(project_dir, 'data', 'sentiment_analysis_sample.csv')
     logging.info('Processing and saving tweets into {}'.format(output_file))
+    sample_size = int(sample_size)
+    saved_tweets = 0
+    tweets_by_date = defaultdict(int)
+    MAX_TWEETS_BY_DATE = 7
     with open(output_file, 'w') as csv_file:
-        csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'texto', 'score'])
-        csv_writer.writeheader()      
+        csv_writer = csv.DictWriter(csv_file, fieldnames=['id', 'date', 'texto', 'score'])
+        csv_writer.writeheader()   
         for tweet in tweets:
-            csv_writer.writerow(
-                {
-                    'id': tweet['id'],
-                    'texto': tweet['complete_text'],
-                    'score': tweet['sentiment']['score']
-                }
-            )
+            if random() > 0.5:
+                if tweets_by_date[tweet['created_at_date']] <= MAX_TWEETS_BY_DATE:                                    
+                    saved_tweets += 1
+                    tweets_by_date[tweet['created_at_date']] += 1
+                    csv_writer.writerow(
+                        {
+                            'id': tweet['id'],
+                            'date': tweet['created_at_date'],
+                            'texto': tweet['complete_text'],
+                            'score': tweet['sentiment']['score']
+                        }
+                    )
+            if saved_tweets == sample_size:
+                break
 
 
 def export_user_sample(sample_size, collection, config_file=None, output_filename=None):
