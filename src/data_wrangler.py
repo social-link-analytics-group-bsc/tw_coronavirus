@@ -1454,6 +1454,14 @@ def compute_user_demographics(collection, config_fn=None):
         add_fields(dbm, users_no_prediction)
 
 
+def compute_user_demographics_from_file(input_file, output_filename=None):
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
+    user_pics_path = os.path.join(project_dir, 'user_pics')
+    demog_detector = DemographicDetector(user_pics_path)
+    demog_detector.infer_from_file(input_file, output_filename)
+
+
 def check_user_pictures(collection, config_fn=None):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
