@@ -160,7 +160,3 @@ def do_export_users(collection, config_file=None, output_filename=None):
         for user in users:
             logging.info('Exporting user: {1}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
-
-
-if __name__ == "__main__":
-    export_sentiment_sample(600, 'processed_new', 'config_mongo_inb.json')
