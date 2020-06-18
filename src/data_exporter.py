@@ -157,12 +157,13 @@ def do_export_users(collection, config_file=None, output_filename=None):
         'lang': 1,
         'img_path': 1
     }
+    logging.info('Retrieving users...')
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
     logging.info('Found {} users'.format(total_users))
     with open(output, 'w') as f:
         for user in users:
-            logging.info('Exporting user: {1}'.format(user['screen_name']))
+            logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
     logging.info('Process finished, output was saved into {}'.format(output))
 
