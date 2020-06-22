@@ -1459,7 +1459,15 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
     project_dir = current_path.parents[1]
     user_pics_path = os.path.join(project_dir, 'user_pics')
     demog_detector = DemographicDetector(user_pics_path)
-    demog_detector.infer_from_file(input_file, output_filename)
+    user_objs = []
+    with open(input_file) as json_file:
+        json_lines = json_file.readlines()
+        for json_line in json_lines:
+            user_obj = json_line
+            user_obj['img_path'] = os.path.join(project_dir, user_obj['img_path'])
+            user_objs.append(user_obj)
+    predictions = demog_detector.infer(user_objs, output_filename)
+    demog_detector.save_predictions(predictions, output_filename)
 
 
 def check_user_pictures(collection, config_fn=None):
