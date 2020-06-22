@@ -51,7 +51,7 @@ class DemographicDetector:
         processed_predictions = self.process_predictions(predictions)
         return processed_predictions
 
-    def save_predictions(self, predictions ,output_filename=None)
+    def save_predictions(self, predictions, output_filename=None):
         current_path = pathlib.Path(__file__).resolve()
         root_dir = current_path.parents[2]
         if not output_filename:            
