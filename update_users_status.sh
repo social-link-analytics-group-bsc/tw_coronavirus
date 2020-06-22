@@ -58,7 +58,7 @@ then
     echo "[1/${NUM_TASKS}] Augmenting users' data..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'augmeting_data',${start_time}," >> $EVENT_LOG
-    python run.py augment-user-data users $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+    python run.py augment-user-data $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
@@ -73,7 +73,7 @@ then
     echo "[2/${NUM_TASKS}] Updating status of users..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'updating_status',${start_time}," >> $EVENT_LOG
-    python run.py update-user-status users $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+    python run.py update-user-status $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
