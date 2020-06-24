@@ -1465,7 +1465,8 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
         for json_line in json_lines:
             user_obj = json.loads(json_line)
             user_obj['img_path'] = os.path.join(project_dir, user_obj['img_path'])
-            user_objs.append(user_obj)
+            if os.path.exists(user_obj['img_path']):
+                user_objs.append(user_obj)
     predictions = demog_detector.infer(user_objs)
     demog_detector.save_predictions(predictions, output_filename)
 
@@ -1558,5 +1559,5 @@ def check_user_pictures(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    do_update_user_status('users', 'src/config_mongo_inb.json')
+    do_update_user_status(do_update_user_status'users', 'src/config_mongo_inb.json')
     
