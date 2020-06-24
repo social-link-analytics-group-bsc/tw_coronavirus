@@ -1559,5 +1559,5 @@ def check_user_pictures(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    do_update_user_status(do_update_user_status'users', 'src/config_mongo_inb.json')
+    do_update_user_status('users', 'src/config_mongo_inb.json')
     
