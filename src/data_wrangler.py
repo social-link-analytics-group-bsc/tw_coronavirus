@@ -1463,7 +1463,7 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
     with open(input_file) as json_file:
         json_lines = json_file.readlines()
         for json_line in json_lines:
-            user_obj = json_line
+            user_obj = json.loads(json_line)
             user_obj['img_path'] = os.path.join(project_dir, user_obj['img_path'])
             user_objs.append(user_obj)
     predictions = demog_detector.infer(user_objs)
