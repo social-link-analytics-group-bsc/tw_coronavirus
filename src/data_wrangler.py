@@ -1467,6 +1467,8 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
             user_obj['img_path'] = os.path.join(project_dir, user_obj['img_path'])
             if os.path.exists(user_obj['img_path']):
                 user_objs.append(user_obj)
+            else:
+                logging.info('Ignoring {0}, his/her profile pic {1} does not exists'.format(user_obj['screen_name'], user_obj['img_path']))
     predictions = demog_detector.infer(user_objs)
     demog_detector.save_predictions(predictions, output_filename)
 
