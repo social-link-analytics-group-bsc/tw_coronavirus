@@ -169,6 +169,8 @@ def do_export_users(collection, config_file=None, output_filename=None):
             if 'predicted' in user:
                 continue
             if 'img_path' not in user:
+                continue
+            if user['img_path'] == '[no_img]':
                 continue            
             logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
