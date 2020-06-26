@@ -136,31 +136,31 @@ else
 fi
 
 ####
-# Update metrics
-####
-if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
-then
-    end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
-    echo "[6/${NUM_TASKS}] Updating metrics..."
-    start_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'updating_metrics',${start_time}," >> $EVENT_LOG
-    python run.py update-tweet-metrics $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
-else
-    error=1
-fi
-
-####
 # Update users collection
 ####
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
-    echo "[7/${NUM_TASKS}] Updating collection of users..."
+    echo "${running_date},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
+    echo "[6/${NUM_TASKS}] Updating collection of users..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'updating_users',${start_time}," >> $EVENT_LOG
     python run.py update-users-collection $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+else
+    error=1
+fi
+
+####
+# Update metrics
+####
+if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
+then
+    end_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'updating_users',,${end_time}" >> $EVENT_LOG
+    echo "[7/${NUM_TASKS}] Updating metrics..."
+    start_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'updating_metrics',${start_time}," >> $EVENT_LOG
+    python run.py update-tweet-metrics $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
@@ -184,7 +184,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'updating_users',,${end_time}" >> $EVENT_LOG
+    echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'finished_processor',,${end_time}" >> $EVENT_LOG
 else
