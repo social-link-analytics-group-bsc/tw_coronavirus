@@ -1504,8 +1504,9 @@ def check_user_pictures_from_file(input_file):
                 sizes['1x224x224'].append(data[-1])
             else:
                 sizes['other'].append(data[-1])
-        except:
-            print('Error when processing: {}'.format(dataset.data[i]))
+        except Exception e:
+            print('Error {}'.format(e))
+            print('{}'.format(dataset.data[i]))
         finally:
             print('Total processed: {}'.format(total_processed))
             for k, v in sizes.items():
