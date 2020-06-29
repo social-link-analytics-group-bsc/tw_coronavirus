@@ -1493,9 +1493,11 @@ def check_user_pictures_from_file(input_file):
         data = dataset.data[i]
         p_data = dataset._preprocess_data(data)
         fig = p_data[-1]
-        print(fig.size())
+        fig_size = fig.size()
+        if fig_size[0] != 3 or fig_size[1] != 224 or fig_size[2] != 224:
+            print(fig_size)
+            print(data[-1])
         
-    
 
 def check_user_pictures(collection, config_fn=None):
     current_path = pathlib.Path(__file__).resolve()
