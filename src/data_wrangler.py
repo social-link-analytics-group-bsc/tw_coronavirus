@@ -1490,19 +1490,26 @@ def check_user_pictures_from_file(input_file):
                 user_objs.append(user_obj)
     dataset = M3InferenceDataset(user_objs)
     sizes = defaultdict(list)
-    for i in range(len(dataset.data)):
-        data = dataset.data[i]
-        p_data = dataset._preprocess_data(data)
-        fig = p_data[-1]
-        fig_size = fig.size()
-        if fig_size[0] == 3 or fig_size[1] == 224 or fig_size[2] == 224:
-            sizes['3x224x224'].append(data[-1])
-        elif fig_size[0] == 1 or fig_size[1] == 224 or fig_size[2] == 224:
-            sizes['1x224x224'].append(data[-1])
-        else:
-            sizes['other'].append(data[-1])
-    for k, v in sizes.items():
-        print('{0}: {1}'.format(k, len(v)))            
+    total_processed = 0
+    for i in range(len(dataset.data)):        
+        try:
+            data = dataset.data[i]
+            p_data = dataset._preprocess_data(data)
+            total_processed += 1
+            fig = p_data[-1]
+            fig_size = fig.size()
+            if fig_size[0] == 3 or fig_size[1] == 224 or fig_size[2] == 224:
+                sizes['3x224x224'].append(data[-1])
+            elif fig_size[0] == 1 or fig_size[1] == 224 or fig_size[2] == 224:
+                sizes['1x224x224'].append(data[-1])
+            else:
+                sizes['other'].append(data[-1])
+        except:
+            print('Error when processing: {}'.format(dataset.data[i]))
+        finally:
+            print('Total processed: {}'.format(total_processed))
+            for k, v in sizes.items():
+                print('{0}: {1}'.format(k, len(v)))            
         
 
 def check_user_pictures(collection, config_fn=None):
