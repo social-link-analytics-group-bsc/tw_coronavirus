@@ -171,7 +171,9 @@ def do_export_users(collection, config_file=None, output_filename=None):
             if 'img_path' not in user:
                 continue
             if user['img_path'] == '[no_img]':
-                continue            
+                continue
+            if 'lang' in user and user['lang'] == None:
+                user['lang'] = 'un'
             logging.info('Exporting user: {}'.format(user['screen_name']))
             f.write("{}\n".format(json.dumps(user)))
     logging.info('Process finished, output was saved into {}'.format(output))
