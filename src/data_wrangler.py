@@ -13,6 +13,7 @@ import re
 import time
 import sys
 
+
 from datetime import datetime, timedelta
 from m3inference import M3Twitter
 from m3inference.dataset import M3InferenceDataset
@@ -24,6 +25,7 @@ from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         calculate_remaining_execution_time, get_config, normalize_text, \
         exists_user
 from utils.sentiment_analyzer import SentimentAnalyzer
+from torchvision import transforms
 from twarc import Twarc
 from tqdm import tqdm
 
@@ -1477,11 +1479,19 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
 def check_user_pictures_from_file(input_file):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
-    data = json.load(open(input_file))
-    dataloader = DataLoader(M3InferenceDataset(data), batch_size=16)
-    for i in dataloader:
-        print(i)    
-
+    tensor_trans = transforms.ToTensor()
+    user_objs = []
+    with open(input_file) as json_file:
+        json_lines = json_file.readlines()
+        for json_line in json_lines:
+            user_obj = json.loads(json_line)
+            user_obj['img_path'] = os.path.join(project_dir, user_obj['img_path'])
+            if os.path.exists(user_obj['img_path']):
+                user_objs.append(user_obj)
+    dataset = M3InferenceDataset(user_objs)
+    for d in dataset.data:
+        print(d)
+    
 
 def check_user_pictures(collection, config_fn=None):
     current_path = pathlib.Path(__file__).resolve()
