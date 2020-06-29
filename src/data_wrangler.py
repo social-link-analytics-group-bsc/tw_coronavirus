@@ -1489,8 +1489,11 @@ def check_user_pictures_from_file(input_file):
             if os.path.exists(user_obj['img_path']):
                 user_objs.append(user_obj)
     dataset = M3InferenceDataset(user_objs)
-    for d in dataset.data:
-        print(d)
+    for i in range(len(dataset.data)):
+        data = dataset.data[i]
+        fig = data[-1]
+        print(fig.size())
+        
     
 
 def check_user_pictures(collection, config_fn=None):
