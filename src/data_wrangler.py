@@ -13,7 +13,7 @@ import re
 import time
 import sys
 
-from collection import defaultdict
+from collections import defaultdict
 from datetime import datetime, timedelta
 from m3inference import M3Twitter
 from m3inference.dataset import M3InferenceDataset
