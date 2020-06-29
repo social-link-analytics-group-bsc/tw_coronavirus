@@ -1504,7 +1504,7 @@ def check_user_pictures_from_file(input_file):
                 sizes['1x224x224'].append(data[-1])
             else:
                 sizes['other'].append(data[-1])
-        except Exception e:
+        except Exception as e:
             print('Error {}'.format(e))
             print('{}'.format(dataset.data[i]))
         finally:
