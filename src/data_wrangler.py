@@ -1491,6 +1491,7 @@ def check_user_pictures_from_file(input_file):
     dataset = M3InferenceDataset(user_objs)
     for i in range(len(dataset.data)):
         data = dataset.data[i]
+        print(data)
         fig = data[-1]
         print(fig.size())
         
