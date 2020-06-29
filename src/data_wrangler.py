@@ -15,6 +15,7 @@ import sys
 
 from datetime import datetime, timedelta
 from m3inference import M3Twitter
+from m3inference.dataset import M3InferenceDataset
 from utils.demographic_detector import DemographicDetector
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
@@ -1473,6 +1474,15 @@ def compute_user_demographics_from_file(input_file, output_filename=None):
     demog_detector.save_predictions(predictions, output_filename)
 
 
+def check_user_pictures_from_file(input_file):
+    current_path = pathlib.Path(__file__).resolve()
+    project_dir = current_path.parents[1]
+    data = json.load(open(input_file))
+    dataloader = DataLoader(M3InferenceDataset(data), batch_size=16)
+    for i in dataloader:
+        print(i)    
+
+
 def check_user_pictures(collection, config_fn=None):
     current_path = pathlib.Path(__file__).resolve()
     project_dir = current_path.parents[1]
@@ -1561,5 +1571,5 @@ def check_user_pictures(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    do_update_user_status('users', 'src/config_mongo_inb.json')
+    check_user_pictures_from_file('../data/users.jsonl')
     
