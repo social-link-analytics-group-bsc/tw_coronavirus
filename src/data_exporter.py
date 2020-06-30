@@ -6,6 +6,7 @@ import os
 
 from collections import defaultdict
 from random import seed, random
+from PIL import Image
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
 from utils.utils import exists_user
@@ -174,8 +175,15 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 continue
             if 'lang' in user and user['lang'] == None:
                 user['lang'] = 'un'
-            logging.info('Exporting user: {}'.format(user['screen_name']))
-            f.write("{}\n".format(json.dumps(user)))
+            try:
+                img = Image.open(user['img_path']).convert('RGB')
+                if img.size[0] + img.size[1] < 400:
+                    raise Exception('{} is too small. Skip.'.format(img_path))
+                img = img.resize((224, 224), Image.BILINEAR)
+                logging.info('Exporting user: {}'.format(user['screen_name']))
+                f.write("{}\n".format(json.dumps(user)))
+            except Exception as e:
+                logger.warning('Error when resizing {0}\nThe error message is {1}\n'.format(img_path, e))
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
