@@ -183,7 +183,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 logging.info('Exporting user: {}'.format(user['screen_name']))
                 f.write("{}\n".format(json.dumps(user)))
             except Exception as e:
-                logging.warning('Error when resizing {0}\nThe error message is {1}\n'.format(img_path, e))
+                logging.warning('Error when resizing {0}\nThe error message is {1}\n'.format(user['img_path'], e))
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
