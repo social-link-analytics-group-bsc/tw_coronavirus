@@ -1507,10 +1507,10 @@ def check_user_pictures_from_file(input_file):
         except Exception as e:
             print('Error {}'.format(e))
             print('{}'.format(dataset.data[i]))
-        finally:
-            print('Total processed: {}'.format(total_processed))
-            for k, v in sizes.items():
-                print('{0}: {1}'.format(k, len(v)))            
+        
+    print('Total processed: {}'.format(total_processed))
+    for k, v in sizes.items():
+        print('{0}: {1}'.format(k, len(v)))            
         
 
 def check_user_pictures(collection, config_fn=None):
