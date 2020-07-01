@@ -140,26 +140,26 @@ class DBManager:
         if pagination:
             skips = pagination['page_size'] * (pagination['page_num']-1)
         if projection and sort and pagination:            
-            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
+            return self.__db[self.__collection].find(query, projection).\
                 skip(skips).sort(order_by).limit(pagination['page_size'])
         elif projection and pagination and not sort:
-            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
+            return self.__db[self.__collection].find(query, projection).\
                 skip(skips).limit(pagination['page_size'])
         elif projection and sort and not pagination:
-            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True).\
+            return self.__db[self.__collection].find(query, projection).\
                 sort(order_by)
         elif not projection and pagination and sort:
-            return self.__db[self.__collection].find(query, no_cursor_timeout=True).\
+            return self.__db[self.__collection].find(query).\
                 skip(skips).sort(order_by).limit(pagination['page_size'])
         elif projection and not sort and not pagination:
-            return self.__db[self.__collection].find(query, projection, no_cursor_timeout=True)
+            return self.__db[self.__collection].find(query, projection)
         elif sort and not projection and not pagination:
-            return self.__db[self.__collection].find(query, no_cursor_timeout=True).sort(order_by)
+            return self.__db[self.__collection].find(query).sort(order_by)
         elif pagination and not projection and not sort:
-            return self.__db[self.__collection].find(query, no_cursor_timeout=True).skip(skips).\
+            return self.__db[self.__collection].find(query).skip(skips).\
                 limit(pagination['page_size'])
         else:
-            return self.__db[self.__collection].find(query, no_cursor_timeout=True)
+            return self.__db[self.__collection].find(query)
 
     def find_tweets_by_hashtag(self, hashtag, **kwargs):
         pass
