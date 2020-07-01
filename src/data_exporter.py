@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 from random import seed, random
 from PIL import Image
+from torchvision import transforms
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
 from utils.utils import exists_user
@@ -165,6 +166,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
     logging.info('Found {} users'.format(total_users))
+    tensor_trans = transforms.ToTensor()
     with open(output, 'w') as f:
         for user in users:
             if 'predicted' in user:
@@ -181,10 +183,15 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 if img.size[0] + img.size[1] < 400:
                     raise Exception('{} is too small. Skip.'.format(img_path))
                 img = img.resize((224, 224), Image.BILINEAR)
-                logging.info('Exporting user: {}'.format(user['screen_name']))
-                f.write("{}\n".format(json.dumps(user)))
+                t_img = tensor_trans(img)
+                img_size = t_img.size()
+                if img_size[0] == 3 and img_size[1] == 224 and img_size[2] == 224:
+                    logging.info('Exporting user: {}'.format(user['screen_name']))
+                    f.write("{}\n".format(json.dumps(user)))
+                else:
+                    raise Exception('Tensor with incorrect size {}'.format(img_size))
             except Exception as e:
-                logging.warning('Error when resizing {0}\nThe error message is {1}\n'.format(img_path, e))
+                logging.warning('Error when resizing {0}\nThe error message is: {1}\n'.format(img_path, e))
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
