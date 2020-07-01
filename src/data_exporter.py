@@ -176,14 +176,17 @@ def do_export_users(collection, config_file=None, output_filename=None):
             if 'lang' in user and user['lang'] == None:
                 user['lang'] = 'un'
             try:
-                img = Image.open(user['img_path']).convert('RGB')
+                current_path = pathlib.Path(__file__).resolve()
+                project_dir = current_path.parents[1]
+                img_path = os.path.join(project_dir, user_obj['img_path'])
+                img = Image.open(img_path).convert('RGB')
                 if img.size[0] + img.size[1] < 400:
                     raise Exception('{} is too small. Skip.'.format(img_path))
                 img = img.resize((224, 224), Image.BILINEAR)
                 logging.info('Exporting user: {}'.format(user['screen_name']))
                 f.write("{}\n".format(json.dumps(user)))
             except Exception as e:
-                logging.warning('Error when resizing {0}\nThe error message is {1}\n'.format(user['img_path'], e))
+                logging.warning('Error when resizing {0}\nThe error message is {1}\n'.format(img_path, e))
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
