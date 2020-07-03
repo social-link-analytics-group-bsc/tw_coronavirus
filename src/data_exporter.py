@@ -177,8 +177,11 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 continue
             if 'lang' in user and user['lang'] == None:
                 user['lang'] = 'un'
+            if not user['img_path'].endswith(('.png', '.jpg', '.jpeg')):
+                continue
             try:
                 img_path = os.path.join(project_dir, user['img_path'])
+
                 img = Image.open(img_path).convert('RGB')
                 if img.size[0] + img.size[1] < 400:
                     raise Exception('{} is too small. Skip.'.format(img_path))
