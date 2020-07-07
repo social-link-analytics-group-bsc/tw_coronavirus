@@ -185,14 +185,13 @@ def load_user_demographics(input_file, collection, config_fn=None):
                 modified_users = ret.bulk_api_result['nModified']
                 logging.info('Updated {0:,} users'.format(modified_users))
                 users_to_update = []
+            user_id = row['id']
+            del row['id']
+            row['prediction'] = 'succeded'
             users_to_update.append(
                 {
-                    'filter': {'id_str': row['id']},
-                    'new_values': {
-                        'age_range': row['age_range'], 
-                        'gender': row['gender'],
-                        'type': row['type']
-                    }
+                    'filter': {'id_str': user_id},
+                    'new_values': row
                 }
             )
             total_segs = calculate_remaining_execution_time(start_time, total_segs,
