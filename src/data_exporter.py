@@ -164,7 +164,6 @@ def do_export_users(collection, config_file=None, output_filename=None):
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
     logging.info('Found {} users'.format(total_users))
-    tensor_trans = transforms.ToTensor()
     with open(output, 'w') as f:
         for user in users:
             if 'predicted' in user:
