@@ -8,7 +8,11 @@ import time
 import unicodedata
 import urllib.request
 
+
 from datetime import datetime, timedelta
+from PIL import Image
+from torchvision import transforms
+
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
@@ -108,3 +112,16 @@ def exists_user(user):
         return True
     except urllib.error.HTTPError as err:
         return False
+
+
+def check_user_profile_image(img_path):
+    img = Image.open(img_path).convert('RGB')
+    if img.size[0] + img.size[1] < 400:
+        raise Exception('{} is too small. Skip.'.format(img_path))
+    img = img.resize((224, 224), Image.BILINEAR)
+    t_img = tensor_trans(img)
+    img_size = t_img.size()
+    if img_size[0] == 3 and img_size[1] == 224 and img_size[2] == 224:
+        return True
+    else:
+        raise Exception('Tensor with incorrect size {}'.format(img_size))
