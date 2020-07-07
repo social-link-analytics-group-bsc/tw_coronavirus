@@ -119,6 +119,7 @@ def check_user_profile_image(img_path):
     if img.size[0] + img.size[1] < 400:
         raise Exception('{} is too small. Skip.'.format(img_path))
     img = img.resize((224, 224), Image.BILINEAR)
+    tensor_trans = transforms.ToTensor()
     t_img = tensor_trans(img)
     img_size = t_img.size()
     if img_size[0] == 3 and img_size[1] == 224 and img_size[2] == 224:
