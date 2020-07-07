@@ -168,3 +168,37 @@ def do_tweets_replication(source_collection, target_collection, start_date,
                                                         total_tweets)
         
     
+def load_user_demographics(input_file, collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    users_to_update = []
+    processing_counter = total_segs = 0
+    with open(input_file, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        num_lines= len(list(csv_reader))
+        for row in csv_reader:
+            start_time = time.time()
+            processing_counter += 1
+            if len(users_to_update) >= BATCH_SIZE:
+                logging.info('Updating users...')
+                ret = dbm.bulk_update(users_to_update)
+                modified_users = ret.bulk_api_result['nModified']
+                logging.info('Updated {0:,} users'.format(modified_users))
+                users_to_update = []
+            users_to_update.append(
+                {
+                    'filter': {'id_str': row['id']},
+                    'new_values': {
+                        'age_range': row['age_range'], 
+                        'gender': row['gender'],
+                        'type': row['type']
+                    }
+                }
+            )
+            total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        num_lines)
+    if len(users_to_update) >= BATCH_SIZE:
+        logging.info('Updating users...')
+        ret = dbm.bulk_update(users_to_update)
+        modified_users = ret.bulk_api_result['nModified']
+        logging.info('Updated {0:,} users'.format(modified_users))

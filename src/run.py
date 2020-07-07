@@ -16,7 +16,7 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       do_update_user_status, do_augment_user_data, compute_user_demographics, \
       compute_user_demographics_from_file
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
-      do_update_collection, do_tweets_replication
+      do_update_collection, do_tweets_replication, load_user_demographics
 from network_analysis import NetworkAnalyzer
 from pymongo.errors import AutoReconnect, ExecutionTimeout, NetworkTimeout
 
@@ -384,6 +384,20 @@ def predict_user_demographics_from_file(input_file, output_file):
     check_current_directory()
     print('Predict users\' demographics')
     compute_user_demographics_from_file(input_file, output_file)
+
+
+@run.command()
+@click.argument('input_file') # Path to the csv input file
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def update_user_demographics(input_file, collection_name, config_file):
+    """
+    Update users' demographics from a csv file
+    """
+    check_current_directory()
+    print('Update users\' demographics')
+    load_user_demographics(input_file, collection_name, config_file)
 
 
 if __name__ == "__main__":
