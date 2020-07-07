@@ -174,8 +174,9 @@ def load_user_demographics(input_file, collection, config_fn=None):
     processing_counter = total_segs = 0
     with open(input_file, 'r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
-        num_lines= len(list(csv_reader))
-        for row in csv_reader:
+        rows = list(csv_reader)
+        num_lines= len(rows)
+        for row in rows:
             start_time = time.time()
             processing_counter += 1
             if len(users_to_update) >= BATCH_SIZE:
