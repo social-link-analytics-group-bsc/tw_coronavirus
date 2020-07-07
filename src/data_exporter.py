@@ -6,11 +6,9 @@ import os
 
 from collections import defaultdict
 from random import seed, random
-from PIL import Image
-from torchvision import transforms
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
-from utils.utils import exists_user
+from utils.utils import exists_user, check_user_profile_image
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
@@ -181,18 +179,9 @@ def do_export_users(collection, config_file=None, output_filename=None):
                 continue
             try:
                 img_path = os.path.join(project_dir, user['img_path'])
-
-                img = Image.open(img_path).convert('RGB')
-                if img.size[0] + img.size[1] < 400:
-                    raise Exception('{} is too small. Skip.'.format(img_path))
-                img = img.resize((224, 224), Image.BILINEAR)
-                t_img = tensor_trans(img)
-                img_size = t_img.size()
-                if img_size[0] == 3 and img_size[1] == 224 and img_size[2] == 224:
-                    logging.info('Exporting user: {}'.format(user['screen_name']))
-                    f.write("{}\n".format(json.dumps(user)))
-                else:
-                    raise Exception('Tensor with incorrect size {}'.format(img_size))
+                check_user_profile_image(img_path)
+                logging.info('Exporting user: {}'.format(user['screen_name']))
+                f.write("{}\n".format(json.dumps(user)))                
             except Exception as e:
                 logging.warning('Error when resizing {0}\nThe error message is: {1}\n'.format(img_path, e))
     logging.info('Process finished, output was saved into {}'.format(output))
