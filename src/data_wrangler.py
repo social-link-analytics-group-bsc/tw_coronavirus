@@ -1104,7 +1104,7 @@ def do_update_user_status(collection, config_fn=None, log_fn=None):
                         img_path_to_save = '/'.join(img_path.split('/')[-2:])
                     if os.path.exists(img_path):
                         try:
-                            PIL.Image.open(img_path)
+                            check_user_profile_image(img_path)                            
                             users_to_update.append({
                                 'filter': {'id': int(user['id'])},
                                 'new_values': {'exists': 1, 'img_path': img_path_to_save}
