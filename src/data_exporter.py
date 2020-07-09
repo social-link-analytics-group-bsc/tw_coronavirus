@@ -166,7 +166,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
     logging.info('Found {} users'.format(total_users))
     with open(output, 'w') as f:
         for user in users:
-            if 'predicted' in user:
+            if 'prediction' in user:
                 continue
             if 'img_path' not in user:
                 continue
