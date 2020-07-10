@@ -167,6 +167,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
     logging.info('Found {} users'.format(total_users))
+    accepted_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.JPG', '.JPEG', '.PNG', '.BMP')
     with open(output, 'w') as f:
         for user in users:
             if 'prediction' in user:
@@ -178,7 +179,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
             if user['img_path'] == '[no_img]':
                 logging.info('User {} has img_path=[no_img]'.format(user['screen_name']))
                 continue
-            if not user['img_path'].endswith(('.png', '.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG')):
+            if not user['img_path'].endswith(accepted_extensions):
                 logging.info('User {} has image with extension {}'.format(user['screen_name'], user['img_path']))
                 continue
             try:
