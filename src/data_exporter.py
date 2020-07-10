@@ -178,7 +178,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
             if user['img_path'] == '[no_img]':
                 logging.info('User {} has img_path=[no_img]'.format(user['screen_name']))
                 continue
-            if not user['img_path'].endswith(('.png', '.jpg', '.jpeg')):
+            if not user['img_path'].endswith(('.png', '.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG')):
                 logging.info('User {} has image with extension {}'.format(user['screen_name'], user['img_path']))
                 continue
             try:
