@@ -170,14 +170,16 @@ def do_export_users(collection, config_file=None, output_filename=None):
     with open(output, 'w') as f:
         for user in users:
             if 'prediction' in user:
+                logging.info('Found field prediction, ignoring user {}'.format(user['screen_name']))
                 continue
             if 'img_path' not in user:
+                logging.info('User {} does not have img_path field'.format(user['screen_name']))
                 continue
             if user['img_path'] == '[no_img]':
+                logging.info('User {} has img_path=[no_img]'.format(user['screen_name']))
                 continue
-            if 'lang' in user and user['lang'] == None:
-                user['lang'] = 'un'
             if not user['img_path'].endswith(('.png', '.jpg', '.jpeg')):
+                logging.info('User {} has image with extension {}'.format(user['screen_name'], user['img_path']))
                 continue
             try:
                 img_path = os.path.join(project_dir, user['img_path'])
