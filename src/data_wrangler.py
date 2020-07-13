@@ -1335,7 +1335,13 @@ def do_augment_user_data(collection, config_fn=None, log_fn=None):
             logging.info('Augmenting data of user {}'.format(user['screen_name']))
             augmented_user = m3twitter.transform_jsonl_object(user)
             fields_to_update['img_path'] = '/'.join(augmented_user['img_path'].split('/')[-2:])
-            fields_to_update['lang'] = augmented_user['lang']
+            if augmented_user['lang'] is None:
+                if 'lang_detected' in user:                    
+                    fields_to_update['lang'] = user['lang_detected']
+                else:
+                    fields_to_update['lang'] = 'un'
+            else:
+                fields_to_update['lang'] = augmented_user['lang']
             fields_to_update['exists'] = 1
         except:
             logging.info('Could not augment data of user {}'.format(user['screen_name']))
@@ -1600,6 +1606,50 @@ def check_user_pictures(collection, config_fn=None):
     print('Checkout {}'.format(output_file_name))
 
 
+def update_user_lang(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'lang': None
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,        
+        'lang': 1
+    }
+    print('Retriving users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    print('Fetched {0:,} users'.format(total_users))
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    users_to_update = []
+    processing_counter = total_segs = 0
+    for user in users:
+        start_time = time.time()
+        processing_counter += 1
+        if 'lang_detected' in user:
+            users_to_update.append(
+                {
+                    'filter': {'id': int(user['id'])},
+                    'new_values': {'lang': user['lang_detected']}
+                }            
+            )
+        else:
+            users_to_update.append(
+                {
+                    'filter': {'id': int(user['id'])},
+                    'new_values': {'lang': 'un'}
+                }            
+            )
+        if len(users_to_update) >= max_batch:
+            add_fields(dbm, users_to_update)
+            users_to_update = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
+    if len(users_to_update) > 0:
+        add_fields(dbm, users_to_update)
+
+
 if __name__ == "__main__":
-    check_user_pictures_from_file('../data/users.jsonl')
+    update_user_lang('users', 'config_mongo_inb.json')
     
