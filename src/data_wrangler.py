@@ -17,6 +17,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from m3inference import M3Twitter
 from m3inference.dataset import M3InferenceDataset
+from m3inference import consts
 from utils.demographic_detector import DemographicDetector
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
@@ -1626,7 +1627,7 @@ def update_user_lang(collection, config_fn=None):
     for user in users:
         start_time = time.time()
         processing_counter += 1
-        if 'lang_detected' in user:
+        if 'lang_detected' in user and user['lang_detected'] in const.LANGS:
             users_to_update.append(
                 {
                     'filter': {'id': int(user['id'])},
@@ -1637,7 +1638,7 @@ def update_user_lang(collection, config_fn=None):
             users_to_update.append(
                 {
                     'filter': {'id': int(user['id'])},
-                    'new_values': {'lang': 'un'}
+                    'new_values': {'lang': const.UNKNOWN_LANG}
                 }            
             )
         if len(users_to_update) >= max_batch:
@@ -1650,6 +1651,42 @@ def update_user_lang(collection, config_fn=None):
         add_fields(dbm, users_to_update)
 
 
+def fix_user_lang(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {}
+    projection = {
+        '_id': 0,
+        'id': 1,        
+        'lang': 1
+    }
+    print('Retriving users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    print('Fetched {0:,} users'.format(total_users))
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    users_to_update = []
+    processing_counter = total_segs = 0
+    for user in users:
+        start_time = time.time()
+        processing_counter += 1
+        if user['lang'] in consts.LANGS:
+            continue
+        users_to_update.append(
+            {
+                'filter': {'id': int(user['id'])},
+                'new_values': {'lang': consts.UNKNOWN_LANG}
+            }            
+        )
+        if len(users_to_update) >= max_batch:
+            add_fields(dbm, users_to_update)
+            users_to_update = []
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
+    if len(users_to_update) > 0:
+        add_fields(dbm, users_to_update)
+
+
 if __name__ == "__main__":
-    update_user_lang('users', 'config_mongo_inb.json')
+    fix_user_lang('users', 'config_mongo_inb.json')
     
