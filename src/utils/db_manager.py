@@ -554,30 +554,22 @@ class DBManager:
     def get_tweets_reduced(self, filters={}, projection={}):        
         results = self.find_all(filters, projection)
         reduced_tweets = []
-        special_keys = ['date','date_time','place','sentiment',
-                        'retweeted_status', 'is_quote_status',
+        special_keys = ['retweeted_status', 'is_quote_status',
                         'in_reply_to_status_id_str']
         for tweet in results:
             reduced_tweet = {}
-            if 'date' in tweet:
-                reduced_tweet['date'] = datetime.strptime(tweet['date'], "%d/%m/%Y")
-            if 'date_time' in tweet:
-                reduced_tweet['date_time'] = datetime.strptime(tweet['date_time'].replace(',',''), "%d/%m/%Y %H:%M:%S")
-            if 'sentiment' in tweet:
-                reduced_tweet['sentiment'] = tweet['sentiment']['score']
-            if 'place' in tweet and tweet['place']:
-                reduced_tweet['place_country'] = tweet['place']['country']
-            if 'retweeted_status' in tweet:
-                reduced_tweet['type'] = 'rt'
-            elif 'is_quote_status' in tweet and tweet['is_quote_status']:
-                reduced_tweet['type'] = 'qt'
-            elif 'in_reply_to_status_id_str' in tweet and tweet['in_reply_to_status_id_str']:
-                reduced_tweet['type'] = 'rp'
-            else:
-                reduced_tweet['type'] = 'og'
+            if 'type' in projection and 'type' not in tweet:
+                if 'retweeted_status' in tweet:
+                    reduced_tweet['type'] = 'rt'
+                elif 'is_quote_status' in tweet and tweet['is_quote_status']:
+                    reduced_tweet['type'] = 'qt'
+                elif 'in_reply_to_status_id_str' in tweet and tweet['in_reply_to_status_id_str']:
+                    reduced_tweet['type'] = 'rp'
+                else:
+                    reduced_tweet['type'] = 'og'
             for key, value in tweet.items():
                 if key not in special_keys:
-                    if isinstance(value,dict):
+                    if isinstance(value, dict):
                         for k, v in value.items():
                             combined_key = key + '_' + k
                             reduced_tweet[combined_key] = tweet[key][k]
@@ -586,7 +578,7 @@ class DBManager:
             reduced_tweets.append(reduced_tweet)
         
         return reduced_tweets
-    
+
     def get_sample(self, sample_size, query_filter=None, projection=None):
         pipeline = [
             {'$sample': {'size': int(sample_size)}}
