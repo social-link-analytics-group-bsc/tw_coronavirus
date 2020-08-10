@@ -1687,6 +1687,48 @@ def fix_user_lang(collection, config_fn=None):
         add_fields(dbm, users_to_update)
 
 
+def update_user_demo_tweets(collection_tweets, collection_users, config_fn=None):
+    dbm_tweets = DBManager(collection=collection_tweets, config_fn=config_fn)
+    dbm_users = DBManager(collection=collection_users, config_fn=config_fn)
+    query = {
+        'exists': 1
+    }
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'prediction': 1,
+        'age_range': 1,
+        'type': 1,
+        'gender': 1
+    }
+    print('Retriving users...')
+    users = list(dbm_users.find_all(query, projection))
+    total_users = len(users)
+    print('Fetched {0:,} users'.format(total_users))
+    processing_counter = total_segs = 0
+    for user in users:
+        start_time = time.time()
+        processing_counter += 1
+        if 'prediction' in user and \
+            (user['prediction'] == 'succeded' or user['prediction'] == 'success'):
+            print('Updating tweets of the user: {}'.format(user['id']))
+            dbm_tweets.update_record_many(
+                {
+                    'user.id': int(user['id'])
+                },
+                {
+                    'user.prediction': user['prediction'],
+                    'user.age_range': user['age_range'],                        
+                    'user.gender': user['gender'],
+                    'user.type': user['type'],
+                    'updated_user': 1
+                }
+            )
+        total_segs = calculate_remaining_execution_time(start_time, total_segs,
+                                                        processing_counter, 
+                                                        total_users)
+
+
 if __name__ == "__main__":
-    fix_user_lang('users', 'config_mongo_inb.json')
+    update_user_demo_tweets('processed_new', 'users', 'config_mongo_inb.json')
     
