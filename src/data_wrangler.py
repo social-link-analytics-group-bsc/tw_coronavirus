@@ -1732,6 +1732,26 @@ def update_user_demo_tweets(collection_tweets, collection_users, config_fn=None)
                                                         total_users)
 
 
+def remove_tweets_from_text(search_string, collection, del_collection=None, 
+                            config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)    
+    query = {
+        '$text': {
+            '$search': search_string
+        }
+    }
+    if del_collection:
+        dbm_del = DBManager(collection=del_collection, config_fn=config_fn)
+        print('Fetching tweets...')
+        tweets_to_del = list(dbm.find_all(query))
+        if len(tweets_to_del) > 0:
+            print('Inserting {} tweets in the delete collection...'.format(len(tweets_to_del)))
+            dbm_del.insert_many(tweets_to_del, ordered=False)
+    print('Deleting tweets, please wait...')
+    result = dbm.remove_records(query)
+    print('The process has removed {} tweets'.format(result.deleted_count))    
+
+
 if __name__ == "__main__":
-    update_user_demo_tweets('processed_new', 'users', 'config_mongo_inb.json')
+    remove_tweets_from_text('rastreo -radar', 'rc_sp', 'rc_deleted', 'config_mongo_inb.json')
     
