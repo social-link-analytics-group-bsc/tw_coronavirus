@@ -1172,15 +1172,18 @@ def process_user(user, tweet):
     return user
 
 
-def do_update_users_collection(collection, config_fn=None, log_fn=None):        
+def do_update_users_collection(collection, user_collection=None, config_fn=None, 
+                               log_fn=None):        
     if log_fn:
         current_path = pathlib.Path(__file__).parent.resolve()
         logging_file = os.path.join(current_path, log_fn)
         user_logger = setup_logger('user_logger', logging_file)
     else:
         user_logger = logging
+    if not user_collection:
+        user_collection='users'
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    dbm_users = DBManager(collection='users', config_fn=config_fn)
+    dbm_users = DBManager(collection=user_collection, config_fn=config_fn)
     query = {
         'processed_user': {'$eq': None}
     }
