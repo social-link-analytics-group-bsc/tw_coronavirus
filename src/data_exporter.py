@@ -63,6 +63,45 @@ def save_tweet_sentiment_scores_to_csv(sentiment_file):
             csv_writer.writerow(tweet_selected)
 
 
+def export_sentiment_scores_from_ids(file_tweet_ids, collection, config_fn):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    tweets_to_export = []
+    with open(file_tweet_ids, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            tweet_id = row['id']
+            print('Processing tweet: {}'.format(tweet_id))
+            tweet_obj = dbm.find_record({'id_str': str(tweet_id)})
+            if tweet_obj is None:
+                print('Missing tweet...')
+                continue
+            tweet_to_export = {'id': tweet_id, 'text': tweet_obj['complete_text']}
+            sentiment_obj = tweet_obj['sentiment']
+            if 'sentiment_score_polyglot' in sentiment_obj:
+                tweet_to_export['score_polyglot'] = \
+                    sentiment_obj['sentiment_score_polyglot']
+            if 'sentiment_score_sentipy' in sentiment_obj:
+                tweet_to_export['score_sentipy'] = \
+                    sentiment_obj['sentiment_score_sentipy']
+            if 'sentiment_score_affin' in sentiment_obj:
+                tweet_to_export['score_affin'] = \
+                    sentiment_obj['sentiment_score_affin']
+            if 'sentiment_score_vader' in sentiment_obj:
+                tweet_to_export['score_vader'] = \
+                    sentiment_obj['sentiment_score_vader']            
+            tweet_to_export['sentiment_score'] = sentiment_obj['score']
+            tweet_to_export['human_label'] = row['label']
+            tweets_to_export.append(tweet_to_export)
+    output_file = '../data/bsc/processing_outputs/sentiment_scores_from_ids.csv'
+    print('Saving tweets to the CSV {}'.format(output_file))
+    with open(output_file, 'w') as csv_file:
+        headers = tweets_to_export[0].keys()
+        csv_writer = csv.DictWriter(csv_file, fieldnames=headers)
+        csv_writer.writeheader()
+        for tweet_to_export in tweets_to_export:
+            csv_writer.writerow(tweet_to_export)
+
+
 def export_sentiment_sample(sample_size, collection, config_fn=None, 
                             output_filename=None, lang=None):
     current_path = pathlib.Path(__file__).resolve()
@@ -193,5 +232,5 @@ def do_export_users(collection, config_file=None, output_filename=None):
 
 
 if __name__ == "__main__":
-    export_sentiment_sample(600, 'processed_new', 'config_mongo_inb.json', 
-                            'sentiment_analysis_sample_es.csv', 'es')
+    export_sentiment_scores_from_ids('../data/sample_tweets_ids.csv', 'processed_new', \
+                                     'config_mongo_inb.json')
