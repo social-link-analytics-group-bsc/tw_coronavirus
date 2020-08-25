@@ -1,12 +1,26 @@
 #!/bin/bash
 
-if [ -z "$1" ]
-then
-    # if no project directory is supplied, current is used
-    PROJECT_DIR=`pwd`
-else
-    PROJECT_DIR=$1
-fi
+PROJECT_DIR=`pwd`
+USER_COLLECTION='users'
+COLLECTION_NAME='processed_new'
+
+for arg in "$@"
+do
+    case $arg in
+        --project_dir=*)
+        PROJECT_DIR="${arg#*=}"
+        shift # Remove --project_dir= from processing
+        ;;
+        --user_collection=*)
+        USER_COLLECTION="${arg#*=}"
+        shift # Remove --user_collection= from processing
+        ;;
+        --collection_name=*)
+        COLLECTION_NAME="${arg#*=}"
+        shift # Remove --collection_name= from processing
+        ;;
+    esac
+done
 
 LOG_DIR="${PROJECT_DIR}/log"
 
@@ -19,7 +33,6 @@ LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
-COLLECTION_NAME='processed_new'
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
 NUM_TASKS=7
@@ -145,7 +158,7 @@ then
     echo "[6/${NUM_TASKS}] Updating collection of users..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},'updating_users',${start_time}," >> $EVENT_LOG
-    python run.py update-users-collection $COLLECTION_NAME --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
+    python run.py update-users-collection $COLLECTION_NAME --user_collection_name $USER_COLLECTION --config_file $CONFIG_FILE_NAME >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
