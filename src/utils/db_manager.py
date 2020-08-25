@@ -128,6 +128,9 @@ class DBManager:
     def remove_record(self, query):
         self.__db[self.__collection].delete_one(query)
 
+    def remove_records(self, query):
+        return self.__db[self.__collection].delete_many(query)
+
     def find_tweets_by_author(self, author_screen_name, **kwargs):
         query = {'user.screen_name': author_screen_name}
         return self.search(query)
