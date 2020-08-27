@@ -1,6 +1,7 @@
 from palettable.colorbrewer.sequential import Blues_4_r
 from utils.db_manager import DBManager
-from utils.figure_maker import lineplot, bars_by_date, donut, hlines
+from utils.figure_maker import lineplot, bars_by_date, donut, hlines, heatmap, \
+                               barplot
 
 import os
 import pandas as pd
@@ -276,6 +277,57 @@ def tweets_over_time_analysis(df, img_path, save_fig_in_file=True):
     return [fig]
 
 
+def tweets_by_weekday_and_time_analysis(df, weekday_order, img_path, 
+                                        save_fig_in_file=True):
+    tweets_by_day_hour = df.groupby(['day_week','hour'], as_index=False)['id'].\
+        count().sort_values('day_week', ascending=True)
+    tweets_by_day_hour.rename(columns={'id': 'total'}, inplace=True)
+    tweets_by_day_hour = tweets_by_day_hour.pivot('day_week','hour','total')
+    reindex_order = [None]*7
+    for idx in tweets_by_day_hour.index:
+        for wd_idx, week_day in enumerate(weekday_order):
+            if week_day in idx:
+                reindex_order[wd_idx] = idx
+    tweets_by_day_hour = tweets_by_day_hour.reindex(reindex_order)
+    fig = heatmap(tweets_by_day_hour, 'Hora', 'Día de semana', X_LABELS_SIZE, 
+                  Y_LABELS_SIZE, X_TICKS_SIZE, Y_TICKS_SIZE, 0.5, 'Blues')
+    if save_fig_in_file:
+        save_figure(fig.get_figure(), img_path, 'tweets_weekday_hours.png')
+    return [fig]
+
+
+def tweets_sentiment_categories_by_weekday_and_time_analysis(df, weekday_order, 
+                                                             img_path, 
+                                                             save_fig_in_file=True):
+    sentiments_by_day_hour = df.groupby(['day_week','hour'])['sentiment_score'].\
+        mean().reset_index().sort_values('day_week', ascending=True)
+    sentiments_by_day_hour = sentiments_by_day_hour.pivot('day_week','hour',
+                                                          'sentiment_score')
+    reindex_order = [None]*7
+    for idx in sentiments_by_day_hour.index:
+        for wd_idx, week_day in enumerate(weekday_order):
+            if week_day in idx:
+                reindex_order[wd_idx] = idx
+    sentiments_by_day_hour = sentiments_by_day_hour.reindex(reindex_order)
+    fig = heatmap(sentiments_by_day_hour, 'Hora', 'Día de semana', X_LABELS_SIZE, 
+                  Y_LABELS_SIZE, X_TICKS_SIZE, Y_TICKS_SIZE, 0.5, 'RdBu', 
+                  {'vmin': -0.09, 'vmax': 0.01})
+    if save_fig_in_file:
+        save_figure(fig.get_figure(), img_path, 'tweets_weekday_hours.png')
+    return [fig]
+
+
+def unique_users_over_time_analysis(df, img_path, save_fig_in_file=True):
+    users_by_date = df.groupby(['date'])['user_screen_name'].nunique().\
+        reset_index().sort_values('date', ascending=True)
+    users_by_date.rename(columns={'user_screen_name': 'unique_users'}, inplace=True)
+    fig = barplot(users_by_date, 'date', 'unique_users', 'Fecha', 'Usuarios Únicos', 
+                  X_LABELS_SIZE, Y_LABELS_SIZE, X_TICKS_SIZE, Y_TICKS_SIZE, 90, BLUE_HC)
+    if save_fig_in_file:
+        save_figure(fig.get_figure(), img_path, 'users_date.png')
+    return [fig]
+
+
 def generate_html(output_filename, content):
     html = '<!DOCTYPE html>\n'
     html += '<html>\n'
@@ -416,5 +468,16 @@ if __name__ == "__main__":
         }
     )    
 
-    print('[7] Generating output...')
+    print('[7] Analyzing distribution of unique users...')
+    unique_users_over_time_analysis(df, img_path)
+
+    print('[8] Analyzing distribution of tweets by weekday and time...')
+    weekdays_order = ['Martes','Miércoles','Jueves','Viernes','Sábado','Domingo','Lunes']
+    tweets_by_weekday_and_time_analysis(df, weekdays_order, img_path)
+
+    print('[9] Analyzing distribution of tweets sentiment categories by weekday and time...')
+    tweets_sentiment_categories_by_weekday_and_time_analysis(df, weekdays_order, 
+                                                             img_path)
+
+    print('[10] Generating output...')
     generate_html(output_filename, output)
