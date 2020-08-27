@@ -328,6 +328,43 @@ def unique_users_over_time_analysis(df, img_path, save_fig_in_file=True):
     return [fig]
 
 
+def retweet_impact_analysis(collection, config_fn):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    filter_query = {
+        'retweeted_status': {'$exists': 1}, # it must be a retweet
+        'in_reply_to_status_id_str': {'$eq': None}, # it must not be a reply
+        'is_quote_status': False # it must not be a quote
+    }
+    fields_to_retrieve = {
+        '_id': 0,
+        'user.screen_name': 1,
+        'retweeted_status.id': 1,
+        'retweeted_status.user.screen_name': 1
+    }
+    tweets = list(dbm.find_all(filter_query, fields_to_retrieve))
+    df = pd.DataFrame()
+    for tweet in tweets:
+        df = df.append({
+            'user_screen_name': tweet['user']['screen_name'],
+            'retweeted_status_id': tweet['retweeted_status']['id'],
+            'retweeted_status_user_screen_name': tweet['retweeted_status']['user']['screen_name'],
+        }, ignore_index=True)
+
+    d_retweeted_tweets = df.groupby(['retweeted_status_user_screen_name'])['retweeted_status_id'].nunique().to_dict()
+    d_retweeting_users = df.groupby(['retweeted_status_user_screen_name'])['user_screen_name'].nunique().to_dict()
+
+    ri_df = pd.DataFrame()
+    ri_df['retweeted_user_screen_name'] = df['retweeted_status_user_screen_name']
+    ri_df['retweeted_tweets'] = df.retweeted_status_user_screen_name.map(d_retweeted_tweets)
+    ri_df['retweeting_users'] = df.retweeted_status_user_screen_name.map(d_retweeting_users)
+    ri_df['retweet_impact'] = ri_df['retweeted_tweets'] * np.log(ri_df['retweeting_users'])
+    ri_df = ri_df.sort_values(by=['retweet_impact'],ascending=False).drop_duplicates()
+    ri_df['retweet_impact'] = np.log10(ri_df['retweet_impact'])
+    ri_df = ri_df.replace([np.inf, -np.inf], np.nan).dropna()
+    
+    return ri_df
+
+
 def generate_html(output_filename, content):
     html = '<!DOCTYPE html>\n'
     html += '<html>\n'
@@ -479,5 +516,9 @@ if __name__ == "__main__":
     tweets_sentiment_categories_by_weekday_and_time_analysis(df, weekdays_order, 
                                                              img_path)
 
-    print('[10] Generating output...')
+    print('[10] Computing retweet impact...')
+    ri_df = retweet_impact_analysis(collection_name, mongo_config_fn)
+    ri_df.to_csv(os.path.join(report_dir, 'retweet_impact.csv'), index=None)
+
+    print('[11] Generating output...')
     generate_html(output_filename, output)
