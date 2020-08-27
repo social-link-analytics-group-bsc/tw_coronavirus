@@ -107,6 +107,7 @@ def save_figure(fig_obj, img_path, file_name, dpi=200, quality=95,
 
 
 def sentiment_analysis(df, img_path, save_fig_in_file=True):
+    figures = []
     sa_df = df[['id', 'date', 'sentiment_score']].copy()
     sa_df.loc[:, 'sentiment_score'] = pd.to_numeric(sa_df.loc[:, 'sentiment_score'])
     # Compute category sentiment category
@@ -124,6 +125,7 @@ def sentiment_analysis(df, img_path, save_fig_in_file=True):
     fig = lineplot(sa_df, 'date', 'sentiment_score', 'Fecha', 'Score Sentimiento',
                    X_LABELS_SIZE, Y_LABELS_SIZE, X_TICKS_SIZE, Y_TICKS_SIZE, 90, 
                    aesthetic_params)
+    figures.append(fig)
     if save_fig_in_file:
         save_figure(fig.get_figure(), img_path, 'tweets_sentiment_score_evolution.png')
         
@@ -143,6 +145,7 @@ def sentiment_analysis(df, img_path, save_fig_in_file=True):
     fig = lineplot(tweets_by_group, 'date', 'id', 'Fecha', 'Nro. Tweets',
                    X_LABELS_SIZE, Y_LABELS_SIZE, X_TICKS_SIZE, Y_TICKS_SIZE, 
                    90, aesthetic_params)
+    figures.append(fig)
     if save_fig_in_file:
         save_figure(fig.get_figure(), img_path, 'tweets_sentiment_category_evolution.png')
         
@@ -167,6 +170,7 @@ def sentiment_analysis(df, img_path, save_fig_in_file=True):
                        'Nro. Tweets', X_LABELS_SIZE, Y_LABELS_SIZE,
                        X_TICKS_SIZE, Y_TICKS_SIZE, bar_width=0.3, 
                        x_ticks_rotation=90, figure_size=(15, 7))
+    figures.append(fig)
     if save_fig_in_file:
         save_figure(fig, img_path, 'tweets_sentiment_category_evolution_bars.png')        
 
@@ -190,8 +194,10 @@ def sentiment_analysis(df, img_path, save_fig_in_file=True):
         'width': 0.5
     }
     fig = donut(data, aesthetic_params)
+    figures.append(fig)
     if save_fig_in_file:
         save_figure(fig, img_path, 'tweets_sentiment_categories_donut.png')
+    return figures
 
 
 def ccaa_analysis(df, remove_unknown_locations, img_path, save_fig_in_file=True):
@@ -206,6 +212,7 @@ def ccaa_analysis(df, remove_unknown_locations, img_path, save_fig_in_file=True)
                   Y_TICKS_SIZE, LIGHT_BLUE_INT1_HC, BLUE_HC)
     if save_fig_in_file:
         save_figure(fig.get_figure(), img_path, 'tweets_locations.png')
+    return [fig]
 
 
 def tweet_types_analysis(df, img_path, save_fig_in_file=True):
@@ -242,6 +249,7 @@ def tweet_types_analysis(df, img_path, save_fig_in_file=True):
     fig = donut(data, aesthetic_params)
     if save_fig_in_file:
         save_figure(fig, img_path, 'tweets_types_donut.png')
+    return [fig]
 
 
 def tweets_over_time_analysis(df, img_path, save_fig_in_file=True):
@@ -265,6 +273,7 @@ def tweets_over_time_analysis(df, img_path, save_fig_in_file=True):
                    90, aesthetic_params)
     if save_fig_in_file:
         save_figure(fig.get_figure(), img_path, 'tweets_types_evolution.png')
+    return [fig]
 
 
 def generate_html(output_filename, content):
