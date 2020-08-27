@@ -27,6 +27,26 @@ def lineplot(df, x_axis_name, y_axis_name, x_axis_label, y_axis_label,
     return fig
 
 
+def barplot(df, x_axis_name, y_axis_name, x_axis_label, y_axis_label, 
+            font_size_x_axis_label, font_size_y_axis_label, x_ticks_size, 
+            y_ticks_size, x_ticks_rotation, color, figure_size=(12,6)):
+    plt.figure(figsize=figure_size)
+    fig = sns.barplot(x=x_axis_name, y=y_axis_name, data=df, color=color)
+    fig.set_xlabel(x_axis_label, fontsize=font_size_x_axis_label)
+    fig.set_ylabel(y_axis_label, fontsize=font_size_y_axis_label)
+    plt.xticks(size=y_ticks_size, rotation=x_ticks_rotation)
+    plt.yticks(size=x_ticks_size)
+    ax=fig
+    # Annotate bars
+    for p in ax.patches:
+        ax.annotate("{0:,}".format(int(p.get_height())), (p.get_x() + p.get_width() / 2., p.get_height()),
+                    ha='center', va='center', fontsize=15, color='black', xytext=(0, 10),
+                    textcoords='offset points')
+     #To make space for the annotations
+    _ = fig.set_ylim(0,max(df[y_axis_name]))
+    return fig
+
+
 def bars_by_date(df, bars_data, x_axis_label, y_axis_label, 
                 font_size_x_axis_label, font_size_y_axis_label, 
                 x_ticks_size, y_ticks_size, bar_width, x_ticks_rotation,
@@ -117,6 +137,23 @@ def hlines(df, x_axis_name, y_axis_name, x_axis_label, y_axis_label,
     plt.yticks(fig_range, df[y_axis_name])
     plt.xlabel(x_axis_label, size=font_size_x_axis_label)
     plt.ylabel(y_axis_label, size=font_size_y_axis_label)
+    plt.xticks(size=x_ticks_size)
+    plt.yticks(size=y_ticks_size)
+    return fig
+
+
+def heatmap(df, x_axis_label, y_axis_label, font_size_x_axis_label, 
+            font_size_y_axis_label, x_ticks_size, y_ticks_size, line_widths, 
+            color_map, scale_limits=None, square=True, figure_size=(22,8)):
+    plt.figure(figsize=figure_size)
+    if scale_limits:
+        fig = sns.heatmap(df, linewidths=line_widths, cmap=color_map, \
+                          square=square, vmin=scale_limits['vmin'], 
+                          vmax=scale_limits['vmax'])
+    else:
+        fig = sns.heatmap(df, linewidths=line_widths, cmap=color_map, square=square)
+    fig.set_xlabel(x_axis_label, fontsize=font_size_x_axis_label)
+    fig.set_ylabel(y_axis_label, fontsize=font_size_y_axis_label)
     plt.xticks(size=x_ticks_size)
     plt.yticks(size=y_ticks_size)
     return fig
