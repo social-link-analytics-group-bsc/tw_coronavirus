@@ -31,7 +31,7 @@ logging.basicConfig(filename=str(pathlib.Path(__file__).parents[1].joinpath('tw_
 
 class SentimentAnalyzer:
 
-    supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl', 'en']
+    supported_languages = ['es', 'ca', 'eu', 'an', 'ast', 'gl', 'pt', 'en']
     sp_classifier = af_classifier = translator = vader_classifier = None
 
     def __init__(self, with_translation_support=False):
@@ -109,6 +109,10 @@ class SentimentAnalyzer:
             num_applied_analyzers += 1
             # Apply Affin analyzer
             af_sentiment_score = self.af_classifier.score(text)
+            if len(text) > 0:
+                af_sentiment_score = af_sentiment_score/len(text)
+            else:
+                af_sentiment_score = 0
             sentiment_dict['sentiment_score_affin'] = af_sentiment_score
             n_af_sentiment_score = self.normalize_score(af_sentiment_score)
             total_scores += n_af_sentiment_score
