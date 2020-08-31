@@ -306,6 +306,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
                             format(processing_counter, total_tweets, tweet['text']))
                 if 'retweeted_status' not in tweet:
                     sentiment_analysis_ret = compute_sentiment_analysis_tweet(tweet, sa)
+                    sentiment_dict = None
                     if sentiment_analysis_ret:
                         sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
                         processed_sentiments[tweet_id] = sentiment_dict
