@@ -270,8 +270,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         }
     else:
         query = {
-            #'sentiment': {'$eq': None}
-            'id_str': {'$eq': '1293428542160752644'}
+            'sentiment': {'$eq': None}
         }
     projection = {
         '_id': 0,
