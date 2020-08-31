@@ -270,7 +270,8 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
         }
     else:
         query = {
-            'sentiment': {'$eq': None}
+            #'sentiment': {'$eq': None}
+            'id_str': {'$eq': '1293428542160752644'}
         }
     projection = {
         '_id': 0,
@@ -324,12 +325,13 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
                         sentiment_dict = processed_sentiments[id_org_tweet]
             else:
                 sentiment_dict = processed_sentiments[tweet_id]
-        update_queries.append(
-            {
-                'filter': {'id_str': tweet_id},
-                'new_values': sentiment_dict
-            }                        
-        )
+        if sentiment_dict:
+            update_queries.append(
+                {
+                    'filter': {'id_str': tweet_id},
+                    'new_values': sentiment_dict
+                }                        
+            )
         if len(update_queries) == max_batch:
             add_fields(dbm, update_queries)
             update_queries = []
@@ -1755,5 +1757,5 @@ def remove_tweets_from_text(search_string, collection, del_collection=None,
 
 
 if __name__ == "__main__":
-    remove_tweets_from_text('rastreo -radar', 'rc_sp', 'rc_deleted', 'config_mongo_inb.json')
+    compute_sentiment_analysis_tweets('processed_new', 'config_mongo_inb.json')
     
