@@ -315,6 +315,7 @@ def compute_sentiment_analysis_tweets(collection, config_fn=None,
                     if id_org_tweet not in processed_sentiments:   
                         original_tweet = tweet['retweeted_status']
                         sentiment_analysis_ret = compute_sentiment_analysis_tweet(original_tweet, sa)
+                        sentiment_dict = None
                         if sentiment_analysis_ret:
                             sentiment_dict = prepare_sentiment_obj(sentiment_analysis_ret)
                             processed_sentiments[id_org_tweet] = sentiment_dict
