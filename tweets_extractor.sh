@@ -83,28 +83,28 @@ echo "Exporting tweets from the collection ${COLLECTION_NAME}..."
 ####
 # Extract tweet to JSON
 ####
-# if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
-# then
-#     cd src
-#     echo "[1/${NUM_TASKS}] Exporting tweets..."
-#     start_time=`date '+%Y-%m-%d %H:%M:%S'`
-#     echo "${running_date},${COLLECTION_NAME},'export_tweets',${start_time}," >> $EVENT_LOG
-#     python run.py export-tweets $COLLECTION_NAME $OUTPUT_FILE --config_file $CONFIG_FILE_NAME --lang 'es' >> $LOGFILE 2>> $ERRORFILE
-# else
-#     error=1
-# fi
+if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
+then
+    cd src
+    echo "[1/${NUM_TASKS}] Exporting tweets..."
+    start_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},${COLLECTION_NAME},'export_tweets',${start_time}," >> $EVENT_LOG
+    python run.py export-tweets $COLLECTION_NAME $OUTPUT_FILE --config_file $CONFIG_FILE_NAME --lang 'es' >> $LOGFILE 2>> $ERRORFILE
+else
+    error=1
+fi
 
-# if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
-# then
-#     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-#     echo "${running_date},'export_tweets',,${end_time}" >> $EVENT_LOG
-#     echo "[2/${NUM_TASKS}] Copying output file to the destination directory..."
-#     start_time=`date '+%Y-%m-%d %H:%M:%S'`
-#     echo "${running_date},${COLLECTION_NAME},'copy_file',${start_time}," >> $EVENT_LOG
-#     cp $OUTPUT_FILE $DESTINATION_DIR >> $LOGFILE 2>> $ERRORFILE
-# else
-#     error=1
-# fi
+if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
+then
+    end_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},'export_tweets',,${end_time}" >> $EVENT_LOG
+    echo "[2/${NUM_TASKS}] Copying output file to the destination directory..."
+    start_time=`date '+%Y-%m-%d %H:%M:%S'`
+    echo "${running_date},${COLLECTION_NAME},'copy_file',${start_time}," >> $EVENT_LOG
+    cp $OUTPUT_FILE $DESTINATION_DIR >> $LOGFILE 2>> $ERRORFILE
+else
+    error=1
+fi
 
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
