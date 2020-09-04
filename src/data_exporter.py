@@ -1,11 +1,18 @@
 import csv
+import demoji
+import emoji
 import json
 import logging
+import nltk
 import pathlib
 import os
 
 from collections import defaultdict
+from nltk import wordpunct_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import SnowballStemmer
 from random import seed, random
+import preprocessor as tw_preprocessor
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
 from utils.utils import exists_user, check_user_profile_image
@@ -13,6 +20,15 @@ from utils.utils import exists_user, check_user_profile_image
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
                     level=logging.DEBUG)
+
+
+# set option of preprocessor
+tw_preprocessor.set_options(tw_preprocessor.OPT.URL, 
+                            tw_preprocessor.OPT.MENTION, 
+                            tw_preprocessor.OPT.HASHTAG,
+                            tw_preprocessor.OPT.RESERVED,
+                            tw_preprocessor.OPT.NUMBER,
+                            tw_preprocessor.OPT.EMOJI)
 
 
 def save_tweet_sentiment_scores_to_csv(sentiment_file):
@@ -112,6 +128,7 @@ def export_sentiment_sample(sample_size, collection, config_fn=None,
     projection = {
         '_id': 0,
         'id': 1,
+        'user.screen_name': 1,
         'complete_text': 1,
         'sentiment.score': 1,
         'created_at_date': 1,
@@ -132,7 +149,7 @@ def export_sentiment_sample(sample_size, collection, config_fn=None,
     MAX_TWEETS_BY_DATE = 6
     with open(output_file, 'w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, 
-                                    fieldnames=['id', 'date', 'lang', 'texto', 'score'])
+                                    fieldnames=['id', 'date', 'user', 'texto', 'score'])
         csv_writer.writeheader()
         for tweet in tweets:
             if lang and tweet['lang'] != lang:
@@ -145,7 +162,8 @@ def export_sentiment_sample(sample_size, collection, config_fn=None,
                         {
                             'id': tweet['id'],
                             'date': tweet['created_at_date'],
-                            'lang': tweet['lang'],
+                            'user': tweet['user']['screen_name'],
+                            #'lang': tweet['lang'],
                             'texto': tweet['complete_text'],
                             'score': tweet['sentiment']['score']
                         }
@@ -231,6 +249,81 @@ def do_export_users(collection, config_file=None, output_filename=None):
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
+def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
+                          lang=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {}
+    if lang:
+        query = {
+            'lang': {'$eq': lang}
+        }        
+    projection = {
+        '_id': 0,
+        'id': 1, 
+        'complete_text': 1,
+        'created_at_date': 1,
+        'quote_count': 1,
+        'reply_count': 1,
+        'retweet_count': 1,
+        'favorite_count': 1,
+        'entities.hashtags': 1,
+        'entities.urls': 1,
+        'entities.user_mentions': 1,
+        'sentiment.score': 1,
+        'lang': 1
+    }
+    logging.info('Getting tweets...')
+    tweets = list(dbm.find_all(query, projection))
+    total_tweets = len(tweets)
+    logging.info('Found {} tweets'.format(total_tweets))
+    if stemming:
+        stemmer = SnowballStemmer('spanish')
+    with open(output_fn, 'w', encoding='utf-8') as f:
+        f.write('[')
+        for idx, tweet in enumerate(tweets):
+            logging.info('Processing tweet: {}'.format(tweet['id']))
+            tweet_txt = tweet['complete_text']
+            del tweet['complete_text']
+            # remove emojis, urls, mentions
+            processed_txt = tw_preprocessor.clean(tweet_txt)
+            processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
+            processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
+            tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]        
+            if tweet['lang'] == 'es':
+                stop_words = stopwords.words('spanish')
+                punct_signs = ['.', '[', ']', ',', ';', ')', '),', '(']
+                stop_words.extend(punct_signs)
+                words = [token for token in tokens if token not in stop_words]
+                if stemming:                    
+                    stemmers = [stemmer.stem(word) for word in words]
+                    processed_txt = ' '.join([stem for stem in stemmers if stem.isalpha() and len(stem) > 1])
+                else:
+                    processed_txt = ' '.join(word for word in words)
+            else:
+                processed_txt = ' '.join([token for token in tokens])
+            tweet['text'] = processed_txt
+            tweet['sentiment_polarity'] = tweet['sentiment']['score']
+            tweet['hashtags'] = []
+            for hashtag in tweet['entities']['hashtags']:
+                tweet['hashtags'].append(hashtag['text'])
+            tweet['urls'] = []
+            for url in tweet['entities']['urls']:
+                tweet['urls'].append(url['expanded_url'])
+            tweet['mentions'] = []
+            for mention in tweet['entities']['user_mentions']:    
+                tweet['mentions'].append(mention['screen_name'])
+            del tweet['entities']
+            del tweet['sentiment']
+            if idx < (total_tweets-1):
+                f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
+            else:
+                f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
+        f.write(']')
+    
+    
+        
+
+
 if __name__ == "__main__":
-    export_sentiment_scores_from_ids('../data/sample_tweets_ids.csv', 'processed_new', \
-                                     'config_mongo_inb.json')
+    #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
+    export_tweets_to_json('rc_all', 'config_mongo_inb.json')

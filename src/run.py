@@ -5,7 +5,8 @@ import pathlib
 import sys
 
 from data_exporter import export_sentiment_sample, \
-      save_tweet_sentiment_scores_to_csv, export_user_sample, do_export_users
+      save_tweet_sentiment_scores_to_csv, export_user_sample, do_export_users, \
+      export_tweets_to_json
 from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       check_datasets_intersection, check_performance_language_detection, \
       compute_sentiment_analysis_tweets, identify_duplicates, \
@@ -402,6 +403,26 @@ def update_user_demographics(input_file, collection_name, config_file):
     check_current_directory()
     print('Update users\' demographics')
     load_user_demographics(input_file, collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.argument('output_file') # Path to the csv input file
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+@click.option('--stemming', help='Whether stemming should be applied to the text '\
+              'of tweets before exporting them', default=False, is_flag=True)
+@click.option('--lang', help='Language of tweets to be exported', default='es', 
+              is_flag=False)
+def export_tweets(collection_name, output_file, config_file, stemming, 
+                          lang):
+    """
+    Export tweets to json
+    """
+    check_current_directory()
+    print('Exporting tweets to json')
+    export_tweets_to_json(collection_name, output_file, config_file, stemming, 
+                          lang)
 
 
 if __name__ == "__main__":
