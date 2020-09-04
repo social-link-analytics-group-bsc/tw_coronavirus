@@ -29,6 +29,8 @@ LOGFILE=${LOG_DIR}/tweets_processor.log
 ERRORFILE=${LOG_DIR}/tweets_processor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
+OUTPUT_DIR="${PROJECT_DIR}/data"
+OUTPUT_FILE="${OUTPUT_DIR}/tweets.json"
 CONFIG_FILE_NAME='config_mongo_inb.json'
 CONDA_ENV='twcovid'
 NUM_TASKS=1
@@ -76,7 +78,7 @@ then
     echo "[1/${NUM_TASKS}] Adding tweet type flag..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "${running_date},${COLLECTION_NAME},'add_type_flag',${start_time}," >> $EVENT_LOG
-    python run.py export-tweets $COLLECTION_NAME 'data/tweets.json' --config_file $CONFIG_FILE_NAME --lang 'es' >> $LOGFILE 2>> $ERRORFILE
+    python run.py export-tweets $COLLECTION_NAME $OUTPUT_FILE --config_file $CONFIG_FILE_NAME --lang 'es' >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
