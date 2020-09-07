@@ -252,11 +252,15 @@ def do_export_users(collection, config_file=None, output_filename=None):
 def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
                           lang=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {}
+    query = {
+        'type': {'$ne': 'retweet'}
+    }
     if lang:
-        query = {
-            'lang': {'$eq': lang}
-        }        
+        query.update(
+            {
+                'lang': {'$eq': lang}
+            }   
+        )     
     projection = {
         '_id': 0,
         'id': 1, 
