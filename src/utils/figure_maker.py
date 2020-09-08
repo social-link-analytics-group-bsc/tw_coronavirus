@@ -34,8 +34,8 @@ def barplot(df, x_axis_name, y_axis_name, x_axis_label, y_axis_label,
     fig = sns.barplot(x=x_axis_name, y=y_axis_name, data=df, color=color)
     fig.set_xlabel(x_axis_label, fontsize=font_size_x_axis_label)
     fig.set_ylabel(y_axis_label, fontsize=font_size_y_axis_label)
-    plt.xticks(size=y_ticks_size, rotation=x_ticks_rotation)
-    plt.yticks(size=x_ticks_size)
+    plt.xticks(size=x_ticks_size, rotation=x_ticks_rotation)
+    plt.yticks(size=y_ticks_size)
     ax=fig
     # Annotate bars
     for p in ax.patches:
