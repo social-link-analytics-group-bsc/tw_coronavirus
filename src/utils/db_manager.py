@@ -17,7 +17,7 @@ class DBManager:
     def __init__(self, collection = None, config_fn = None, db_name = None):                
         if not config_fn:
             script_parent_dir = pathlib.Path(__file__).parents[1]
-            config_fn = script_parent_dir.joinpath('config.json')        
+            config_fn = script_parent_dir.joinpath('config.json')
         config = get_config(config_fn)
         connection_dict = {
             'host': config['mongodb']['host'],
