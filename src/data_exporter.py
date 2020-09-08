@@ -8,6 +8,7 @@ import pathlib
 import os
 
 from collections import defaultdict
+from datetime import datetime
 from nltk import wordpunct_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
@@ -118,6 +119,79 @@ def export_sentiment_scores_from_ids(file_tweet_ids, collection, config_fn):
             csv_writer.writerow(tweet_to_export)
 
 
+def save_tweets_in_csv_file(tweets, output_fn, headers):
+    logging.info(f'Saving tweets in the CSV file {output_fn}')
+    with open(output_fn, 'w') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=headers)
+        csv_writer.writeheader()
+        for tweet in tweets:
+            dict_row = {
+                'id': tweet['id'],
+                'date': tweet['created_at_date'],
+                'user': tweet['user']['screen_name'],
+                'text': tweet['complete_text']
+            }
+            if 'lang' in headers and 'lang' in tweet:
+                dict_row.update({'lang': tweet['lang']})
+            if 'sentiment' in headers and 'sentiment' in tweet:
+                dict_row.update({'sentiment': tweet['sentiment']['score']})
+            if 'retweets' in headers and 'retweet_count' in tweet:
+                dict_row.update({'retweets': tweet['retweet_count']})
+            if 'favorites' in headers and 'favorite_count' in tweet:
+                dict_row.update({'favorites': tweet['favorite_count']})
+            if 'replies' in headers and 'reply_count' in tweet:
+                dict_row.update({'replies': tweet['reply_count']})
+            if 'type' in tweet:
+                if 'type' in headers:
+                    dict_row.update({'type': tweet['type']})
+                if 'original_tweet' in headers:                    
+                    if tweet['type'] == 'quote' and 'quoted_status' in tweet:
+                        qt_status = tweet['quoted_status']
+                        if 'extended_tweet' in qt_status:
+                            txt = qt_status['extended_tweet']['full_text']
+                        else:
+                            txt = qt_status['text']
+                        dict_row.update({'original_tweet': txt})
+                    else:
+                        dict_row.update({'original_tweet': ''})
+
+            csv_writer.writerow(dict_row)            
+
+
+def export_tweets(collection, output_path, config_fn=None, date=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+    }
+    if date:
+        query.update({'created_at_date': date})
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'user.screen_name': 1,
+        'complete_text': 1,
+        'sentiment.score': 1,
+        'created_at_date': 1,
+        'lang': 1,
+        'retweet_count': 1,
+        'favorite_count': 1,
+        'reply_count': 1,
+        'type': 1,
+        'quoted_status': 1
+    }   
+    logging.info('Retrieving tweets...')
+    tweets = dbm.find_all(query, projection)
+    total_tweets = tweets.count()
+    logging.info('Found {} tweets'.format(total_tweets))
+    if date:
+        output_fn = f'tweets_{date}.csv'
+    else:
+        output_fn = 'tweets.csv'
+    output_fn = output_path + output_fn
+    output_header = ['id', 'type', 'date', 'user', 'text', 'retweets', \
+                     'favorites', 'replies', 'original_tweet']
+    save_tweets_in_csv_file(tweets, output_fn, output_header)
+
+
 def export_sentiment_sample(sample_size, collection, config_fn=None, 
                             output_filename=None, lang=None):
     current_path = pathlib.Path(__file__).resolve()
@@ -149,7 +223,7 @@ def export_sentiment_sample(sample_size, collection, config_fn=None,
     MAX_TWEETS_BY_DATE = 6
     with open(output_file, 'w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, 
-                                    fieldnames=['id', 'date', 'user', 'texto', 'score'])
+                                    fieldnames=['id', 'date', 'user', 'text', 'score'])
         csv_writer.writeheader()
         for tweet in tweets:
             if lang and tweet['lang'] != lang:
@@ -164,7 +238,7 @@ def export_sentiment_sample(sample_size, collection, config_fn=None,
                             'date': tweet['created_at_date'],
                             'user': tweet['user']['screen_name'],
                             #'lang': tweet['lang'],
-                            'texto': tweet['complete_text'],
+                            'text': tweet['complete_text'],
                             'score': tweet['sentiment']['score']
                         }
                     )
@@ -330,4 +404,6 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
-    export_tweets_to_json('rc_all', 'config_mongo_inb.json')
+    #export_tweets_to_json('rc_all', 'config_mongo_inb.json')
+    export_tweets('rc_all', '../data/bsc/processing_outputs/', \
+                  'config_mongo_inb.json', '2020-09-07')
