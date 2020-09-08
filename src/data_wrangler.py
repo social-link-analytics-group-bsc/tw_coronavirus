@@ -897,7 +897,7 @@ def update_metric_tweets(collection, config_fn=None, source_collection=None,
                 'id_str': tweet['id_str'],
                 'parent_id': tweet['retweeted_status']['id_str']
             })
-        if len(tweet_ids) == max_batch:
+        if len(tweet_ids) == max_batch or processing_counter == (total_tweets-1):
             logger.info('Hydratating tweets...')
             update_queries = []
             tweet_date = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
@@ -1756,5 +1756,5 @@ def remove_tweets_from_text(search_string, collection, del_collection=None,
 
 
 if __name__ == "__main__":
-    compute_sentiment_analysis_tweets('processed_new', 'config_mongo_inb.json')
+    update_metric_tweets('rc_all', 'config_mongo_inb.json', date='2020-09-07')
     
