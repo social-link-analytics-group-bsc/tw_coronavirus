@@ -324,7 +324,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
 
 
 def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
-                          lang=None):
+                          lang=None, banned_accounts=[]):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'type': {'$ne': 'retweet'}
@@ -345,10 +345,11 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         'retweet_count': 1,
         'favorite_count': 1,
         'entities.hashtags': 1,
-        'entities.urls': 1,
+        #'entities.urls': 1,
         'entities.user_mentions': 1,
         'sentiment.score': 1,
-        'lang': 1
+        'lang': 1,
+        'user.screen_name': 1
     }
     logging.info('Getting tweets...')
     tweets = list(dbm.find_all(query, projection))
@@ -362,6 +363,8 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
             logging.info('Processing tweet: {}'.format(tweet['id']))
             tweet_txt = tweet['complete_text']
             del tweet['complete_text']
+            if tweet['user']['screen_name'] in banned_accounts:
+                continue
             # remove emojis, urls, mentions
             processed_txt = tw_preprocessor.clean(tweet_txt)
             processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
@@ -380,18 +383,21 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
             else:
                 processed_txt = ' '.join([token for token in tokens])
             tweet['text'] = processed_txt
-            tweet['sentiment_polarity'] = tweet['sentiment']['score']
+            if 'sentiment' in tweet:
+                tweet['sentiment_polarity'] = tweet['sentiment']['score']
+                del tweet['sentiment']
             tweet['hashtags'] = []
             for hashtag in tweet['entities']['hashtags']:
                 tweet['hashtags'].append(hashtag['text'])
-            tweet['urls'] = []
-            for url in tweet['entities']['urls']:
-                tweet['urls'].append(url['expanded_url'])
+            #tweet['urls'] = []
+            #for url in tweet['entities']['urls']:
+            #    tweet['urls'].append(url['expanded_url'])
             tweet['mentions'] = []
             for mention in tweet['entities']['user_mentions']:    
                 tweet['mentions'].append(mention['screen_name'])
             del tweet['entities']
-            del tweet['sentiment']
+            tweet['url'] = f"http://www.twitter.com/{tweet['user']['screen_name']}/status/{tweet['id']}"
+            del tweet['user']
             if idx < (total_tweets-1):
                 f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
             else:
@@ -404,6 +410,8 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
-    #export_tweets_to_json('rc_all', 'config_mongo_inb.json')
-    export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', '2020-09-07')
+    export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
+                           config_fn='config_mongo_inb.json', 
+                           banned_accounts=['RadarCOVIDSTATS'])
+    #export_tweets('rc_all', '../data/bsc/processing_outputs/', \
+    #              'config_mongo_inb.json', '2020-09-12')
