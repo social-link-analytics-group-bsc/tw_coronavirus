@@ -36,8 +36,8 @@ then
     `mkdir $LOG_DIR`
 fi
 
-LOGFILE=${LOG_DIR}/tweets_processor.log
-ERRORFILE=${LOG_DIR}/tweets_processor.err
+LOGFILE=${LOG_DIR}/tweets_extractor.log
+ERRORFILE=${LOG_DIR}/tweets_extractor.err
 EVENT_LOG=${LOG_DIR}/process_events_log.csv
 ENV_DIR="${PROJECT_DIR}/env"
 OUTPUT_DIR="${PROJECT_DIR}/data"
