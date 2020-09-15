@@ -110,11 +110,10 @@ if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_extractor,${running_date},'copy_file',,${end_time}" >> $EVENT_LOG
-    cd $LINGO4G_DIR
     echo "[3/${NUM_TASKS}] Indexing new tweets..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'index_tweets',${start_time}," >> $EVENT_LOG
-    l4g index -p ${LINGO4G_PROJECT_FILE} --force >> $LOGFILE 2>> $ERRORFILE    
+    $LINGO4G_DIR/l4g index -p ${LINGO4G_PROJECT_FILE} --force >> $LOGFILE 2>> $ERRORFILE    
 else
     error=1
 fi
@@ -126,7 +125,7 @@ then
     echo "[4/${NUM_TASKS}] Learning embeddings..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'learn_embeddings',${start_time}," >> $EVENT_LOG
-    l4g learn-embeddings -p ${LINGO4G_PROJECT_FILE} >> $LOGFILE 2>> $ERRORFILE
+    $LINGO4G_DIR/l4g learn-embeddings -p ${LINGO4G_PROJECT_FILE} >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
