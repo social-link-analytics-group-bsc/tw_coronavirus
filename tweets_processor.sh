@@ -91,7 +91,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'add_type_flag',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'add_type_flag',,${end_time}" >> $EVENT_LOG
     echo "[2/${NUM_TASKS}] Adding complete text flag..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'adding_complete_text',${start_time}," >> $EVENT_LOG
@@ -106,7 +106,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'adding_complete_text',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'adding_complete_text',,${end_time}" >> $EVENT_LOG
     echo "[3/${NUM_TASKS}] Adding Spain location flags..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'adding_locations',${start_time}," >> $EVENT_LOG
@@ -122,7 +122,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'adding_locations',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'adding_locations',,${end_time}" >> $EVENT_LOG
     echo "[4/${NUM_TASKS}] Running language detection..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'detecting_languages',${start_time}," >> $EVENT_LOG
@@ -139,7 +139,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'detecting_languages',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'detecting_languages',,${end_time}" >> $EVENT_LOG
     echo "[5/${NUM_TASKS}] Running sentiment analysis..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'analyzing_sentiments',${start_time}," >> $EVENT_LOG
@@ -154,7 +154,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'analyzing_sentiments',,${end_time}" >> $EVENT_LOG
     echo "[6/${NUM_TASKS}] Updating collection of users..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'updating_users',${start_time}," >> $EVENT_LOG
@@ -169,7 +169,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},${COLLECTION_NAME},'updating_users',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},${COLLECTION_NAME},'updating_users',,${end_time}" >> $EVENT_LOG
     echo "[7/${NUM_TASKS}] Updating metrics..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_processor,${running_date},${COLLECTION_NAME},'updating_metrics',${start_time}," >> $EVENT_LOG
@@ -197,9 +197,9 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},'updating_metrics',,${end_time}" >> $EVENT_LOG
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'finished_processor',,${end_time}" >> $EVENT_LOG
+    echo "tweets_processor,${running_date},'finished_processor',,${end_time}" >> $EVENT_LOG
 else
     error=1
 fi

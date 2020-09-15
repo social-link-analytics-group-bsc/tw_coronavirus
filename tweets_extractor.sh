@@ -97,7 +97,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'export_tweets',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},'export_tweets',,${end_time}" >> $EVENT_LOG
     echo "[2/${NUM_TASKS}] Copying output file to the destination directory..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'copy_file',${start_time}," >> $EVENT_LOG
@@ -109,7 +109,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'copy_file',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},'copy_file',,${end_time}" >> $EVENT_LOG
     cd $LINGO4G_DIR
     echo "[3/${NUM_TASKS}] Indexing new tweets..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
@@ -122,7 +122,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "${running_date},'index_tweets',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},'index_tweets',,${end_time}" >> $EVENT_LOG
     echo "[4/${NUM_TASKS}] Learning embeddings..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'learn_embeddings',${start_time}," >> $EVENT_LOG
