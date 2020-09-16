@@ -10,6 +10,7 @@ import urllib.request
 
 
 from datetime import datetime, timedelta
+from math import ceil
 from PIL import Image
 from torchvision import transforms
 
@@ -126,3 +127,16 @@ def check_user_profile_image(img_path):
         return True
     else:
         raise Exception('Tensor with incorrect size {}'.format(img_size))
+
+
+def week_of_month(dt):
+    """ Returns the week of the month for the specified date.
+        Taken from 
+        https://stackoverflow.com/questions/3806473/python-week-number-of-the-month
+    """
+    first_day = dt.replace(day=1)
+
+    dom = dt.day
+    adjusted_dom = dom + first_day.weekday()
+
+    return int(ceil(adjusted_dom/7.0))
