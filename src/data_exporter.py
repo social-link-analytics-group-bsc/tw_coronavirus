@@ -16,7 +16,7 @@ from random import seed, random
 import preprocessor as tw_preprocessor
 from utils.db_manager import DBManager
 from utils.sentiment_analyzer import SentimentAnalyzer
-from utils.utils import exists_user, check_user_profile_image
+from utils.utils import exists_user, check_user_profile_image, week_of_month
 
 
 logging.basicConfig(filename=str(pathlib.Path(__file__).parents[0].joinpath('tw_coronavirus.log')),
@@ -345,73 +345,83 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         'retweet_count': 1,
         'favorite_count': 1,
         'entities.hashtags': 1,
-        #'entities.urls': 1,
         'entities.user_mentions': 1,
         'sentiment.score': 1,
         'lang': 1,
-        'user.screen_name': 1
+        'user.screen_name': 1,
+        'comunidad_autonoma': 1,
+        'provincia': 1
     }
-    logging.info('Getting tweets...')
-    tweets = list(dbm.find_all(query, projection))
-    total_tweets = len(tweets)
-    logging.info('Found {} tweets'.format(total_tweets))
     if stemming:
         stemmer = SnowballStemmer('spanish')
-    with open(output_fn, 'w', encoding='utf-8') as f:
-        f.write('[')
-        for idx, tweet in enumerate(tweets):
-            logging.info('Processing tweet: {}'.format(tweet['id']))
-            tweet_txt = tweet['complete_text']
-            del tweet['complete_text']
-            if tweet['user']['screen_name'] in banned_accounts:
-                continue
-            # remove emojis, urls, mentions
-            processed_txt = tw_preprocessor.clean(tweet_txt)
-            processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
-            processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
-            tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]        
-            if tweet['lang'] == 'es':
-                stop_words = stopwords.words('spanish')
-                punct_signs = ['.', '[', ']', ',', ';', ')', '),', '(']
-                stop_words.extend(punct_signs)
-                words = [token for token in tokens if token not in stop_words]
-                if stemming:                    
-                    stemmers = [stemmer.stem(word) for word in words]
-                    processed_txt = ' '.join([stem for stem in stemmers if stem.isalpha() and len(stem) > 1])
+    PAGE_SIZE = 50000
+    page_num = 0
+    records_to_read = True
+    #processing_counter = total_segs = 0
+    while records_to_read:
+        page_num += 1
+        pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+        logging.info('Retrieving tweets...')
+        tweets = list(dbm.find_all(query, projection, pagination=pagination))
+        total_tweets = len(tweets)
+        logging.info('Found {:,} tweets'.format(total_tweets))
+        if total_tweets == 0:
+            break
+        with open(output_fn, 'w', encoding='utf-8') as f:
+            f.write('[')
+            for idx, tweet in enumerate(tweets):
+                logging.info('Processing tweet: {}'.format(tweet['id']))
+                tweet_txt = tweet['complete_text']
+                del tweet['complete_text']
+                if tweet['user']['screen_name'] in banned_accounts:
+                    continue
+                # remove emojis, urls, mentions
+                processed_txt = tw_preprocessor.clean(tweet_txt)
+                processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
+                processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
+                tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]        
+                if tweet['lang'] == 'es':
+                    stop_words = stopwords.words('spanish')
+                    punct_signs = ['.', '[', ']', ',', ';', ')', '),', '(']
+                    stop_words.extend(punct_signs)
+                    words = [token for token in tokens if token not in stop_words]
+                    if stemming:                    
+                        stemmers = [stemmer.stem(word) for word in words]
+                        processed_txt = ' '.join([stem for stem in stemmers if stem.isalpha() and len(stem) > 1])
+                    else:
+                        processed_txt = ' '.join(word for word in words)
                 else:
-                    processed_txt = ' '.join(word for word in words)
-            else:
-                processed_txt = ' '.join([token for token in tokens])
-            tweet['text'] = processed_txt
-            if 'sentiment' in tweet:
-                tweet['sentiment_polarity'] = tweet['sentiment']['score']
-                del tweet['sentiment']
-            tweet['hashtags'] = []
-            for hashtag in tweet['entities']['hashtags']:
-                tweet['hashtags'].append(hashtag['text'])
-            #tweet['urls'] = []
-            #for url in tweet['entities']['urls']:
-            #    tweet['urls'].append(url['expanded_url'])
-            tweet['mentions'] = []
-            for mention in tweet['entities']['user_mentions']:    
-                tweet['mentions'].append(mention['screen_name'])
-            del tweet['entities']
-            tweet['url'] = f"http://www.twitter.com/{tweet['user']['screen_name']}/status/{tweet['id']}"
-            del tweet['user']
-            if idx < (total_tweets-1):
-                f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
-            else:
-                f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
-        f.write(']')
+                    processed_txt = ' '.join([token for token in tokens])
+                tweet['text'] = processed_txt
+                if 'sentiment' in tweet:
+                    tweet['sentiment_polarity'] = tweet['sentiment']['score']
+                    del tweet['sentiment']
+                tweet['hashtags'] = []
+                for hashtag in tweet['entities']['hashtags']:
+                    tweet['hashtags'].append(hashtag['text'])
+                #tweet['urls'] = []
+                #for url in tweet['entities']['urls']:
+                #    tweet['urls'].append(url['expanded_url'])
+                tweet['mentions'] = []
+                for mention in tweet['entities']['user_mentions']:    
+                    tweet['mentions'].append(mention['screen_name'])
+                del tweet['entities']
+                tweet['url'] = f"http://www.twitter.com/{tweet['user']['screen_name']}/status/{tweet['id']}"
+                del tweet['user']
+                dt = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
+                tweet['month'] = dt.month
+                tweet['year'] = dt.year
+                tweet['week_month'] = f'{week_of_month(dt)}-{dt.month}'
+                if idx < (total_tweets-1):
+                    f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
+                else:
+                    f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
+            f.write(']')    
     
-    
-        
-
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
-    export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
-                           config_fn='config_mongo_inb.json', 
-                           banned_accounts=['RadarCOVIDSTATS'])
+    export_tweets_to_json('processed_new', output_fn='../data/all_tweets.json', 
+                           config_fn='config_mongo_inb.json')
     #export_tweets('rc_all', '../data/bsc/processing_outputs/', \
     #              'config_mongo_inb.json', '2020-09-12')
