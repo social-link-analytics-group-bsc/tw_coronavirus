@@ -53,7 +53,7 @@ error=0
 running_date=`date '+%Y-%m-%d'`
 printf "\n\n#####\nStarting to extract tweets at ${running_date}\n######\n\n" >> $LOGFILE
 start_time=`date '+%Y-%m-%d %H:%M:%S'`
-echo "tweets_extractor,${running_date},${COLLECTION_NAME}'starting_extractor',${start_time}," >> $EVENT_LOG
+echo "tweets_extractor,${running_date},${COLLECTION_NAME},'starting_extractor',${start_time}," >> $EVENT_LOG
 
 ####
 # Go to project directory
@@ -97,7 +97,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "tweets_extractor,${running_date},'export_tweets',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},${COLLECTION_NAME},'export_tweets',,${end_time}" >> $EVENT_LOG
     echo "[2/${NUM_TASKS}] Copying output file to the destination directory..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'copy_file',${start_time}," >> $EVENT_LOG
@@ -109,7 +109,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "tweets_extractor,${running_date},'copy_file',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},${COLLECTION_NAME},'copy_file',,${end_time}" >> $EVENT_LOG
     echo "[3/${NUM_TASKS}] Indexing new tweets..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'index_tweets',${start_time}," >> $EVENT_LOG
@@ -121,7 +121,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "tweets_extractor,${running_date},'index_tweets',,${end_time}" >> $EVENT_LOG
+    echo "tweets_extractor,${running_date},${COLLECTION_NAME},'index_tweets',,${end_time}" >> $EVENT_LOG
     echo "[4/${NUM_TASKS}] Learning embeddings..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`    
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'learn_embeddings',${start_time}," >> $EVENT_LOG
@@ -133,7 +133,7 @@ fi
 if [[ $? -eq 0 ]] && [[ $error -eq 0 ]]
 then
     end_time=`date '+%Y-%m-%d %H:%M:%S'`
-    echo "tweets_extractor,${running_date},'learn_embeddings',,${end_time}" >> $EVENT_LOG    
+    echo "tweets_extractor,${running_date},${COLLECTION_NAME},'learn_embeddings',,${end_time}" >> $EVENT_LOG    
 else
     error=1
 fi
