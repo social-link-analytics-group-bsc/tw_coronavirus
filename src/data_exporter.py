@@ -324,8 +324,7 @@ def do_export_users(collection, config_file=None, output_filename=None):
 
 
 def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
-                          lang=None, banned_accounts=[]):
-    dbm = DBManager(collection=collection, config_fn=config_fn)
+                          lang=None, banned_accounts=[]):    
     query = {
         'type': {'$ne': 'retweet'}
     }
@@ -354,7 +353,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
     }
     if stemming:
         stemmer = SnowballStemmer('spanish')
-    PAGE_SIZE = 50000
+    PAGE_SIZE = 80000
     page_num = 0
     records_to_read = True
     #processing_counter = total_segs = 0
@@ -362,6 +361,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         page_num += 1
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
         logging.info('Retrieving tweets...')
+        dbm = DBManager(collection=collection, config_fn=config_fn)
         tweets = list(dbm.find_all(query, projection, pagination=pagination))
         total_tweets = len(tweets)
         logging.info('Found {:,} tweets'.format(total_tweets))
