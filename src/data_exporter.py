@@ -367,7 +367,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         logging.info('Found {:,} tweets'.format(total_tweets))
         if total_tweets == 0:
             break
-        with open(output_fn, 'w', encoding='utf-8') as f:
+        with open(output_fn, 'a', encoding='utf-8') as f:
             f.write('[')
             for idx, tweet in enumerate(tweets):
                 logging.info('Processing tweet: {}'.format(tweet['id']))
