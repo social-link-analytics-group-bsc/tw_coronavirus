@@ -354,7 +354,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
     if stemming:
         stemmer = SnowballStemmer('spanish')
     PAGE_SIZE = 80000
-    page_num = 0
+    page_num = 37
     records_to_read = True
     #processing_counter = total_segs = 0
     while records_to_read:
