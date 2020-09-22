@@ -101,7 +101,7 @@ then
     echo "[2/${NUM_TASKS}] Copying output file to the destination directory..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'copy_file',${start_time}," >> $EVENT_LOG
-    cp $OUTPUT_FILE $DESTINATION_DIR >> $LOGFILE 2>> $ERRORFILE
+    mv $OUTPUT_FILE $DESTINATION_DIR >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
