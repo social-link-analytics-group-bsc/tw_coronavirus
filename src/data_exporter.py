@@ -348,7 +348,8 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         'sentiment.score': 1,
         'lang': 1,
         'user.screen_name': 1,
-        'comunidad_autonoma': 1
+        'comunidad_autonoma': 1,
+        'provincia': 0
     }
     if stemming:
         stemmer = SnowballStemmer('spanish')
@@ -420,7 +421,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
-    #export_tweets_to_json('processed_new', output_fn='../data/all_tweets.json', 
-    #                       config_fn='config_mongo_inb.json')
-    export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', '2020-09-21')
+    export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
+                           config_fn='config_mongo_inb.json')
+    #export_tweets('rc_all', '../data/bsc/processing_outputs/', \
+    #              'config_mongo_inb.json', '2020-09-21')
