@@ -348,8 +348,7 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         'sentiment.score': 1,
         'lang': 1,
         'user.screen_name': 1,
-        'comunidad_autonoma': 1,
-        'provincia': 0
+        'comunidad_autonoma': 1
     }
     if stemming:
         stemmer = SnowballStemmer('spanish')
