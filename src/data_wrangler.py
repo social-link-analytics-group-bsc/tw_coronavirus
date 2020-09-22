@@ -1755,6 +1755,38 @@ def remove_tweets_from_text(search_string, collection, del_collection=None,
     print('The process has removed {} tweets'.format(result.deleted_count))    
 
 
+def create_field_created_at_date(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)    
+    query = {
+        'created_at_date': {
+            '$in': ['2020-009-21', '2020-009-20', '2020-009-19', '2020-009-18',
+                    '2020-009-17', '2020-009-16']
+        }
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'created_at': 1
+    }
+    print('Retriving tweets...')
+    tweets = list(dbm.find_all(query, projection))
+    print(f'Processing {len(tweets)} tweets')
+    tweets_to_update = []
+    for tweet in tweets:
+        print(f'Processing tweet: {tweet["id_str"]}')
+        tweet_date = datetime.strptime(tweet['created_at'], '%a %b %d %H:%M:%S %z %Y')
+        if int(tweet_date.month) < 10:
+            tweet_month = f'0{tweet_date.month}'
+        created_at_date = f'{tweet_date.year}-{tweet_month}-{tweet_date.day}'         
+        tweets_to_update.append(
+            {
+                'filter': {'id_str': tweet['id_str']},
+                'new_values': {'created_at_date': created_at_date}
+            }
+        )
+    add_fields(dbm, tweets_to_update)
+
+
 if __name__ == "__main__":
-    update_metric_tweets('rc_all', 'config_mongo_inb.json', date='2020-09-07')
+    create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     
