@@ -423,4 +423,4 @@ if __name__ == "__main__":
     #export_tweets_to_json('processed_new', output_fn='../data/all_tweets.json', 
     #                       config_fn='config_mongo_inb.json')
     export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', '2020-09-16')
+                  'config_mongo_inb.json', '2020-09-21')
