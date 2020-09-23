@@ -1787,6 +1787,37 @@ def create_field_created_at_date(collection, config_fn=None):
     add_fields(dbm, tweets_to_update)
 
 
+def remove_user(user_screen_name, tweets_collection, users_collection, 
+                config_fn=None):
+    """
+        Remove the user given by the user_screen_name and all
+        of his/her tweets
+    """
+    dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
+    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
+    # Remove tweets from the user
+    result = dbm_tweets.remove_records({
+        'user.screen_name': user_screen_name
+    })
+    print(f'In total {result.deleted_count} tweets from {user_screen_name} were removed')
+    # Remove user
+    dbm_users.remove_record({
+        'screen_name': user_screen_name
+    })
+    print(f'The user was removed')
+
+
+def remove_users(banned_accounts_fn, tweets_collection, users_collection, 
+                 config_fn=None):
+    with open(banned_accounts_fn, 'r') as f:
+        accounts = f.readlines() 
+        for account in accounts:
+            account = account.replace('\n', '')
+            print(f'Removing the user: {account} and his/her tweets')
+            remove_user(account, tweets_collection, users_collection, config_fn) 
+
+
 if __name__ == "__main__":
-    create_field_created_at_date('rc_all', 'config_mongo_inb.json')
+    remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
+                 'config_mongo_inb.json')
     
