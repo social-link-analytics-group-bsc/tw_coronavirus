@@ -14,10 +14,11 @@ import time
 import sys
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from m3inference import M3Twitter
 from m3inference.dataset import M3InferenceDataset
 from m3inference import consts
+from report_generator import pre_process_data
 from utils.demographic_detector import DemographicDetector
 from utils.language_detector import detect_language
 from utils.db_manager import DBManager
@@ -1814,7 +1815,33 @@ def remove_users(banned_accounts_fn, tweets_collection, users_collection,
             remove_user(account, tweets_collection, users_collection, config_fn) 
 
 
+def is_the_total_tweets_above_median(collection, str_date, time_window_in_days, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {}
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'created_at_date': 1
+    }
+    data = dbm.get_tweets_reduced(query, projection)
+    tweets_df = pd.DataFrame(data)
+    tweets_df['created_at_date'] = pd.to_datetime(tweets_df['created_at_date']).dt.date
+    tweets_by_date = tweets_df.groupby('created_at_date', as_index=False)['id'].count()
+    ref_date = max(tweets_by_date['created_at_date']) - timedelta(days=time_window_in_days)
+    median_last_days = tweets_by_date[tweets_by_date['created_at_date'] > ref_date]['id'].median()
+    print(f'Median of tweets of the last {time_window_in_days} days: {median_last_days}')
+    datetime_obj = datetime.strptime(str_date, '%Y-%m-%d')
+    date_obj = date(datetime_obj.year, datetime_obj.month, datetime_obj.day)
+    num_tweets_date = tweets_by_date.loc[tweets_by_date['created_at_date']==date_obj, 'id'].values[0]
+    print(f'Number of tweets published in {str_date}: {num_tweets_date}')
+    if num_tweets_date > median_last_days:
+        return True
+    else:
+        return False
+
+
 if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
     #             'config_mongo_inb.json')
-    create_field_created_at_date('rc_all', 'config_mongo_inb.json')
+    #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
+    is_the_total_tweets_above_median('rc_all', '2020-09-27', 15, 'config_mongo_inb.json')
