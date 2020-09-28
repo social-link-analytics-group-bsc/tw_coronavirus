@@ -1758,10 +1758,7 @@ def remove_tweets_from_text(search_string, collection, del_collection=None,
 def create_field_created_at_date(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)    
     query = {
-        'created_at_date': {
-            '$in': ['2020-009-21', '2020-009-20', '2020-009-19', '2020-009-18',
-                    '2020-009-17', '2020-009-16']
-        }
+        'created_at_date': { '$exists': 0 }
     }
     projection = {
         '_id': 0,
@@ -1818,6 +1815,6 @@ def remove_users(banned_accounts_fn, tweets_collection, users_collection,
 
 
 if __name__ == "__main__":
-    remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
-                 'config_mongo_inb.json')
-    
+    #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
+    #             'config_mongo_inb.json')
+    create_field_created_at_date('rc_all', 'config_mongo_inb.json')
