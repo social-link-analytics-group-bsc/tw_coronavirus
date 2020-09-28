@@ -158,12 +158,26 @@ def save_tweets_in_csv_file(tweets, output_fn, headers):
             csv_writer.writerow(dict_row)            
 
 
-def export_tweets(collection, output_path, config_fn=None, date=None):
+def export_tweets(collection, output_path, config_fn=None, start_date=None, 
+                  end_date=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
     }
-    if date:
-        query.update({'created_at_date': date})
+    if start_date and end_date:
+        query.update(
+            {'$and': [
+                {'created_at_date': {'$gte': start_date}},
+                {'created_at_date': {'$lte': end_date}}
+            ]}
+        )
+    elif start_date:
+        query.update(
+            {'created_at_date': start_date}
+        )
+    elif end_date:
+        query.update(
+            {'created_at_date': end_date}
+        )
     projection = {
         '_id': 0,
         'id': 1,
@@ -182,8 +196,12 @@ def export_tweets(collection, output_path, config_fn=None, date=None):
     tweets = dbm.find_all(query, projection)
     total_tweets = tweets.count()
     logging.info('Found {} tweets'.format(total_tweets))
-    if date:
-        output_fn = f'tweets_{date}.csv'
+    if start_date and end_date:
+        output_fn = f'tweets_{start_date}_{end_date}.csv'
+    elif start_date:
+        output_fn = f'tweets_{start_date}.csv'
+    elif end_date:
+        output_fn = f'tweets_{end_date}.csv'
     else:
         output_fn = 'tweets.csv'
     output_fn = output_path + output_fn
@@ -420,7 +438,8 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
-    export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
-                           config_fn='config_mongo_inb.json')
-    #export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-    #              'config_mongo_inb.json', '2020-09-21')
+    #export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
+    #                       config_fn='config_mongo_inb.json')
+    export_tweets('rc_all', '../data/bsc/processing_outputs/', \
+                  'config_mongo_inb.json', start_date='2020-09-21', \
+                   end_date='2020-09-27')
