@@ -336,7 +336,7 @@ class DBManager:
     def get_tweets_by_date(self, **kwargs):
         match = {}
         group = {
-            '_id': '$date',
+            '_id': '$created_at_date',
             'num_tweets': {'$sum': 1}
         }
         project = {
