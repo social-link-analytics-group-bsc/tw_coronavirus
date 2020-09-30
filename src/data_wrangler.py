@@ -1756,7 +1756,7 @@ def remove_tweets_from_text(search_string, collection, del_collection=None,
     print('The process has removed {} tweets'.format(result.deleted_count))    
 
 
-def create_field_created_at_date(collection, config_fn=None):
+def do_create_field_created_at_date(collection, config_fn=None):
     dbm = DBManager(collection=collection, config_fn=config_fn)    
     query = {
         'created_at_date': { '$exists': 0 }
@@ -1823,6 +1823,7 @@ def is_the_total_tweets_above_median(collection, str_date, time_window_in_days, 
         'id': 1,
         'created_at_date': 1
     }
+    time_window_in_days = int(time_window_in_days)
     data = dbm.get_tweets_reduced(query, projection)
     tweets_df = pd.DataFrame(data)
     tweets_df['created_at_date'] = pd.to_datetime(tweets_df['created_at_date']).dt.date
@@ -1844,4 +1845,4 @@ if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
     #             'config_mongo_inb.json')
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
-    is_the_total_tweets_above_median('rc_all', '2020-09-27', 15, 'config_mongo_inb.json')
+    is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
