@@ -15,7 +15,8 @@ from data_wrangler import infer_language, add_date_time_field_tweet_objs, \
       add_esp_location_flags, do_add_query_version_flag, update_metric_tweets, \
       do_add_complete_text_flag, do_add_tweet_type_flag, do_update_users_collection, \
       do_update_user_status, do_augment_user_data, compute_user_demographics, \
-      compute_user_demographics_from_file
+      compute_user_demographics_from_file, do_create_field_created_at_date, \
+      is_the_total_tweets_above_median
 from data_loader import upload_tweet_sentiment, do_collection_merging, \
       do_update_collection, do_tweets_replication, load_user_demographics
 from network_analysis import NetworkAnalyzer
@@ -423,6 +424,36 @@ def export_tweets(collection_name, output_file, config_file, stemming,
     print('Exporting tweets to json')
     export_tweets_to_json(collection_name, output_file, config_file, stemming, 
                           lang)
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def create_field_created_at_date(collection_name, config_file):
+    """
+    Create field created_at_date based on the field created_at
+    """
+    check_current_directory()
+    print('Creating field created_at_date')
+    do_create_field_created_at_date(collection_name, config_file)
+
+
+@run.command()
+@click.argument('collection_name') # Name of collections that contain tweets
+@click.argument('reference_date') # Date that will taken as reference for the calculation
+@click.argument('time_window_in_days') # Number of days that should be considered for the analysis
+@click.option('--config_file', help='File with Mongo configuration', \
+              default=None, is_flag=False)
+def compute_median_and_total_tweets(collection_name, reference_date, 
+                                    time_window_in_days, config_file):
+    """
+    Compute whether the total number of tweets in above the median of tweets
+    of the last X (time_window_in_days) days
+    """
+    check_current_directory()
+    print('Computing median and total tweets')
+    is_the_total_tweets_above_median(collection_name, reference_date, 
+                                     time_window_in_days, config_file)
 
 
 if __name__ == "__main__":
