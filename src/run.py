@@ -423,8 +423,8 @@ def export_tweets(collection_name, output_file, config_file, stemming,
     """
     check_current_directory()
     print('Exporting tweets to json')
-    export_tweets_to_json(collection_name, output_file, config_file, stemming, 
-                          lang, exclude_rts)
+    export_tweets_to_json(collection_name, output_file, config_fn=config_file, 
+                          stemming=stemming, lang=lang, exclude_rts=exclude_rts)
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
