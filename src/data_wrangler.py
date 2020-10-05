@@ -1775,7 +1775,13 @@ def do_create_field_created_at_date(collection, config_fn=None):
         tweet_date = datetime.strptime(tweet['created_at'], '%a %b %d %H:%M:%S %z %Y')
         if int(tweet_date.month) < 10:
             tweet_month = f'0{tweet_date.month}'
-        created_at_date = f'{tweet_date.year}-{tweet_month}-{tweet_date.day}'         
+        else:
+            tweet_month = tweet_date.month
+        if int(tweet_date.day) < 10:
+            tweet_day = f'0{tweet_date.day}'
+        else:
+            tweet_day = tweet_date.day
+        created_at_date = f'{tweet_date.year}-{tweet_month}-{tweet_day}'         
         tweets_to_update.append(
             {
                 'filter': {'id_str': tweet['id_str']},
