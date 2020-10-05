@@ -89,7 +89,7 @@ then
     echo "[1/${NUM_TASKS}] Exporting tweets..."
     start_time=`date '+%Y-%m-%d %H:%M:%S'`
     echo "tweets_extractor,${running_date},${COLLECTION_NAME},'export_tweets',${start_time}," >> $EVENT_LOG
-    python run.py export-tweets $COLLECTION_NAME $OUTPUT_FILE --config_file $CONFIG_FILE_NAME --lang 'es' --exclude_rts >> $LOGFILE 2>> $ERRORFILE
+    python run.py export-tweets $COLLECTION_NAME $OUTPUT_FILE --config_file $CONFIG_FILE_NAME --lang 'es' >> $LOGFILE 2>> $ERRORFILE
 else
     error=1
 fi
