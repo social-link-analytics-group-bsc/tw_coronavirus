@@ -342,10 +342,13 @@ def do_export_users(collection, config_file=None, output_filename=None):
 
 
 def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
-                          lang=None, banned_accounts=[]):    
-    query = {
-        'type': {'$ne': 'retweet'}
-    }
+                          lang=None, banned_accounts=[], exclude_rts=True):    
+    if exclude_rts:
+        query = {
+            'type': {'$ne': 'retweet'}
+        }
+    else:
+        query = {}
     if lang:
         query.update(
             {
@@ -441,5 +444,4 @@ if __name__ == "__main__":
     #export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
     #                       config_fn='config_mongo_inb.json')
     export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', start_date='2020-09-21', \
-                   end_date='2020-09-27')
+                  'config_mongo_inb.json', start_date='2020-10-04')

@@ -415,15 +415,16 @@ def update_user_demographics(input_file, collection_name, config_file):
               'of tweets before exporting them', default=False, is_flag=True)
 @click.option('--lang', help='Language of tweets to be exported', default='es', 
               is_flag=False)
+@click.option('--exclude_rts', help='Exclude RTs', default=False, is_flag=True)
 def export_tweets(collection_name, output_file, config_file, stemming, 
-                          lang):
+                          lang, exclude_rts):
     """
     Export tweets to json
     """
     check_current_directory()
     print('Exporting tweets to json')
     export_tweets_to_json(collection_name, output_file, config_file, stemming, 
-                          lang)
+                          lang, exclude_rts)
 
 @run.command()
 @click.argument('collection_name') # Name of collections that contain tweets
