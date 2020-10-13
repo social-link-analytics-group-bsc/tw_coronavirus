@@ -24,14 +24,15 @@ Y_TICKS_SIZE = 13
 
 
 
-def get_data(fields_to_retrieve, collection, config_fn, dataset_filename):
+def get_data(fields_to_retrieve, collection, config_fn, dataset_filename, filter_query=None):
     if dataset_filename and os.path.isfile(dataset_filename):
         df = pd.read_csv(dataset_filename)    
     else:
         config_fn = 'config_mongo_inb.json'
         collection = 'rc_all'
         dbm = DBManager(collection=collection, config_fn=config_fn)
-        filter_query = {}        
+        if not filter_query:
+            filter_query = {}
         data = dbm.get_tweets_reduced(filter_query, fields_to_retrieve)
         df = pd.DataFrame(data)
         data = None # free some memory
