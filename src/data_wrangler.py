@@ -1892,7 +1892,7 @@ def add_status_active_users_in_tweets(tweets_collection, users_collection,
 
 def process_user_updates(user_ids, dbm_users, twm):
     existing_users, update_queries = [], []
-    for user_obj in twm.user_lookup([user_ids]):
+    for user_obj in twm.user_lookup(user_ids):
         update_queries.append(
             {
                 'filter': {'id_str': user_obj['id_str']},
@@ -1947,4 +1947,4 @@ if __name__ == "__main__":
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
-    update_user_status('users', 'config_mongo_inb.json')
+    update_user_status('users', 'src/config_mongo_inb.json')
