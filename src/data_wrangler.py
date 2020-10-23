@@ -1946,4 +1946,4 @@ if __name__ == "__main__":
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
-    update_user_status('users', 'src/config_mongo_inb.json')
+    update_user_status('users', 'config_mongo_inb.json')
