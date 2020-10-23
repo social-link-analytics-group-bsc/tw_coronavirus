@@ -1933,7 +1933,7 @@ def update_user_status(users_collection, config_fn):
         processing_counter += 1
         logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
                      total_users, user['screen_name']))
-        user_ids.append(user['id'])
+        user_ids.append(str(user['id']))
         if len(user_ids) == max_batch:
             process_user_updates(user_ids, dbm_users, twm)
             user_ids = []
