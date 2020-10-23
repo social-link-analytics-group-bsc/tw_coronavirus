@@ -1890,9 +1890,60 @@ def add_status_active_users_in_tweets(tweets_collection, users_collection,
     add_status_users(dbm_tweets, active_users, 1)
 
 
+def process_user_updates(user_ids, dbm_users, twm):
+    existing_users, update_queries = [], []
+    for user_obj in twm.user_lookup([user_ids]):
+        update_queries.append(
+            {
+                'filter': {'id_str': user_obj['id_str']},
+                'new_values': {'exists': 1}
+            }                        
+        )
+        existing_users.append(user_obj['id'])
+    miss_users = set(user_ids) - set(existing_users)
+    logging.info('Out of the {} users searched, {} '\
+                'do not exist anymore'.format(len(user_ids),len(miss_users)))
+    for miss_user in miss_users:
+        update_queries.append(
+            {
+                'filter': {'id_str': str(miss_user)},
+                'new_values': {'exists': 0}
+            }                        
+        )
+    if len(update_queries) > 0:
+        add_fields(dbm_users, update_queries)
+
+
+def update_user_status(users_collection, config_fn):
+    twm = get_twm_obj()
+    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
+    query = {}
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'screen_name': 1
+    }
+    logging.info('Getting users...')
+    users = list(dbm_users.find_all(query, projection))
+    total_users = len(users)
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    user_ids = []
+    processing_counter = 0
+    for user in users:
+        processing_counter += 1
+        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, total_users))
+        user_ids.append(user['id'])
+        if len(user_ids) == max_batch:
+            process_user_updates(user_ids, dbm_users, twm)
+            user_ids = []
+    if len(user_ids) > 0:
+        process_user_updates(user_ids, dbm_users, twm)
+
+
 if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'rc_all', 'rc_users', 
     #             'config_mongo_inb.json')
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
-    add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
+    #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
+    update_user_status('users', 'src/config_mongo_inb.json')
