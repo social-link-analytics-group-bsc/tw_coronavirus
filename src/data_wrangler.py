@@ -1899,10 +1899,10 @@ def process_user_updates(user_ids, dbm_users, twm):
                 'new_values': {'exists': 1}
             }                        
         )
-        existing_users.append(user_obj['id'])
+        existing_users.append(str(user_obj['id']))
     miss_users = set(user_ids) - set(existing_users)
     logging.info('Out of the {} users searched, {} '\
-                'do not exist anymore'.format(len(user_ids),len(miss_users)))
+                 'do not exist anymore'.format(len(user_ids),len(miss_users)))
     for miss_user in miss_users:
         update_queries.append(
             {
@@ -1947,4 +1947,4 @@ if __name__ == "__main__":
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
-    update_user_status('users', 'config_mongo_inb.json')
+    update_user_status('users', 'src/config_mongo_inb.json')
