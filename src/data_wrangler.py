@@ -1948,7 +1948,7 @@ def identify_users_from_latinamerica(collection, config_fn=None):
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
                     'Panamá']
-    esp_locations = ['España', 'Madrid', 'Barcelona']
+    esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla']
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {}
     projection = {
@@ -1972,20 +1972,23 @@ def identify_users_from_latinamerica(collection, config_fn=None):
             logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
                         total_users, user['screen_name']))
             if user['location']:
+                found_esp_location = False
                 for esp_location in esp_locations:
                     if esp_location.lower() in user['location'].lower():
-                        continue
-                for location in la_locations:                
-                        if location.lower() in user['location'].lower():
-                            csv_writer.writerow(
-                                {
-                                    'screen_name': user['screen_name'],
-                                    'location': user['location'],
-                                    'description': user['description']
-                                }
-                            )
-                            identified_users += 1
-                            break
+                        found_esp_location = True
+                        break
+                if not found_esp_location:
+                    for location in la_locations:                
+                            if location.lower() in user['location'].lower():
+                                csv_writer.writerow(
+                                    {
+                                        'screen_name': user['screen_name'],
+                                        'location': user['location'],
+                                        'description': user['description']
+                                    }
+                                )
+                                identified_users += 1
+                                break
     print(f'In total {identified_users} users were identified as belonging to Latinamerica')
     print(f'Take a look at {output_file} for more detailes')
 
