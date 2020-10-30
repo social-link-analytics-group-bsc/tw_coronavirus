@@ -1973,10 +1973,10 @@ def identify_users_from_latinamerica(collection, config_fn=None):
                         total_users, user['screen_name']))
             if user['location']:
                 for esp_location in esp_locations:
-                    if esp_location in user['location']:
+                    if esp_location.lower() in user['location'].lower():
                         continue
                 for location in la_locations:                
-                        if location in user['location']:
+                        if location.lower() in user['location'].lower():
                             csv_writer.writerow(
                                 {
                                     'screen_name': user['screen_name'],
