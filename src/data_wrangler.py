@@ -1948,6 +1948,7 @@ def identify_users_from_latinamerica(collection, config_fn=None):
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
                     'Panamá']
+    esp_locations = ['España', 'Madrid', 'Barcelona']
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {}
     projection = {
@@ -1970,18 +1971,21 @@ def identify_users_from_latinamerica(collection, config_fn=None):
             processing_counter += 1
             logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
                         total_users, user['screen_name']))
-            for location in la_locations:
-                if user['location']:
-                    if location in user['location']:
-                        csv_writer.writerow(
-                            {
-                                'screen_name': user['screen_name'],
-                                'location': user['location'],
-                                'description': user['description']
-                            }
-                        )
-                        identified_users += 1
-                        break
+            if user['location']:
+                for esp_location in esp_locations:
+                    if esp_location in user['location']:
+                        continue
+                for location in la_locations:                
+                        if location in user['location']:
+                            csv_writer.writerow(
+                                {
+                                    'screen_name': user['screen_name'],
+                                    'location': user['location'],
+                                    'description': user['description']
+                                }
+                            )
+                            identified_users += 1
+                            break
     print(f'In total {identified_users} users were identified as belonging to Latinamerica')
     print(f'Take a look at {output_file} for more detailes')
 
