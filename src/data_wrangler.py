@@ -1981,6 +1981,7 @@ def identify_users_from_latinamerica(collection, config_fn=None):
                             }
                         )
                         identified_users += 1
+                        break
     print(f'In total {identified_users} users were identified as belonging to Latinamerica')
     print(f'Take a look at {output_file} for more detailes')
 
