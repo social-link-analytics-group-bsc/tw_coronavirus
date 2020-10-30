@@ -1948,7 +1948,8 @@ def identify_users_from_latinamerica(collection, config_fn=None):
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
                     'Panamá']
-    esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla']
+    esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla', 'Castilla', 
+                     'Spain', 'Murcia', 'Alcala']
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {}
     projection = {
@@ -1994,10 +1995,10 @@ def identify_users_from_latinamerica(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
-    #             'config_mongo_inb.json')
+    remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
+                 'config_mongo_inb.json')
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
     #update_user_status('users', 'config_mongo_inb.json')
-    identify_users_from_latinamerica('users', 'config_mongo_inb.json')
+    #identify_users_from_latinamerica('users', 'config_mongo_inb.json')
