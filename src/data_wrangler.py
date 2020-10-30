@@ -1962,7 +1962,7 @@ def identify_users_from_latinamerica(collection, config_fn=None):
     total_users = len(users)
     processing_counter = 0
     identified_users = 0
-    output_file = os.path.join('..','data','bsc','processing_outputs','la_users_2.csv')
+    output_file = os.path.join('..','data', 'la_users.csv')
     with open(output_file, 'w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, fieldnames=['screen_name', 'location', 'description'])
         csv_writer.writeheader()
