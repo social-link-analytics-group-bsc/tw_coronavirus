@@ -1941,10 +1941,55 @@ def update_user_status(users_collection, config_fn):
         process_user_updates(user_ids, dbm_users, twm)
 
 
+def identify_users_from_latinamerica(collection, config_fn=None):
+    la_locations = ['México', 'Perú', 'Argentina', 'Buenos Aire', 'Colombia', 
+                    'Venezuela', 'San Salvador', 'El Salvador', 'Costa Rica', 
+                    'Guanajuato', 'Ecuador', 'Jalisco', 'Guadalajara',
+                    'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
+                    'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
+                    'Panamá']
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {}
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'screen_name': 1,
+        'location': 1,
+        'description': 1
+    }
+    print('Getting users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    processing_counter = 0
+    identified_users = 0
+    output_file = os.path.join('..','data','bsc','processing_outputs','la_users_2.csv')
+    with open(output_file, 'w') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames=['screen_name', 'location', 'description'])
+        csv_writer.writeheader()
+        for user in users:
+            processing_counter += 1
+            logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
+                        total_users, user['screen_name']))
+            for location in la_locations:
+                if user['location']:
+                    if location in user['location']:
+                        csv_writer.writerow(
+                            {
+                                'screen_name': user['screen_name'],
+                                'location': user['location'],
+                                'description': user['description']
+                            }
+                        )
+                        identified_users += 1
+    print(f'In total {identified_users} users were identified as belonging to Latinamerica')
+    print(f'Take a look at {output_file} for more detailes')
+
+
 if __name__ == "__main__":
-    #remove_users('../data/banned_accounts.txt', 'rc_all', 'rc_users', 
+    #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
     #             'config_mongo_inb.json')
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
-    update_user_status('users', 'config_mongo_inb.json')
+    #update_user_status('users', 'config_mongo_inb.json')
+    identify_users_from_latinamerica('users', 'config_mongo_inb.json')
