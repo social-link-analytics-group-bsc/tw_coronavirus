@@ -1947,7 +1947,7 @@ def identify_users_from_outside_spain(collection, config_fn=None):
                     'Guanajuato', 'Ecuador', 'Jalisco', 'Guadalajara',
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
-                    'Panamá', 'India', 'Pakistan', 'Nigeria']
+                    'Panamá', 'India', 'Pakistan', 'Nigeria', 'USA']
     esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla', 'Castilla', 
                      'Spain', 'Murcia', 'Alcala']
     dbm = DBManager(collection=collection, config_fn=config_fn)
