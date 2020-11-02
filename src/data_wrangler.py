@@ -1941,13 +1941,13 @@ def update_user_status(users_collection, config_fn):
         process_user_updates(user_ids, dbm_users, twm)
 
 
-def identify_users_from_latinamerica(collection, config_fn=None):
+def identify_users_from_outside_spain(collection, config_fn=None):
     la_locations = ['México', 'Perú', 'Argentina', 'Buenos Aire', 'Colombia', 
                     'Venezuela', 'San Salvador', 'El Salvador', 'Costa Rica', 
                     'Guanajuato', 'Ecuador', 'Jalisco', 'Guadalajara',
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
-                    'Panamá']
+                    'Panamá', 'India', 'Pakistan', 'Nigeria']
     esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla', 'Castilla', 
                      'Spain', 'Murcia', 'Alcala']
     dbm = DBManager(collection=collection, config_fn=config_fn)
@@ -1964,7 +1964,7 @@ def identify_users_from_latinamerica(collection, config_fn=None):
     total_users = len(users)
     processing_counter = 0
     identified_users = 0
-    output_file = os.path.join('..','data', 'la_users.csv')
+    output_file = os.path.join('..','data', 'outside_users.csv')
     with open(output_file, 'w') as csv_file:
         csv_writer = csv.DictWriter(csv_file, fieldnames=['screen_name', 'location', 'description'])
         csv_writer.writeheader()
@@ -1995,10 +1995,10 @@ def identify_users_from_latinamerica(collection, config_fn=None):
 
 
 if __name__ == "__main__":
-    remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
-                 'config_mongo_inb.json')
+    #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
+    #             'config_mongo_inb.json')
     #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
     #update_user_status('users', 'config_mongo_inb.json')
-    #identify_users_from_latinamerica('users', 'config_mongo_inb.json')
+    identify_users_from_outside_spain('users', 'config_mongo_inb.json')
