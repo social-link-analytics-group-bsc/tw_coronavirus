@@ -2171,4 +2171,4 @@ if __name__ == "__main__":
     #add_esp_location_flags('users', 'config_mongo_inb.json')
     #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
     #infer_location_from_description_lang('users', 'config_mongo_inb.json')
-    add_user_lang_flag('users', 'processed_new', 'src/config_mongo_inb.json')
+    add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
