@@ -2112,6 +2112,54 @@ def infer_location_from_description_lang(collection, config_fn=None):
     logging.info('The location of {} users were updated'.format(identified_users))
 
 
+def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
+    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
+    dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
+    query = {
+        'comunidad_autonoma': 'desconocido'
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'screen_name': 1
+    }
+    logging.info('Getting users...')
+    users = list(dbm_users.find_all(query, projection))
+    total_users = len(users)
+    processing_counter = 0
+    update_queries = []
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    for user in users:
+        processing_counter += 1
+        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
+                     total_users, user['screen_name']))
+        # get tweets of user
+        query = {'user.screen_name': user['screen_name']}
+        projection = {'_id': 0, 'id_str': 1, 'complete_text': 1}
+        tweets = list(dbm_tweets.find_all(query, projection))
+        total_tweets = len(tweets)
+        logging.info('Found {} tweets of the user {}'.format(total_tweets, user['screen_name']))
+        lang_detection = defaultdict(int)
+        for tweet in tweets:
+            tweet_text = tweet['complete_text']
+            lang_detected = detect_language(tweet_text)
+            lang_detection[lang_detected['pref_lang']] += 1
+        lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
+        main_lang = lang_detection[0][0]
+        logging.info('The user {0} speaks primarily {1}'.format(user['screen_name'], main_lang))
+        update_queries.append(
+            {
+                'filter': {'id_str': user['id_str']},
+                'new_values': {'lang_detected': main_lang}
+            }
+        )
+        if len(update_queries) >= max_batch:
+            add_fields(dbm_users, update_queries)
+            update_queries = []
+    if len(update_queries) >= max_batch:
+        add_fields(dbm_users, update_queries)
+
+
 if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
     #             'config_mongo_inb.json')
@@ -2122,4 +2170,5 @@ if __name__ == "__main__":
     #identify_users_from_outside_spain('users', 'config_mongo_inb.json')
     #add_esp_location_flags('users', 'config_mongo_inb.json')
     #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
-    infer_location_from_description_lang('users', 'config_mongo_inb.json')
+    #infer_location_from_description_lang('users', 'config_mongo_inb.json')
+    add_user_lang_flag('users', 'processed_new', 'src/config_mongo_inb.json')
