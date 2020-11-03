@@ -2121,7 +2121,8 @@ def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
     projection = {
         '_id': 0,
         'id_str': 1,
-        'screen_name': 1
+        'screen_name': 1,
+        'lang_description': 1
     }
     logging.info('Getting users...')
     users = list(dbm_users.find_all(query, projection))
@@ -2139,13 +2140,16 @@ def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
         tweets = list(dbm_tweets.find_all(query, projection))
         total_tweets = len(tweets)
         logging.info('Found {} tweets of the user {}'.format(total_tweets, user['screen_name']))
-        lang_detection = defaultdict(int)
-        for tweet in tweets:
-            tweet_text = tweet['complete_text']
-            lang_detected = detect_language(tweet_text)
-            lang_detection[lang_detected['pref_lang']] += 1
-        lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
-        main_lang = lang_detection[0][0]
+        if total_tweets > 0:
+            lang_detection = defaultdict(int)
+            for tweet in tweets:
+                tweet_text = tweet['complete_text']
+                lang_detected = detect_language(tweet_text)
+                lang_detection[lang_detected['pref_lang']] += 1
+            lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
+            main_lang = lang_detection[0][0]
+        else:
+            main_lang = user['lang_description']
         logging.info('The user {0} speaks primarily {1}'.format(user['screen_name'], main_lang))
         update_queries.append(
             {
