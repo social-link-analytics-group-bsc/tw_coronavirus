@@ -767,10 +767,13 @@ def add_esp_location_flags(collection, config_fn):
         start_time = time.time()
         tweet_id = tweet['id_str']
         processing_counter += 1
-        if tweet['user']['location'] != '':
-            user_location = tweet['user']['location']
+        if 'user' in tweet: 
+            if tweet['user']['location'] != '':
+                user_location = tweet['user']['location']
+            else:
+                user_location = tweet['place']['full_name']
         else:
-            user_location = tweet['place']['full_name']
+            user_location = tweet['location']
         ccaa_province = {
             'comunidad_autonoma':'desconocido', 
             'provincia':'desconocido'
@@ -1947,9 +1950,14 @@ def identify_users_from_outside_spain(collection, config_fn=None):
                     'Guanajuato', 'Ecuador', 'Jalisco', 'Guadalajara',
                     'Monterrey', 'Paraguay', 'Chile', 'Uruguay', 'Bolivia',
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
-                    'Panamá', 'India', 'Pakistan', 'Nigeria', 'USA']
+                    'Panamá', 'India', 'Pakistan', 'Nigeria', 'USA', 'Mx',
+                    'Brazil', 'Peru', 'Panama', 'Francia', 'Italia', 'France',
+                    'Italy', 'Germany', 'Alemania']
     esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla', 'Castilla', 
-                     'Spain', 'Murcia', 'Alcala']
+                     'Spain', 'Murcia', 'Alcala', 'Catalunya', 'Galicia',
+                     'Pontevedra', 'Bizkaia', 'Andalucia', 'Ourense', 'Alcalá',
+                     'Arousa', 'Granada', 'Valladolid', 'Albacete', 'Aragon',
+                     'Aragón', 'Canarias', 'Coruña']
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {}
     projection = {
@@ -1994,6 +2002,59 @@ def identify_users_from_outside_spain(collection, config_fn=None):
     print(f'Take a look at {output_file} for more detailes')
 
 
+def infer_location_from_demonyms_in_description(collection, config_fn):
+    current_path = pathlib.Path(__file__).parent.resolve()
+    demonyms_esp = pd.read_csv(os.path.join(current_path, '..', 'data', 'demonyms_spain.csv'))
+    n_demonyms_esp = demonyms_esp.copy()
+    n_demonyms_esp['comunidad autonoma'] = n_demonyms_esp['comunidad autonoma'].str.lower().apply(normalize_text)
+    n_demonyms_esp['provincia'] = n_demonyms_esp['provincia'].str.lower().apply(normalize_text)
+    n_demonyms_esp['gentilicio'] = n_demonyms_esp['gentilicio'].str.lower().apply(normalize_text)
+    demonyms = [demonym for demonym in n_demonyms_esp['gentilicio'].unique() if isinstance(demonym, str) and demonym != '']
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'comunidad_autonoma': 'desconocido',
+        'description': {'$ne': None}
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'description': 1
+    }
+    print('Getting users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    processing_counter = 0
+    identified_users = 0
+    update_queries = []
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    for user in users:
+        processing_counter += 1
+        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
+                     total_users, user['id_str']))
+        if user['description']:
+            norm_desc = normalize_text(user['description']).lower()
+            for demonym in demonyms:
+                if demonym in norm_desc:
+                    identified_users += 1
+                    idx_demonym = n_demonyms_esp[n_demonyms_esp['gentilicio']==demonym].index[0]
+                    ccaa_province = {
+                        'comunidad_autonoma': demonyms_esp.loc[idx_demonym, 'comunidad autonoma'],
+                        'provincia': demonyms_esp.loc[idx_demonym, 'provincia'],
+                    }
+                    update_queries.append(
+                        {
+                            'filter': {'id_str': user['id_str']},
+                            'new_values': ccaa_province
+                        }                        
+                    )
+                    break
+        if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
+    if len(update_queries) == max_batch:
+            add_fields(dbm, update_queries)
+
+
 if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
     #             'config_mongo_inb.json')
@@ -2001,4 +2062,6 @@ if __name__ == "__main__":
     #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
     #update_user_status('users', 'config_mongo_inb.json')
-    identify_users_from_outside_spain('users', 'config_mongo_inb.json')
+    #identify_users_from_outside_spain('users', 'config_mongo_inb.json')
+    #add_esp_location_flags('users', 'config_mongo_inb.json')
+    infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
