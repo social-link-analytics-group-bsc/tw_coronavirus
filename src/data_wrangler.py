@@ -20,7 +20,7 @@ from m3inference.dataset import M3InferenceDataset
 from m3inference import consts
 from report_generator import pre_process_data
 from utils.demographic_detector import DemographicDetector
-from utils.language_detector import detect_language
+from utils.language_detector import detect_language, do_detect_language
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         get_covid_keywords, get_spain_places_regex, get_spain_places, \
@@ -2020,7 +2020,7 @@ def infer_location_from_demonyms_in_description(collection, config_fn):
         'id_str': 1,
         'description': 1
     }
-    print('Getting users...')
+    logging.info('Getting users...')
     users = list(dbm.find_all(query, projection))
     total_users = len(users)
     processing_counter = 0
@@ -2053,6 +2053,63 @@ def infer_location_from_demonyms_in_description(collection, config_fn):
             update_queries = []
     if len(update_queries) == max_batch:
             add_fields(dbm, update_queries)
+    logging.info('The location of {} users were updated'.format(identified_users))
+
+
+def infer_location_from_description_lang(collection, config_fn=None):
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'comunidad_autonoma': 'desconocido',
+        'description': {'$ne': None}
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'description': 1
+    }
+    logging.info('Getting users...')
+    users = list(dbm.find_all(query, projection))
+    total_users = len(users)
+    processing_counter = 0
+    identified_users = 0
+    update_queries = []
+    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
+    for user in users:
+        processing_counter += 1
+        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
+                     total_users, user['id_str']))
+        if user['description']:
+            lang_detection = defaultdict(int)
+            lang_fasttext = do_detect_language(user['description'], 'fasttext')
+            lang_detection[lang_fasttext] += 1
+            lang_langid = do_detect_language(user['description'], 'langid')
+            lang_detection[lang_langid] += 1
+            lang_langdetect = do_detect_language(user['description'], 'langdetect')
+            lang_detection[lang_langdetect] += 1
+            lang_polyglot = do_detect_language(user['description'], 'polyglot')
+            lang_detection[lang_polyglot] += 1
+            lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
+            #three out of the four detector should be consistent with the language of the description
+            maj_lang, val_maj_lang = lang_detection[0]
+            if val_maj_lang >= 3:
+                community = None
+                if maj_lang == 'ca': community = 'Cataluña'
+                elif maj_lang == 'gl': community = 'Galicia'
+                elif maj_lang == 'eu': community = 'País Vasco'
+                if community:
+                    identified_users += 1
+                    update_queries.append(
+                        {
+                            'filter': {'id_str': user['id_str']},
+                            'new_values': {'comunidad_autonoma': community}
+                        }                        
+                    )
+        if len(update_queries) >= max_batch:
+            add_fields(dbm, update_queries)
+            update_queries = []
+    if len(update_queries) >= max_batch:
+        add_fields(dbm, update_queries)
+    logging.info('The location of {} users were updated'.format(identified_users))
 
 
 if __name__ == "__main__":
@@ -2064,4 +2121,5 @@ if __name__ == "__main__":
     #update_user_status('users', 'config_mongo_inb.json')
     #identify_users_from_outside_spain('users', 'config_mongo_inb.json')
     #add_esp_location_flags('users', 'config_mongo_inb.json')
-    infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
+    #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
+    infer_location_from_description_lang('users', 'config_mongo_inb.json')
