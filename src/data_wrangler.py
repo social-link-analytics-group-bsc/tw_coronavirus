@@ -2163,23 +2163,26 @@ def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
         add_fields(dbm_users, update_queries)
 
 
-def remove_users_without_tweets(users_collection, tweets_collection, config_fn):
+def remove_users_without_tweets(users_collection, tweets_collection, 
+                                old_tweets_collection, config_fn):
     """
     Remove users who don't have tweets
     """
     dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
     dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
+    dbm_old_tweets = DBManager(collection=old_tweets_collection, config_fn=config_fn)
     query = {}
     projection = {
         '_id': 0,
         'id_str': 1,
-        'screen_name': 1
+        'screen_name': 1,
+        'comunidad_autonoma': 1
     }
     logging.info('Getting users...')
     users = list(dbm_users.find_all(query, projection))
     total_users = len(users)
     processing_counter = 0
-    update_queries = []
+    removed_users = 0
     for user in users:
         processing_counter += 1
         logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
@@ -2190,7 +2193,23 @@ def remove_users_without_tweets(users_collection, tweets_collection, config_fn):
         tweets = list(dbm_tweets.find_all(query, projection))
         total_tweets = len(tweets)
         if total_tweets == 0:
-            pass
+            logging.info('The user {} does not have tweets in the current db'.\
+                         format(user['screen_name']))
+            if user['comunidad_autonoma'] != 'desconocido':
+                logging.info('However, he/she has assigned an autonomous '\
+                            'community, so his/her tweets will be copy from '\
+                            'the old database of tweets')                    
+                old_tweets = list(dbm_old_tweets.find_all(query, {}))
+                result = dbm_tweets.insert_many(old_tweets)
+                logging.info('It was inserted {} new tweets'.format(len(result.inserted_ids)))
+            else:
+                logging.info('The user will be removed')           
+                dbm_users.remove_record({
+                    'screen_name': user['screen_name']
+                })                
+                removed_users += 1
+    logging.info('In total {} users were removed because they dont have tweets '\
+                 'in the database')
 
 
 
@@ -2205,4 +2224,6 @@ if __name__ == "__main__":
     #add_esp_location_flags('users', 'config_mongo_inb.json')
     #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
     #infer_location_from_description_lang('users', 'config_mongo_inb.json')
-    add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
+    #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
+    remove_users_without_tweets('users', 'processed_new', 'processed', 
+                                'src/config_mongo_inb.json')
