@@ -2226,4 +2226,4 @@ if __name__ == "__main__":
     #infer_location_from_description_lang('users', 'config_mongo_inb.json')
     #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
     remove_users_without_tweets('users', 'processed_new', 'processed', 
-                                'src/config_mongo_inb.json')
+                                'config_mongo_inb.json')
