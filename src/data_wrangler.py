@@ -1794,14 +1794,11 @@ def do_create_field_created_at_date(collection, config_fn=None):
     add_fields(dbm, tweets_to_update)
 
 
-def remove_user(user_screen_name, tweets_collection, users_collection, 
-                config_fn=None):
+def remove_user(user_screen_name, dbm_tweets, dbm_users):
     """
         Remove the user given by the user_screen_name and all
         of his/her tweets
     """
-    dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
-    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
     # Remove tweets from the user
     result = dbm_tweets.remove_records({
         'user.screen_name': user_screen_name
@@ -1816,12 +1813,14 @@ def remove_user(user_screen_name, tweets_collection, users_collection,
 
 def remove_users(banned_accounts_fn, tweets_collection, users_collection, 
                  config_fn=None):
+    dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
+    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
     with open(banned_accounts_fn, 'r') as f:
         accounts = f.readlines() 
         for account in accounts:
             account = account.replace('\n', '')
             print(f'Removing the user: {account} and his/her tweets')
-            remove_user(account, tweets_collection, users_collection, config_fn) 
+            remove_user(account, dbm_tweets, dbm_users) 
 
 
 def is_the_total_tweets_above_median(collection, str_date, time_window_in_days, config_fn=None):
@@ -2162,6 +2161,37 @@ def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
             update_queries = []
     if len(update_queries) >= max_batch:
         add_fields(dbm_users, update_queries)
+
+
+def remove_users_without_tweets(users_collection, tweets_collection, config_fn):
+    """
+    Remove users who don't have tweets
+    """
+    dbm_users = DBManager(collection=users_collection, config_fn=config_fn)
+    dbm_tweets = DBManager(collection=tweets_collection, config_fn=config_fn)
+    query = {}
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'screen_name': 1
+    }
+    logging.info('Getting users...')
+    users = list(dbm_users.find_all(query, projection))
+    total_users = len(users)
+    processing_counter = 0
+    update_queries = []
+    for user in users:
+        processing_counter += 1
+        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
+                     total_users, user['screen_name']))
+        # get tweets of user
+        query = {'user.screen_name': user['screen_name']}
+        projection = {'_id': 0, 'id': 1}
+        tweets = list(dbm_tweets.find_all(query, projection))
+        total_tweets = len(tweets)
+        if total_tweets == 0:
+            pass
+
 
 
 if __name__ == "__main__":
