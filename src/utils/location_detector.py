@@ -16,8 +16,6 @@ tw_preprocessor.set_options(tw_preprocessor.OPT.URL,
 
 
 class LocationDetector:
-    csv_headers = ['country', 'region', 'province', 'city', 'homonymous_places', 
-                   'language', 'flag_emoji_shortcode']
     places = {}
     places_list = []
     place_types = ['country', 'region', 'province', 'city']
@@ -65,29 +63,7 @@ class LocationDetector:
             for line in lines:
                 places = json.loads(line)
             self.__load_place(places)
-            self.places_list = places
-            # csv_reader = csv.DictReader(f)            
-            # for row in csv_reader:
-            #     for header in self.csv_headers:
-            #         if header not in self.places:
-            #             self.places[header] = set()
-            #         if header in self.place_types:
-            #             if row[header] != self.EMPTY_CHAR:
-            #                 for place in row[header].split(self.SEPARATION_CHAR):
-            #                     n_place = self.__normalize_text(place)
-            #                     self.places[header].add(n_place)                            
-            #         else:                        
-            #             if header == 'language':
-            #                 for language in row[header].split(self.SEPARATION_CHAR):
-            #                     self.places[header].add(language)
-            #             elif header == 'homonymous_places':
-            #                 if row[header] != '':
-            #                     for place in row[header].split(self.SEPARATION_CHAR):
-            #                         n_place = self.__normalize_text(place)
-            #                         self.homonymous.add(n_place)
-            #             else:
-            #                 self.places[header].add(row[header])                    
-            #     self.places_list.append(row)
+            self.places_list = places            
 
     def __process_csv_row(self, row, place_type, places, homonymous):
         place_dict = None
@@ -135,7 +111,6 @@ class LocationDetector:
                                 province_dict['cities'].append(city_dict)
         with open('data/places_spain.json', 'w') as f:
             f.write(json.dumps(countries, ensure_ascii=False))
-        print('Finished!')
 
     def __normalize_text(self, text):
         words = remove_non_ascii(text)
@@ -184,13 +159,38 @@ class LocationDetector:
                 pass
         return matching_place
 
-    def get_full_place(self, place_found, place_type):
-        for place in self.places_list:
-            for subplace in place[place_type].split(self.SEPARATION_CHAR):
-                n_place = self.__normalize_text(subplace)
+    def __search_full_place(self, places, place_found, place_type):
+        found_place = False
+        dict_place = None
+        for place in places:
+            if place['type'] == place_type:
+                n_place = self.__normalize_text(place['name'])
                 if n_place == place_found:
-                    return place
-        return None
+                    return True, {place['type']: place['name']}
+            if place['type'] == 'country':
+                found_place, dict_place = self.__search_full_place(place['regions'], place_found, place_type)
+            elif place['type'] == 'region':
+                found_place, dict_place = self.__search_full_place(place['provinces'], place_found, place_type)
+            elif place['type'] == 'province':
+                found_place, dict_place = self.__search_full_place(place['cities'], place_found, place_type)
+            if found_place:
+                dict_place[place['type']] = place['name']
+                break        
+        return found_place, dict_place
+
+    def get_full_place(self, place_found, place_type):
+        full_place = self.__search_full_place(self.places_list, place_found, place_type)
+        # for place in self.places_list:
+        #     if place['type'] == place_type:
+        #         n_place = self.__normalize_text(subplace)
+        #         if n_place == place_found:
+        #             pass
+            
+        #     for subplace in place[place_type].split(self.SEPARATION_CHAR):
+        #         n_place = self.__normalize_text(subplace)
+        #         if n_place == place_found:
+        #             return place
+        return full_place
 
     def get_place_to_return(self, full_place, place_type_found, place_to_identify):
         if place_type_found == 'country':
@@ -345,7 +345,8 @@ if __name__ == "__main__":
     #        for row in csv_reader:
     #            test_users.add(row['screen_name'])
     ld = LocationDetector(places_fn)
-    print('Finized loading!')
+    ret = ld.get_full_place('cordoba', 'city')
+    print(ret)
 
     
     
