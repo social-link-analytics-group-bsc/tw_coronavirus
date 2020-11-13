@@ -1,4 +1,5 @@
 import csv
+import emoji
 import json
 import os
 import pathlib
@@ -28,7 +29,7 @@ class LocationDetector:
         self.__load_places(places_fn)
     
     def __load_place(self, places):
-        for place in places:                
+        for place in places:               
             names = [place['name']]
             names.extend(place['alternative_names'])
             if place['type'] not in self.places:
@@ -37,10 +38,11 @@ class LocationDetector:
             for name in names:
                 n_place = self.__normalize_text(name)
                 self.places[place['type']].add(n_place)
-            if 'flag_emoji_shortcode' not in self.places:
-                self.places['flag_emoji_shortcode'] = set()
+            if 'flag_emoji_code' not in self.places:
+                self.places['flag_emoji_code'] = set()
             # add places's flag emoji code
-            self.places['flag_emoji_shortcode'].add(place['flag_emoji_shortcode'])
+            if place['flag_emoji_code'] != '':
+                self.places['flag_emoji_code'].add(place['flag_emoji_code'])
             if 'languages' not in self.places:
                 self.places['languages'] = set()
             # add place's languages
@@ -54,8 +56,7 @@ class LocationDetector:
                 self.__load_place(place['provinces'])
             elif place['type'] == 'province':
                 self.__load_place(place['cities'])
-            else:
-                return
+        return
 
     def __load_places(self, places_fn):
         with open(places_fn, 'r') as f:
@@ -74,7 +75,7 @@ class LocationDetector:
             'name': row[place_type].split(self.SEPARATION_CHAR)[0],
             'alternative_names': row[place_type].split(self.SEPARATION_CHAR)[1:],
             'type': place_type,
-            'flag_emoji_shortcode': row['flag_emoji_shortcode'] if row['flag_emoji_shortcode'] else '',
+            'flag_emoji_code': row['flag_emoji_code'] if row['flag_emoji_code'] else '',
             'languages': row['language'].split(self.SEPARATION_CHAR),
             'homonymous': 1 if row[place_type].split(self.SEPARATION_CHAR)[0] in homonymous else 0,                
         }                    
@@ -86,7 +87,7 @@ class LocationDetector:
             place_dict['cities'] = []        
         return True, place_dict
 
-    def from_csv_to_json(self, places_fn):
+    def from_csv_to_json(self, places_fn, output_fn):
         countries = []
         homonymous = set()
         with open(places_fn, 'r') as f:
@@ -109,7 +110,7 @@ class LocationDetector:
                             new_place, city_dict = self.__process_csv_row(row, 'city', province_dict['cities'], homonymous)
                             if new_place:                            
                                 province_dict['cities'].append(city_dict)
-        with open('data/places_spain.json', 'w') as f:
+        with open(output_fn, 'w') as f:
             f.write(json.dumps(countries, ensure_ascii=False))
 
     def __normalize_text(self, text):
@@ -119,7 +120,7 @@ class LocationDetector:
         words = remove_extra_spaces(words)
         return ' '.join(words)
 
-    def find_matching(self, places, locations):
+    def __find_matching(self, places, locations):
         matchings = []
         matching_place = None
         for place in places:
@@ -159,44 +160,55 @@ class LocationDetector:
                 pass
         return matching_place
 
-    def __search_full_place(self, places, place_found, place_type):
+    def __search_full_place(self, places, place_found, place_found_type):
         found_place = False
-        dict_place = None
+        dict_place = {'country': None, 'region': None, 'province': None, 
+                      'city': None, 'alternative_country': [], 
+                      'alternative_region': [], 'alternative_province': [],
+                      'alternative_city': []}
         for place in places:
-            if place['type'] == place_type:
-                n_place = self.__normalize_text(place['name'])
-                if n_place == place_found:
-                    return True, {place['type']: place['name']}
-            if place['type'] == 'country':
-                found_place, dict_place = self.__search_full_place(place['regions'], place_found, place_type)
-            elif place['type'] == 'region':
-                found_place, dict_place = self.__search_full_place(place['provinces'], place_found, place_type)
-            elif place['type'] == 'province':
-                found_place, dict_place = self.__search_full_place(place['cities'], place_found, place_type)
+            if place['type'] == place_found_type:
+                names = [place['name']]
+                names.extend(place['alternative_names'])
+                for name in names:
+                    n_place = self.__normalize_text(name)
+                    if n_place == place_found:
+                        place_to_return = {place['type']: place['name']}
+                        if len(place['alternative_names']) > 0:
+                            key_name = 'alternative_' + place['type']
+                            place_to_return[key_name] = place['alternative_names']                            
+                        return True, place_to_return
+            if place_found_type == 'country':
+                continue
+            else:
+                if place['type'] == 'country' and \
+                   place_found_type in ['region', 'province', 'city']:
+                    found_place, dict_place = self.__search_full_place(
+                        place['regions'], place_found, place_found_type)
+                elif place['type'] == 'region' and \
+                     place_found_type in ['province', 'city']:
+                    found_place, dict_place = self.__search_full_place(
+                        place['provinces'], place_found, place_found_type)
+                elif place['type'] == 'province' and \
+                     place_found_type == 'city':
+                    found_place, dict_place = self.__search_full_place(
+                        place['cities'], place_found, place_found_type)
             if found_place:
                 dict_place[place['type']] = place['name']
+                key_name = 'alternative_' + place['type']
+                dict_place[key_name] = place['alternative_names']
                 break        
         return found_place, dict_place
 
     def get_full_place(self, place_found, place_type):
-        full_place = self.__search_full_place(self.places_list, place_found, place_type)
-        # for place in self.places_list:
-        #     if place['type'] == place_type:
-        #         n_place = self.__normalize_text(subplace)
-        #         if n_place == place_found:
-        #             pass
-            
-        #     for subplace in place[place_type].split(self.SEPARATION_CHAR):
-        #         n_place = self.__normalize_text(subplace)
-        #         if n_place == place_found:
-        #             return place
+        _, full_place = self.__search_full_place(self.places_list, place_found, 
+                                              place_type)
         return full_place
 
     def get_place_to_return(self, full_place, place_type_found, place_to_identify):
         if place_type_found == 'country':
             place_to_identify = 'country'
-        place = full_place[place_to_identify]
-        return place.split(self.SEPARATION_CHAR)[0]
+        return full_place[place_to_identify]
 
     def identify_place_from_location(self, location, place_to_identify='region'):        
         place_to_return = self.default_place
@@ -214,7 +226,7 @@ class LocationDetector:
                 places_inverted_order.reverse()
                 place_found, place_type_found = None, None
                 for place_type in places_inverted_order:
-                    place_found = self.find_matching(self.places[place_type], unique_locations)
+                    place_found = self.__find_matching(self.places[place_type], unique_locations)
                     if place_found:
                         place_type_found = place_type
                         break
@@ -225,7 +237,7 @@ class LocationDetector:
                         # 1) the place is the only name in location or
                         # 2) location has also the name of region, province, or 
                         # country where the place is located
-                        if len(normalized_location) == len(place_found):
+                        if len(normalized_location.strip()) == len(place_found):
                             # address 1)
                             place_to_return = \
                                 self.get_place_to_return(full_place, place_type_found, 
@@ -234,22 +246,28 @@ class LocationDetector:
                         else:
                             # address 2)
                             places_to_match = set()
-                            for place in full_place['country'].split(self.SEPARATION_CHAR):
-                                n_place = self.__normalize_text(place)
+                            names = [full_place['country']]                   
+                            names.extend(full_place['alternative_country'])
+                            for name in names:
+                                n_place = self.__normalize_text(name)
                                 if n_place != place_found:
                                     places_to_match.add(n_place)
                             if place_type_found == 'city' or \
-                            place_type_found == 'province':
-                                for place in full_place['region'].split(self.SEPARATION_CHAR):
-                                    n_place = self.__normalize_text(place)
+                               place_type_found == 'province':
+                                names = [full_place['region']]
+                                names.extend(full_place['alternative_region'])                                
+                                for name in names:
+                                    n_place = self.__normalize_text(name)
                                     if n_place != place_found:
                                         places_to_match.add(n_place)                            
                             if place_type_found == 'city':
-                                for place in full_place['province'].split(self.SEPARATION_CHAR):
-                                    n_place = self.__normalize_text(place)
+                                names = [full_place['province']]
+                                names.extend(full_place['alternative_province'])
+                                for name in names:
+                                    n_place = self.__normalize_text(name)
                                     if n_place != place_found:
                                         places_to_match.add(n_place)                            
-                            context_found = self.find_matching(places_to_match, unique_locations)
+                            context_found = self.__find_matching(places_to_match, unique_locations)
                             if context_found:
                                 place_to_return = self.get_place_to_return(full_place, 
                                                                         place_type_found, 
@@ -296,7 +314,7 @@ class LocationDetector:
                     else:                
                         fp += 1
                 if error:
-                    print('Error in location: {}\Detector answer: {} - Correct answer: {}\n'.\
+                    print('Error in location: {}\nDetector answer: {} - Correct answer: {}\n'.\
                           format(row['location'], ret_place, row['correct_location']))
         # Print results
         print('Test set size: {}'.format(total))
@@ -335,9 +353,68 @@ class LocationDetector:
                 if processed_counter == sample_size:
                     break
 
+    def __search_flag(self, places, flag_found):
+        dict_place = {}
+        found_flag = False
+        for place in places:
+            if place['flag_emoji_code'] == flag_found:
+                return True, {place['type']: place['name']}
+            if place['type'] == 'country':
+                found_flag, dict_place = self.__search_flag(place['regions'], flag_found)
+            elif place['type'] == 'region':
+                found_flag, dict_place = self.__search_flag(place['provinces'], flag_found)
+            elif place['type'] == 'province':
+                found_flag, dict_place = self.__search_flag(place['cities'], flag_found)
+            if found_flag:
+                dict_place[place['type']] = place['name']
+                break
+        return found_flag, dict_place
+
+    def __get_emoji_codes(self, demojized_location):
+        emoji_codes = []
+        in_potential_emoji_code = False
+        for char in demojized_location:
+            if char == ':':
+                if in_potential_emoji_code:
+                    in_potential_emoji_code = False
+                    emoji_code += char
+                    emoji_codes.append(emoji_code)
+                else:
+                    in_potential_emoji_code = True
+                    emoji_code = char
+            else:
+                if in_potential_emoji_code:
+                    emoji_code += char                
+        return emoji_codes
+
+    def identify_place_flag_in_location(self, location, place_to_identify='region'):
+        place_to_return = self.default_place
+        if location:
+            demojized_location = emoji.demojize(location)
+            emoji_codes = self.__get_emoji_codes(demojized_location)
+            flag_found = None
+            for emoji_code in emoji_codes:
+                for flag_emoji in self.places['flag_emoji_code']:
+                    if emoji_code.lower() == flag_emoji.lower():
+                        # found a flag, now let's get the name of the place
+                        flag_found = flag_emoji
+                        break
+                if flag_found:
+                    # only the first found flag is considered
+                    break
+            if flag_found:
+                _, flag_place = self.__search_flag(self.places_list, flag_found)
+                if place_to_identify in flag_place:
+                    place_to_return = flag_place[place_to_identify]
+                else:
+                    place_to_return = flag_place['country']
+        return place_to_return
+
+
 if __name__ == "__main__":
-    places_fn = os.path.join('data', 'places_spain.json')    
-    #test_fn = os.path.join('..','..', 'data', 'location_detector_testset.csv')
+    places_fn = os.path.join('data', 'places_spain.json')
+    places_fn_csv = os.path.join('..','..','data', 'places_spain_new.csv')
+    test_fn = os.path.join('..','..','data', 'location_detector_testset.csv')
     #config_fn = os.path.join('..', 'config_mongo_inb.json')
     #test_users = set()
     #with open(test_fn, 'r') as f:
@@ -345,8 +422,11 @@ if __name__ == "__main__":
     #        for row in csv_reader:
     #            test_users.add(row['screen_name'])
     ld = LocationDetector(places_fn)
-    ret = ld.get_full_place('cordoba', 'city')
-    print(ret)
+    #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
+    #ld.evaluate_detector(test_fn)
+    location = '🇪🇸 madrid'
+    ret_place = ld.identify_place_flag_in_location(location)
+    print(ret_place)
 
     
     
