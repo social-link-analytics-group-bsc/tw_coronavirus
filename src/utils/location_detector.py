@@ -17,15 +17,48 @@ tw_preprocessor.set_options(tw_preprocessor.OPT.URL,
 
 
 class LocationDetector:
-    places = {}
-    places_list = []
+    places, places_list = {}, []
     place_types = ['country', 'region', 'province', 'city']
     homonymous = set()
     default_place = 'unknown'
     SEPARATION_CHAR = '/'
     EMPTY_CHAR = ''
+    enabled_methods = []
 
-    def __init__(self, places_fn):        
+    def __init__(self, places_fn, flag_in_location=True, 
+                 demonym_in_description=True,
+                 language_of_description=True):
+        self.enabled_methods = [
+            {
+                'parameter': 'location',
+                'method_name': 'identify_place_from_location',
+                'method_type': 'matching_place_location'
+            }            
+        ]
+        if demonym_in_description:
+            self.enabled_methods.append(
+                {
+                    'parameter': 'description',
+                    'method_name': 'identify_place_from_demonyms_in_description',
+                    'method_type': 'matching_demonyms_description'
+                }                
+            )
+        if language_of_description:
+            self.enabled_methods.append(
+                {
+                    'parameter': 'description',
+                    'method_name': 'identify_place_from_description_language',
+                    'method_type': 'language_description'
+                }                
+            )
+        if flag_in_location:
+            self.enabled_methods.append(
+                {
+                    'parameter': 'location',
+                    'method_name': 'identify_place_flag_in_location',
+                    'method_type': 'matching_flag_location'
+                }                
+            )
         self.__load_places(places_fn)
     
     def __load_place(self, places):
@@ -298,7 +331,7 @@ class LocationDetector:
                 total += 1
                 error = False           
                 location = row['location']
-                ret_place = ld.identify_place_from_location(location)
+                ret_place = self.identify_place_from_location(location)
                 n_answer = row['correct_location'].strip().lower()
                 if ret_place.lower() == n_answer:
                     if ret_place.lower() != 'unknown' and n_answer != 'unknown':
@@ -410,6 +443,29 @@ class LocationDetector:
                     place_to_return = flag_place['country']
         return place_to_return
 
+    def identify_place_from_description_language(self, location, place_to_identify='region'):
+        pass
+
+    def identify_place_from_demonyms_in_description(self, description, place_to_identify='region'):
+        pass
+
+    def identify_location(self, location, description, place_to_identify='region'):
+        location_identified = self.default_place
+        method_name = ''
+        for enabled_method in self.enabled_methods:
+            method_name = enabled_method['method_name']
+            method_type = enabled_method['method_type']
+            method = getattr(self, method_name)
+            if 'location' == enabled_method['parameter']:
+                location_identified = method(location, place_to_identify)
+            elif 'description' == enabled_method['parameter']:
+                location_identified = method(description, place_to_identify)
+            else:
+                raise Exception('Could not recognize identification method {}'.format(enabled_method))
+            if location_identified != self.default_place:
+                break
+        return location_identified, method_type
+            
 
 if __name__ == "__main__":
     places_fn = os.path.join('data', 'places_spain.json')
@@ -425,7 +481,7 @@ if __name__ == "__main__":
     #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
     #ld.evaluate_detector(test_fn)
     location = '🇪🇸 madrid'
-    ret_place = ld.identify_place_flag_in_location(location)
+    ret_place = ld.identify_location(location, '')
     print(ret_place)
 
     
