@@ -437,12 +437,48 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
                 else:
                     f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
             f.write(']')    
-    
+
+
+def export_user_sample_to_csv(sample_size, collection, output_filename=None, 
+                              config_fn=None):
+    """
+    Export a sample of users to a csv file
+    """
+    if not output_filename:
+        output_filename = 'user_sample.csv'
+    output = os.path.join('..', 'data', output_filename)
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query_filter = {
+        'comunidad_autonoma': {'$ne':'desconocido'}
+    }    
+    projection = {
+        '_id': 0, 
+        'id': 1,
+        'screen_name': 1,
+        'description': 1,
+        'location': 1,
+        'comunidad_autonoma': 1,
+        'provincia': 1
+    }
+    logging.info('Getting sample of users, please wait...')
+    users = dbm.get_sample(int(sample_size), query_filter, projection)
+    total_users = len(users)
+    logging.info('Found {} users'.format(total_users))
+    with open(output, 'w') as f:
+        headers = ['id', 'screen_name', 'description', 'location', 
+                   'comunidad_autonoma', 'provincia']
+        csv_writer = csv.DictWriter(f, fieldnames=headers)
+        csv_writer.writeheader()
+        for user in users:         
+            logging.info('Saving user: {}'.format(user['screen_name']))
+            csv_writer.writerow(user)
+
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
     #export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
     #                       config_fn='config_mongo_inb.json')
     export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', start_date='2020-10-19', 
-                  end_date='2020-10-21')
+                  'config_mongo_inb.json', start_date='2020-11-09', 
+                  end_date='2020-11-16')
+    #export_user_sample_to_csv(1100, 'users', config_fn='config_mongo_inb.json')
