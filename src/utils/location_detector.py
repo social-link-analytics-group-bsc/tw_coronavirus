@@ -5,9 +5,12 @@ import os
 import pathlib
 import preprocessor as tw_preprocessor
 
-from db_manager import DBManager
-from utils import remove_non_ascii, to_lowercase, remove_punctuation, \
-                  remove_extra_spaces, tokenize_text
+from collections import defaultdict
+from .db_manager import DBManager
+from .language_detector import do_detect_language
+from .utils import remove_non_ascii, to_lowercase, remove_punctuation, \
+                   remove_extra_spaces, tokenize_text
+
 
 tw_preprocessor.set_options(tw_preprocessor.OPT.URL, 
                             tw_preprocessor.OPT.MENTION,
@@ -71,16 +74,16 @@ class LocationDetector:
             for name in names:
                 n_place = self.__normalize_text(name)
                 self.places[place['type']].add(n_place)
+            # add places's flag emoji code
             if 'flag_emoji_code' not in self.places:
                 self.places['flag_emoji_code'] = set()
-            # add places's flag emoji code
-            if place['flag_emoji_code'] != '':
-                self.places['flag_emoji_code'].add(place['flag_emoji_code'])
+            if len(place['flag_emoji_code']) > 0:
+                self.places['flag_emoji_code'].update(place['flag_emoji_code'])
+            # add place's languages
             if 'languages' not in self.places:
                 self.places['languages'] = set()
-            # add place's languages
-            for language in place['languages']:
-                self.places['languages'].add(language)
+            if len(place['languages']) > 0:
+                self.places['languages'].update(place['languages'])
             if place['homonymous'] == 1:
                 self.homonymous.add(self.__normalize_text(place['name']))
             if place['type'] == 'country':
@@ -104,13 +107,23 @@ class LocationDetector:
         for place in places:                            
             if row[place_type].split(self.SEPARATION_CHAR)[0] == place['name']:
                 return False, place
+        emoji_flags = []
+        if row['flag_emoji_code'] != self.EMPTY_CHAR:
+            emoji_flags = row['flag_emoji_code'].split(self.SEPARATION_CHAR)
+        languages = []
+        if row['language'] != self.EMPTY_CHAR:
+            languages = row['language'].split(self.SEPARATION_CHAR)
+        demonyms = []
+        if row['demonym'] != self.EMPTY_CHAR:
+            demonyms = row['demonym'].split(self.SEPARATION_CHAR)
         place_dict = {
             'name': row[place_type].split(self.SEPARATION_CHAR)[0],
             'alternative_names': row[place_type].split(self.SEPARATION_CHAR)[1:],
             'type': place_type,
-            'flag_emoji_code': row['flag_emoji_code'] if row['flag_emoji_code'] else '',
-            'languages': row['language'].split(self.SEPARATION_CHAR),
-            'homonymous': 1 if row[place_type].split(self.SEPARATION_CHAR)[0] in homonymous else 0,                
+            'flag_emoji_code':  emoji_flags,
+            'languages': languages,
+            'homonymous': 1 if row[place_type].split(self.SEPARATION_CHAR)[0] in homonymous else 0,  
+            'demonyms': demonyms
         }                    
         if place_type == 'country':
             place_dict['regions'] = []
@@ -380,7 +393,7 @@ class LocationDetector:
                     print('[{0}] Processing the location of the user: {1}'.format(processed_counter, user['screen_name']))
                     processed_counter += 1
                     location = user['location']
-                    ret_place = ld.identify_place_from_location(location)
+                    ret_place = self.identify_place_from_location(location)
                     user['comunidad_autonoma'] = ret_place if ret_place != 'unknown' else 'no determinado'
                     csv_writer.writerow(user)
                 if processed_counter == sample_size:
@@ -440,11 +453,59 @@ class LocationDetector:
                 if place_to_identify in flag_place:
                     place_to_return = flag_place[place_to_identify]
                 else:
-                    place_to_return = flag_place['country']
+                    if 'country' in flag_place:
+                        place_to_return = flag_place['country']
         return place_to_return
 
-    def identify_place_from_description_language(self, location, place_to_identify='region'):
-        pass
+    def __search_lang(self, places, lang_found, list_places):
+        for place in places:
+            if lang_found in place['languages']:
+                list_places.append({place['type']: place['name']})
+            if place['type'] == 'country':
+                self.__search_lang(place['regions'], lang_found, list_places)
+            elif place['type'] == 'region':
+                self.__search_lang(place['provinces'], lang_found, list_places)
+            elif place['type'] == 'province':
+                self.__search_lang(place['cities'], lang_found, list_places)
+        return list_places
+
+    def identify_place_from_description_language(self, description, place_to_identify='region'):
+        place_to_return = self.default_place
+        clean_description = tw_preprocessor.clean(description)
+        normalized_description = self.__normalize_text(clean_description)
+        lang_detectors = ['fasttext', 'langid', 'langdetect', 'polyglot']
+        lang_detection = defaultdict(int)
+        for lang_detector in lang_detectors:
+            lang_detected = do_detect_language(normalized_description, lang_detector)
+            lang_detection[lang_detected] += 1
+        lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
+        # three out of the four detector should be consistent with the 
+        # language of the description
+        maj_lang, val_maj_lang = lang_detection[0]
+        if val_maj_lang >= 3:
+            found_places = []
+            found_places = self.__search_lang(self.places_list, maj_lang, found_places)
+            found_place_types = defaultdict(list)
+            for found_place in found_places:
+                place_type = list(found_place.keys())[0]
+                found_place_types[place_type].append(found_place)
+            if len(found_places) > 0:
+                place_types_inverted_order = self.place_types.copy()
+                place_types_inverted_order.reverse()
+                place_dict = None
+                for place_type in place_types_inverted_order:
+                    if place_type in found_place_types and \
+                    len(found_place_types[place_type]) == 1:
+                        place_dict = found_place_types[place_type][0]
+                        break
+                if place_dict:
+                    if place_to_identify in place_dict:
+                        place_to_return = place_dict[place_to_identify]
+                    else:
+                        if 'country' in place_dict:
+                            place_to_return = place_dict['country']
+
+        return place_to_return
 
     def identify_place_from_demonyms_in_description(self, description, place_to_identify='region'):
         pass
@@ -461,28 +522,28 @@ class LocationDetector:
             elif 'description' == enabled_method['parameter']:
                 location_identified = method(description, place_to_identify)
             else:
-                raise Exception('Could not recognize identification method {}'.format(enabled_method))
+                raise Exception('Could not recognize the identification method {}'.format(enabled_method))
             if location_identified != self.default_place:
                 break
         return location_identified, method_type
             
 
-if __name__ == "__main__":
-    places_fn = os.path.join('data', 'places_spain.json')
-    places_fn_csv = os.path.join('..','..','data', 'places_spain_new.csv')
-    test_fn = os.path.join('..','..','data', 'location_detector_testset.csv')
-    #config_fn = os.path.join('..', 'config_mongo_inb.json')
-    #test_users = set()
-    #with open(test_fn, 'r') as f:
-    #        csv_reader = csv.DictReader(f)            
-    #        for row in csv_reader:
-    #            test_users.add(row['screen_name'])
-    ld = LocationDetector(places_fn)
-    #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
-    #ld.evaluate_detector(test_fn)
-    location = '🇪🇸 madrid'
-    ret_place = ld.identify_location(location, '')
-    print(ret_place)
+# if __name__ == "__main__":
+#     places_fn = os.path.join('data', 'places_spain.json')
+#     places_fn_csv = os.path.join('..','..','data', 'places_spain_new.csv')
+#     test_fn = os.path.join('..','..','data', 'location_detector_testset.csv')
+#     #config_fn = os.path.join('..', 'config_mongo_inb.json')
+#     #test_users = set()
+#     #with open(test_fn, 'r') as f:
+#     #        csv_reader = csv.DictReader(f)            
+#     #        for row in csv_reader:
+#     #            test_users.add(row['screen_name'])
+#     ld = LocationDetector(places_fn)
+#     #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
+#     #ld.evaluate_detector(test_fn)
+#     location = '🇪🇸 madrid'
+#     ret_place = ld.identify_location(location, '')
+#     print(ret_place)
 
     
     
