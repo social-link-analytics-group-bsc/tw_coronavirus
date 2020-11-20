@@ -84,6 +84,12 @@ class LocationDetector:
                 self.places['languages'] = set()
             if len(place['languages']) > 0:
                 self.places['languages'].update(place['languages'])
+            # add place's demonyms
+            if 'demonyms' not in self.places:
+                self.places['demonyms'] = set()
+            if len(place['demonyms']) > 0:
+                for demonym in place['demonyms']:                    
+                    self.places['demonyms'].add(self.__normalize_text(demonym))
             if place['homonymous'] == 1:
                 self.homonymous.add(self.__normalize_text(place['name']))
             if place['type'] == 'country':
@@ -166,7 +172,7 @@ class LocationDetector:
         words = remove_extra_spaces(words)
         return ' '.join(words)
 
-    def __find_matching(self, places, locations):
+    def __match_location(self, places, locations):
         matchings = []
         matching_place = None
         for place in places:
@@ -272,7 +278,7 @@ class LocationDetector:
                 places_inverted_order.reverse()
                 place_found, place_type_found = None, None
                 for place_type in places_inverted_order:
-                    place_found = self.__find_matching(self.places[place_type], unique_locations)
+                    place_found = self.__match_location(self.places[place_type], unique_locations)
                     if place_found:
                         place_type_found = place_type
                         break
@@ -313,7 +319,7 @@ class LocationDetector:
                                     n_place = self.__normalize_text(name)
                                     if n_place != place_found:
                                         places_to_match.add(n_place)                            
-                            context_found = self.__find_matching(places_to_match, unique_locations)
+                            context_found = self.__match_location(places_to_match, unique_locations)
                             if context_found:
                                 place_to_return = self.get_place_to_return(full_place, 
                                                                         place_type_found, 
@@ -471,44 +477,104 @@ class LocationDetector:
 
     def identify_place_from_description_language(self, description, place_to_identify='region'):
         place_to_return = self.default_place
-        clean_description = tw_preprocessor.clean(description)
-        normalized_description = self.__normalize_text(clean_description)
-        lang_detectors = ['fasttext', 'langid', 'langdetect', 'polyglot']
-        lang_detection = defaultdict(int)
-        for lang_detector in lang_detectors:
-            lang_detected = do_detect_language(normalized_description, lang_detector)
-            lang_detection[lang_detected] += 1
-        lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
-        # three out of the four detector should be consistent with the 
-        # language of the description
-        maj_lang, val_maj_lang = lang_detection[0]
-        if val_maj_lang >= 3:
-            found_places = []
-            found_places = self.__search_lang(self.places_list, maj_lang, found_places)
-            found_place_types = defaultdict(list)
-            for found_place in found_places:
-                place_type = list(found_place.keys())[0]
-                found_place_types[place_type].append(found_place)
-            if len(found_places) > 0:
-                place_types_inverted_order = self.place_types.copy()
-                place_types_inverted_order.reverse()
-                place_dict = None
-                for place_type in place_types_inverted_order:
-                    if place_type in found_place_types and \
-                    len(found_place_types[place_type]) == 1:
-                        place_dict = found_place_types[place_type][0]
-                        break
-                if place_dict:
-                    if place_to_identify in place_dict:
-                        place_to_return = place_dict[place_to_identify]
-                    else:
-                        if 'country' in place_dict:
-                            place_to_return = place_dict['country']
+        if description:
+            clean_description = tw_preprocessor.clean(description)
+            normalized_description = self.__normalize_text(clean_description)
+            lang_detectors = ['fasttext', 'langid', 'langdetect', 'polyglot']
+            lang_detection = defaultdict(int)
+            for lang_detector in lang_detectors:
+                lang_detected = do_detect_language(normalized_description, lang_detector)
+                lang_detection[lang_detected] += 1
+            lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
+            # three out of the four detector should be consistent with the 
+            # language of the description
+            maj_lang, val_maj_lang = lang_detection[0]
+            if val_maj_lang >= 3:
+                found_places = []
+                found_places = self.__search_lang(self.places_list, maj_lang, found_places)
+                found_place_types = defaultdict(list)
+                for found_place in found_places:
+                    place_type = list(found_place.keys())[0]
+                    found_place_types[place_type].append(found_place)
+                if len(found_places) > 0:
+                    place_types_inverted_order = self.place_types.copy()
+                    place_types_inverted_order.reverse()
+                    place_dict = None
+                    for place_type in place_types_inverted_order:
+                        if place_type in found_place_types and \
+                        len(found_place_types[place_type]) == 1:
+                            place_dict = found_place_types[place_type][0]
+                            break
+                    if place_dict:
+                        if place_to_identify in place_dict:
+                            place_to_return = place_dict[place_to_identify]
+                        else:
+                            if 'country' in place_dict:
+                                place_to_return = place_dict['country']
 
         return place_to_return
 
+    def __search_demonym(self, places, demonym_found):
+        dict_place = {}
+        found_demonym = False
+        for place in places:
+            for demonym in place['demonyms']:
+                n_demonym = self.__normalize_text(demonym)
+                if n_demonym == demonym_found:
+                    return True, {place['type']: place['name']}
+            if place['type'] == 'country':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['regions'], demonym_found)
+            elif place['type'] == 'region':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['provinces'], demonym_found)
+            elif place['type'] == 'province':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['cities'], demonym_found)
+            if found_demonym:
+                dict_place[place['type']] = place['name']
+                break
+        return found_demonym, dict_place
+
+    def __match_demonym(self, demonyms, description):
+        matchings = set()
+        for demonym in demonyms:
+            demonym_length = len(demonym.split())
+            matching_counter = 0
+            for name in demonym.split():
+                if name in description:
+                    matching_counter += 1
+            if matching_counter == demonym_length:
+                matchings.add(demonym)
+        return matchings
+
     def identify_place_from_demonyms_in_description(self, description, place_to_identify='region'):
-        pass
+        place_to_return = self.default_place
+        if description:
+            clean_description = tw_preprocessor.clean(description)
+            normalized_description = self.__normalize_text(clean_description)
+            demonyms_found = self.__match_demonym(self.places['demonyms'], 
+                                                normalized_description)
+            if len(demonyms_found) > 0:
+                demonym_places = []
+                for demonym_found in demonyms_found:
+                    _, demonym_place = self.__search_demonym(self.places_list, demonym_found)
+                    demonym_places.append(demonym_place)
+                place_types_inverted_order = self.place_types.copy()
+                place_types_inverted_order.reverse()
+                found_place = False
+                for place_type in place_types_inverted_order:
+                    for demonym_place in demonym_places:
+                        if place_type in demonym_place:
+                            found_place = True
+                            if place_to_identify in demonym_place:
+                                place_to_return = demonym_place[place_to_identify]
+                            else:
+                                if 'country' in demonym_place:
+                                    place_to_return = demonym_place['country']                
+                            break
+                    if found_place: break
+        return place_to_return
 
     def identify_location(self, location, description, place_to_identify='region'):
         location_identified = self.default_place
