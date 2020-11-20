@@ -21,6 +21,7 @@ from m3inference import consts
 from report_generator import pre_process_data
 from utils.demographic_detector import DemographicDetector
 from utils.language_detector import detect_language, do_detect_language
+from utils.location_detector import LocationDetector
 from utils.db_manager import DBManager
 from utils.utils import get_tweet_datetime, SPAIN_LANGUAGES, \
         get_covid_keywords, get_spain_places_regex, get_spain_places, \
@@ -738,28 +739,28 @@ def identify_unknown_locations(locations, places_esp, n_places_esp, cities,
 
 def add_esp_location_flags(collection, config_fn):
     current_path = pathlib.Path(__file__).parent.resolve()
-    places_esp = pd.read_csv(os.path.join(current_path, '..', 'data', 'places_spain.csv'))
-    n_places_esp = places_esp.copy()
-    n_places_esp['comunidad autonoma'] = n_places_esp['comunidad autonoma'].str.lower().apply(normalize_text)
-    n_places_esp['provincia'] = n_places_esp['provincia'].str.lower().apply(normalize_text)
-    n_places_esp['ciudad'] = n_places_esp['ciudad'].str.lower().apply(normalize_text)    
-    ccaas = n_places_esp['comunidad autonoma'].unique()
-    provinces = [province for province in n_places_esp['provincia'].unique() if isinstance(province, str) and province != '']
-    cities = [city for city in n_places_esp['ciudad'].unique() if isinstance(city, str) and city != '']
-
+    places_esp_fn = os.path.join(current_path, '..', 'data', 'places_spain.json')
+    detector = LocationDetector(places_esp_fn, flag_in_location=True, 
+                                demonym_in_description=True,
+                                language_of_description=True)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
-        'comunidad_autonoma': {'$eq': None}
+        #'comunidad_autonoma': {'$eq': None}
+        'comunidad_autonoma': 'no determinado'
     }
     projection = {
         '_id':0,
         'id_str':1,
-        'user.location':1,
-        'place.full_name': 1
+        'screen_name':1,
+        'description': 1,
+        'location':1,
+        #'user.location':1,
+        #'place.full_name': 1
     }
-    tweets = dbm.find_all(query, projection)
-    total_tweets = tweets.count()
-    logging.info('Processing locations of {0:,} tweets'.format(total_tweets))
+    logging.info('Getting documents...')
+    tweets = list(dbm.find_all(query, projection))
+    total_tweets = len(tweets)
+    logging.info('Processing locations of {0:,} documents'.format(total_tweets))
     update_queries = []
     max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
     processing_counter = total_segs = 0
@@ -767,6 +768,7 @@ def add_esp_location_flags(collection, config_fn):
         start_time = time.time()
         tweet_id = tweet['id_str']
         processing_counter += 1
+        logging.info('Processing document {}'.format(tweet['id_str']))
         if 'user' in tweet: 
             if tweet['user']['location'] != '':
                 user_location = tweet['user']['location']
@@ -774,32 +776,19 @@ def add_esp_location_flags(collection, config_fn):
                 user_location = tweet['place']['full_name']
         else:
             user_location = tweet['location']
-        ccaa_province = {
-            'comunidad_autonoma':'desconocido', 
-            'provincia':'desconocido'
+            user_description = tweet['description']
+        location, method = detector.identify_location(user_location, user_description)
+        if location == 'unknown':
+            location = 'no determinado'
+            method = ''
+        location_dict = {
+            'comunidad_autonoma': location,
+            'identification_method': method
         }
-        if user_location: 
-            user_location = user_location.replace('/',',')
-            user_location = user_location.replace('.',',')
-            user_location = user_location.replace(' ',',')
-            user_location = user_location.replace('-',',')
-            user_location = user_location.replace('&',',')
-            user_location = user_location.replace('(',',')
-            user_location = user_location.replace('"',',')
-            user_location = user_location.replace('*',',')
-            user_location = user_location.replace(';',',')
-            user_location = user_location.replace('@',',')
-            locations = user_location.split(',')
-            locations = set(locations)    
-            identify_location(locations, places_esp, n_places_esp, cities, provinces, 
-                              ccaas, ccaa_province)                
-            if ccaa_province['comunidad_autonoma'] == 'desconocido':
-                identify_unknown_locations(locations, places_esp, n_places_esp, 
-                                           cities, provinces, ccaas, ccaa_province)
         update_queries.append(
             {
-                'filter': {'id_str': tweet_id},
-                'new_values': ccaa_province
+                'filter': {'id_str': str(tweet_id)},
+                'new_values': location_dict
             }                        
         )
         if len(update_queries) == max_batch:
@@ -1951,7 +1940,8 @@ def identify_users_from_outside_spain(collection, config_fn=None):
                     'Brasil', 'Santo Domingo', 'Dominicana', 'Cuba', 'Honduras',
                     'Panamá', 'India', 'Pakistan', 'Nigeria', 'USA', 'Mx',
                     'Brazil', 'Peru', 'Panama', 'Francia', 'Italia', 'France',
-                    'Italy', 'Germany', 'Alemania']
+                    'Italy', 'Germany', 'Alemania', 'Yucatan', 'Yucatán',
+                    'Michoacán', 'Michoacan']
     esp_locations = ['España', 'Madrid', 'Barcelona', 'Sevilla', 'Castilla', 
                      'Spain', 'Murcia', 'Alcala', 'Catalunya', 'Galicia',
                      'Pontevedra', 'Bizkaia', 'Andalucia', 'Ourense', 'Alcalá',
@@ -1999,116 +1989,6 @@ def identify_users_from_outside_spain(collection, config_fn=None):
                                 break
     print(f'In total {identified_users} users were identified as belonging to Latinamerica')
     print(f'Take a look at {output_file} for more detailes')
-
-
-def infer_location_from_demonyms_in_description(collection, config_fn):
-    current_path = pathlib.Path(__file__).parent.resolve()
-    demonyms_esp = pd.read_csv(os.path.join(current_path, '..', 'data', 'demonyms_spain.csv'))
-    n_demonyms_esp = demonyms_esp.copy()
-    n_demonyms_esp['comunidad autonoma'] = n_demonyms_esp['comunidad autonoma'].str.lower().apply(normalize_text)
-    n_demonyms_esp['provincia'] = n_demonyms_esp['provincia'].str.lower().apply(normalize_text)
-    n_demonyms_esp['gentilicio'] = n_demonyms_esp['gentilicio'].str.lower().apply(normalize_text)
-    demonyms = [demonym for demonym in n_demonyms_esp['gentilicio'].unique() if isinstance(demonym, str) and demonym != '']
-    dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {
-        'comunidad_autonoma': 'desconocido',
-        'description': {'$ne': None}
-    }
-    projection = {
-        '_id': 0,
-        'id_str': 1,
-        'description': 1
-    }
-    logging.info('Getting users...')
-    users = list(dbm.find_all(query, projection))
-    total_users = len(users)
-    processing_counter = 0
-    identified_users = 0
-    update_queries = []
-    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
-    for user in users:
-        processing_counter += 1
-        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
-                     total_users, user['id_str']))
-        if user['description']:
-            norm_desc = normalize_text(user['description']).lower()
-            for demonym in demonyms:
-                if demonym in norm_desc:
-                    identified_users += 1
-                    idx_demonym = n_demonyms_esp[n_demonyms_esp['gentilicio']==demonym].index[0]
-                    ccaa_province = {
-                        'comunidad_autonoma': demonyms_esp.loc[idx_demonym, 'comunidad autonoma'],
-                        'provincia': demonyms_esp.loc[idx_demonym, 'provincia'],
-                    }
-                    update_queries.append(
-                        {
-                            'filter': {'id_str': user['id_str']},
-                            'new_values': ccaa_province
-                        }                        
-                    )
-                    break
-        if len(update_queries) == max_batch:
-            add_fields(dbm, update_queries)
-            update_queries = []
-    if len(update_queries) == max_batch:
-            add_fields(dbm, update_queries)
-    logging.info('The location of {} users were updated'.format(identified_users))
-
-
-def infer_location_from_description_lang(collection, config_fn=None):
-    dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {
-        'comunidad_autonoma': 'desconocido',
-        'description': {'$ne': None}
-    }
-    projection = {
-        '_id': 0,
-        'id_str': 1,
-        'description': 1
-    }
-    logging.info('Getting users...')
-    users = list(dbm.find_all(query, projection))
-    total_users = len(users)
-    processing_counter = 0
-    identified_users = 0
-    update_queries = []
-    max_batch = BATCH_SIZE if total_users > BATCH_SIZE else total_users
-    for user in users:
-        processing_counter += 1
-        logging.info('[{}/{}] Processing user: {}'.format(processing_counter, \
-                     total_users, user['id_str']))
-        if user['description']:
-            lang_detection = defaultdict(int)
-            lang_fasttext = do_detect_language(user['description'], 'fasttext')
-            lang_detection[lang_fasttext] += 1
-            lang_langid = do_detect_language(user['description'], 'langid')
-            lang_detection[lang_langid] += 1
-            lang_langdetect = do_detect_language(user['description'], 'langdetect')
-            lang_detection[lang_langdetect] += 1
-            lang_polyglot = do_detect_language(user['description'], 'polyglot')
-            lang_detection[lang_polyglot] += 1
-            lang_detection = sorted(lang_detection.items(), key=lambda x: x[1], reverse=True)
-            #three out of the four detector should be consistent with the language of the description
-            maj_lang, val_maj_lang = lang_detection[0]
-            if val_maj_lang >= 3:
-                community = None
-                if maj_lang == 'ca': community = 'Cataluña'
-                elif maj_lang == 'gl': community = 'Galicia'
-                elif maj_lang == 'eu': community = 'País Vasco'
-                if community:
-                    identified_users += 1
-                    update_queries.append(
-                        {
-                            'filter': {'id_str': user['id_str']},
-                            'new_values': {'comunidad_autonoma': community}
-                        }                        
-                    )
-        if len(update_queries) >= max_batch:
-            add_fields(dbm, update_queries)
-            update_queries = []
-    if len(update_queries) >= max_batch:
-        add_fields(dbm, update_queries)
-    logging.info('The location of {} users were updated'.format(identified_users))
 
 
 def add_user_lang_flag(users_collection, tweets_collection, config_fn=None):
@@ -2225,5 +2105,6 @@ if __name__ == "__main__":
     #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
     #infer_location_from_description_lang('users', 'config_mongo_inb.json')
     #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
-    remove_users_without_tweets('users', 'processed_new', 'processed', 
-                                'config_mongo_inb.json')
+    #remove_users_without_tweets('users', 'processed_new', 'processed', 
+    #                            'config_mongo_inb.json')
+    add_esp_location_flags('users', 'config_mongo_inb.json')
