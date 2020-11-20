@@ -10,6 +10,7 @@ import urllib.request
 
 
 from datetime import datetime, timedelta
+from nltk.tokenize import word_tokenize
 from math import ceil
 from PIL import Image
 from torchvision import transforms
@@ -98,6 +99,53 @@ def get_covid_keywords():
 def normalize_text(text):
     if isinstance(text,str):
         return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode()
+    else:
+        return text
+
+
+def remove_non_ascii(words):
+    """Remove non-ASCII characters from words"""
+    words = tokenize_text(words)
+    new_words = []
+    for word in words:
+        new_word = unicodedata.normalize('NFKD', word).encode('ascii', 'ignore').decode('utf-8', 'ignore')
+        new_words.append(new_word)
+    return new_words
+
+
+def to_lowercase(words):
+    """Convert all characters of words to lowercase"""
+    words = tokenize_text(words)
+    new_words = []
+    for word in words:
+        new_word = word.lower()
+        new_words.append(new_word)
+    return new_words
+
+
+def remove_punctuation(words):
+    """Remove punctuation from words"""
+    words = tokenize_text(words)
+    new_words = []
+    for word in words:
+        new_word = re.sub(r'[^\w\s]', ' ', word)
+        if new_word != '':
+            new_words.append(new_word)
+    return new_words
+
+
+def remove_extra_spaces(words):
+    words = tokenize_text(words)
+    new_words = []
+    for word in words:
+        word_clean = ' '.join(word.split())
+        new_words.append(word_clean)
+    return new_words
+
+
+def tokenize_text(text):
+    if not isinstance(text, list):
+        return word_tokenize(text)
     else:
         return text
 
