@@ -536,13 +536,13 @@ class LocationDetector:
                 break
         return found_demonym, dict_place
 
-    def __match_demonym(self, demonyms, description):
+    def __match_demonym(self, demonyms, descriptions):
         matchings = set()
         for demonym in demonyms:
             demonym_length = len(demonym.split())
             matching_counter = 0
             for name in demonym.split():
-                if name in description:
+                if name in descriptions:
                     matching_counter += 1
             if matching_counter == demonym_length:
                 matchings.add(demonym)
@@ -553,8 +553,13 @@ class LocationDetector:
         if description:
             clean_description = tw_preprocessor.clean(description)
             normalized_description = self.__normalize_text(clean_description)
+            descriptions = tokenize_text(normalized_description)
+            unique_descriptions = []
+            for word in descriptions:
+                if word not in unique_descriptions:
+                    unique_descriptions.append(word)
             demonyms_found = self.__match_demonym(self.places['demonyms'], 
-                                                normalized_description)
+                                                  unique_descriptions)
             if len(demonyms_found) > 0:
                 demonym_places = []
                 for demonym_found in demonyms_found:
