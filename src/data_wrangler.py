@@ -745,8 +745,10 @@ def add_esp_location_flags(collection, config_fn):
                                 language_of_description=True)
     dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {        
-        #'comunidad_autonoma': {'$eq': None}
-        'comunidad_autonoma': 'no determinado'
+        '$or': [
+            {'comunidad_autonoma': {'$eq': None}},
+            {'comunidad_autonoma': 'no determinado'}
+        ]
     }
     projection = {
         '_id':0,
