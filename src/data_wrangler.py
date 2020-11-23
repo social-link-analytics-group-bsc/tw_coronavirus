@@ -2101,7 +2101,6 @@ if __name__ == "__main__":
     #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
     #update_user_status('users', 'config_mongo_inb.json')
     #identify_users_from_outside_spain('users', 'config_mongo_inb.json')
-    #add_esp_location_flags('users', 'config_mongo_inb.json')
     #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
     #infer_location_from_description_lang('users', 'config_mongo_inb.json')
     #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
