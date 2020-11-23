@@ -409,8 +409,9 @@ class LocationDetector:
         dict_place = {}
         found_flag = False
         for place in places:
-            if place['flag_emoji_code'] == flag_found:
-                return True, {place['type']: place['name']}
+            for flag_emoji_code in place['flag_emoji_code']:
+                if flag_emoji_code == flag_found:
+                    return True, {place['type']: place['name']}
             if place['type'] == 'country':
                 found_flag, dict_place = self.__search_flag(place['regions'], flag_found)
             elif place['type'] == 'region':
