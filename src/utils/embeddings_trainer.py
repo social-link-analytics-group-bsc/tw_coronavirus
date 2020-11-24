@@ -20,7 +20,6 @@ class EmbeddingsTrainer:
 
     def __init__(self, docs):
         stopwords = nltk.corpus.stopwords.words("spanish") + \
-                    nltk.corpus.stopwords.words("catalan")+ \
                     nltk.corpus.stopwords.words("english")
 
         for doc in docs:
