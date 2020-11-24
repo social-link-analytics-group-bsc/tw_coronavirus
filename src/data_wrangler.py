@@ -20,6 +20,7 @@ from m3inference.dataset import M3InferenceDataset
 from m3inference import consts
 from report_generator import pre_process_data
 from utils.demographic_detector import DemographicDetector
+from utils.embeddings_trainer import EmbeddingsTrainer
 from utils.language_detector import detect_language, do_detect_language
 from utils.location_detector import LocationDetector
 from utils.db_manager import DBManager
@@ -2093,6 +2094,45 @@ def remove_users_without_tweets(users_collection, tweets_collection,
     logging.info('In total {} users were removed because they dont have tweets '\
                  'in the database')
 
+
+def generate_word_embeddings(collection, config_fn=None):
+    current_path = pathlib.Path(__file__).parent.resolve()    
+    dbm = DBManager(collection=collection, config_fn=config_fn)
+    query = {
+        'type': {'$ne': 'retweet'}
+    }
+    projection = {
+        '_id': 0,
+        'id_str': 1,
+        'type': 1,
+        'complete_text': 1
+    }
+    PAGE_SIZE = 70000
+    page_num = 0
+    corpus = []
+    # Build corpus of tweets
+    logging.info('Building corpus of tweets...')
+    while True:
+        page_num += 1
+        pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+        logging.info('Retrieving tweets...')
+        tweets = list(dbm.find_all(query=query, projection=projection, 
+                                   pagination=pagination))
+        total_tweets = len(tweets)
+        logging.info('Found {:,} tweets'.format(total_tweets))
+        if total_tweets == 0:
+            break
+        for tweet in tweets:
+            logging.info('Adding tweets to corpus...')
+            corpus.append(tweet['complete_text'])
+    # Generate embeddings
+    logging.info('Starting the generation of embeddings...')
+    et = EmbeddingsTrainer(corpus)
+    et.train(vec_size=100, workers=8)
+    logging.info('Embeddings generation finished, saving model...')
+    model_fn = os.path.join(current_path, '..', 'data', 'tweets-covid') 
+    et.save_model(model_fn)
+    logging.info('Model saved in {}'.format(model_fn))
 
 
 if __name__ == "__main__":
