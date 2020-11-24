@@ -2097,7 +2097,6 @@ def remove_users_without_tweets(users_collection, tweets_collection,
 
 def generate_word_embeddings(collection, config_fn=None):
     current_path = pathlib.Path(__file__).parent.resolve()    
-    dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'type': {'$ne': 'retweet'}
     }
@@ -2113,6 +2112,7 @@ def generate_word_embeddings(collection, config_fn=None):
     # Build corpus of tweets
     logging.info('Building corpus of tweets...')
     while True:
+        dbm = DBManager(collection=collection, config_fn=config_fn)
         page_num += 1
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
         logging.info('Retrieving tweets...')
