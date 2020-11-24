@@ -2148,4 +2148,5 @@ if __name__ == "__main__":
     #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
     #remove_users_without_tweets('users', 'processed_new', 'processed', 
     #                            'config_mongo_inb.json')
-    add_esp_location_flags('users', 'config_mongo_inb.json')
+    #add_esp_location_flags('users', 'config_mongo_inb.json')
+    generate_word_embeddings('process_new', 'config_mongo_inb.json')
