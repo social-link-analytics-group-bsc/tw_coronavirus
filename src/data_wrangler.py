@@ -2125,6 +2125,7 @@ def generate_word_embeddings(collection, config_fn=None):
         for tweet in tweets:
             logging.info('Adding tweets to corpus...')
             corpus.append(tweet['complete_text'])
+        logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
     # Generate embeddings
     logging.info('Starting the generation of embeddings...')
     et = EmbeddingsTrainer(corpus)
