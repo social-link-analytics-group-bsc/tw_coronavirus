@@ -2098,44 +2098,58 @@ def remove_users_without_tweets(users_collection, tweets_collection,
 
 def generate_word_embeddings(collection, config_fn=None):
     current_path = pathlib.Path(__file__).parent.resolve()
-    dbm = DBManager(collection=collection, config_fn=config_fn)
-    query = {
-        'type': {'$ne': 'retweet'}
-    }
-    projection = {
-        '_id': 0,
-        'id_str': 1,
-        'type': 1,
-        'complete_text': 1
-    }
-    PAGE_SIZE = 70000
-    page_num = 0
+    corpus_fn = os.path.join(current_path, '..', 'data', 'corpus_tweets.csv')
     corpus = []
-    # Build corpus of tweets
-    logging.info('Building corpus of tweets...')
-    try:
-        while True:        
-            page_num += 1
-            pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
-            logging.info('Retrieving tweets...')
-            tweets = list(dbm.find_all(query=query, projection=projection, 
-                                    pagination=pagination))
-            total_tweets = len(tweets)
-            logging.info('Found {:,} tweets'.format(total_tweets))
-            if total_tweets == 0:
-                break
-            for tweet in tweets:
-                logging.info('Adding tweets to corpus...')
-                if 'complete_text' in tweet:
-                    corpus.append(tweet['complete_text'])
-            logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
-    except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
-        logging.info('Timeout exception, proceeding with the generation of '\
-                     'embeddings with a corpus of {} tweets'.format(len(corpus)))
+    if not os.path.isfile(corpus_fn):
+        # If corpus doesn't exist let's build it
+        dbm = DBManager(collection=collection, config_fn=config_fn)
+        query = {
+            'type': {'$ne': 'retweet'}
+        }
+        projection = {
+            '_id': 0,
+            'id_str': 1,
+            'type': 1,
+            'complete_text': 1
+        }
+        PAGE_SIZE = 70000
+        page_num = 0
+        # Build corpus of tweets
+        logging.info('Building corpus of tweets...')
+        try:
+            with open(corpus_fn, 'w') as f:
+                headers = ['id_str', 'type', 'complete_text']
+                csv_writer = csv.DictWriter(f, fieldnames=headers, delimiter='\t')
+                csv_writer.writeheader()
+                while True:        
+                    page_num += 1
+                    pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+                    logging.info('Retrieving tweets...')
+                    tweets = list(dbm.find_all(query=query, projection=projection, 
+                                            pagination=pagination))
+                    total_tweets = len(tweets)
+                    logging.info('Found {:,} tweets'.format(total_tweets))
+                    if total_tweets == 0:
+                        break
+                    for tweet in tweets:
+                        logging.info('Adding tweets to corpus...')
+                        if 'complete_text' in tweet:
+                            corpus.append(tweet['complete_text'])
+                            csv_writer.writerow(tweet)
+                    logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
+        except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
+            logging.info('Timeout exception, proceeding with the generation of '\
+                        'embeddings with a corpus of {:,} tweets'.format(len(corpus)))
+    else:
+        # If corpus exists let's read it
+        with open(corpus_fn, 'r') as f:
+            csv_reader = csv.DictReader(f, delimiter='\t')
+            for row in csv_reader:
+                corpus.append(row['complete_text'])
     # Generate embeddings
     logging.info('Starting the generation of embeddings...')
     et = EmbeddingsTrainer(corpus)
-    et.train(vec_size=100, workers=8)
+    et.train(workers=6)
     logging.info('Embeddings generation finished, saving model...')
     model_fn = os.path.join(current_path, '..', 'data', 'tweets-covid') 
     et.save_model(model_fn)
