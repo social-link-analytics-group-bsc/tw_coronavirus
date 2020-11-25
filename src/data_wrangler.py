@@ -19,6 +19,7 @@ from m3inference import M3Twitter
 from m3inference.dataset import M3InferenceDataset
 from m3inference import consts
 from report_generator import pre_process_data
+from pymongo.errors import AutoReconnect, ExecutionTimeout, NetworkTimeout
 from utils.demographic_detector import DemographicDetector
 from utils.embeddings_trainer import EmbeddingsTrainer
 from utils.language_detector import detect_language, do_detect_language
@@ -2096,7 +2097,8 @@ def remove_users_without_tweets(users_collection, tweets_collection,
 
 
 def generate_word_embeddings(collection, config_fn=None):
-    current_path = pathlib.Path(__file__).parent.resolve()    
+    current_path = pathlib.Path(__file__).parent.resolve()
+    dbm = DBManager(collection=collection, config_fn=config_fn)
     query = {
         'type': {'$ne': 'retweet'}
     }
@@ -2111,21 +2113,24 @@ def generate_word_embeddings(collection, config_fn=None):
     corpus = []
     # Build corpus of tweets
     logging.info('Building corpus of tweets...')
-    while True:
-        dbm = DBManager(collection=collection, config_fn=config_fn)
-        page_num += 1
-        pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
-        logging.info('Retrieving tweets...')
-        tweets = list(dbm.find_all(query=query, projection=projection, 
-                                   pagination=pagination))
-        total_tweets = len(tweets)
-        logging.info('Found {:,} tweets'.format(total_tweets))
-        if total_tweets == 0:
-            break
-        for tweet in tweets:
-            logging.info('Adding tweets to corpus...')
-            corpus.append(tweet['complete_text'])
-        logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
+    try:
+        while True:        
+            page_num += 1
+            pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
+            logging.info('Retrieving tweets...')
+            tweets = list(dbm.find_all(query=query, projection=projection, 
+                                    pagination=pagination))
+            total_tweets = len(tweets)
+            logging.info('Found {:,} tweets'.format(total_tweets))
+            if total_tweets == 0:
+                break
+            for tweet in tweets:
+                logging.info('Adding tweets to corpus...')
+                corpus.append(tweet['complete_text'])
+            logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
+    except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
+        logging.info('Timeout exception, proceeding with the generation of '\
+                     'embeddings with a corpus of {} tweets'.format(len(corpus)))
     # Generate embeddings
     logging.info('Starting the generation of embeddings...')
     et = EmbeddingsTrainer(corpus)
