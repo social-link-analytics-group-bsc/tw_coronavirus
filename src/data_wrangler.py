@@ -2126,7 +2126,8 @@ def generate_word_embeddings(collection, config_fn=None):
                 break
             for tweet in tweets:
                 logging.info('Adding tweets to corpus...')
-                corpus.append(tweet['complete_text'])
+                if 'complete_text' in tweet:
+                    corpus.append(tweet['complete_text'])
             logging.info('Corpus current size: {:,} tweets'.format(len(corpus)))
     except (AutoReconnect, ExecutionTimeout, NetworkTimeout):
         logging.info('Timeout exception, proceeding with the generation of '\
