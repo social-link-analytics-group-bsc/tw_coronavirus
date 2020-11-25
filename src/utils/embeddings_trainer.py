@@ -40,9 +40,8 @@ class EmbeddingsTrainer:
     def load_model(self, model_fn):
         self.model = Word2Vec.load(model_fn)
 
-    def train(self, min_count=3, vec_size=200, workers=1):
+    def train(self, min_count=3, workers=1):
         self.model = Word2Vec(self.corpus, min_count=min_count, 
-                              vector_size=vec_size,
                               workers=workers)
     
     def find_similar(self, terms, max_similar):
