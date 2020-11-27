@@ -1,4 +1,5 @@
 import csv
+import demoji
 import emoji
 import json
 import os
@@ -6,7 +7,6 @@ import pathlib
 import preprocessor as tw_preprocessor
 
 from collections import defaultdict
-from .db_manager import DBManager
 from .language_detector import do_detect_language
 from .utils import remove_non_ascii, to_lowercase, remove_punctuation, \
                    remove_extra_spaces, tokenize_text
@@ -31,6 +31,10 @@ class LocationDetector:
     def __init__(self, places_fn, flag_in_location=True, 
                  demonym_in_description=True,
                  language_of_description=True):
+        
+        # Download demoji codes
+        demoji.download_codes()
+
         self.enabled_methods = [
             {
                 'parameter': 'location',
@@ -378,33 +382,6 @@ class LocationDetector:
         print('Precision: {}'.format(round(tp/(tp+fp),4)))
         print('Recall: {}'.format(round(tp/(tp+fn),4)))
 
-    def generate_sample(self, banned_users, output_fn, sample_size=3000, 
-                        config_fn=None):
-        dbm_users = DBManager(collection='users', config_fn=config_fn)
-        projection = {
-            '_id': 0,
-            'id_str': 1,
-            'screen_name': 1,
-            'location': 1
-        }
-        users = list(dbm_users.find_all({}, projection))
-        processed_counter = 0
-        with open(output_fn, 'w') as f:
-            headers = ['id_str', 'screen_name', 'location', 'comunidad_autonoma']
-            csv_writer = csv.DictWriter(f, fieldnames=headers)
-            csv_writer.writeheader()
-            for user in users:
-                if user['screen_name'] not in banned_users and \
-                processed_counter < sample_size:
-                    print('[{0}] Processing the location of the user: {1}'.format(processed_counter, user['screen_name']))
-                    processed_counter += 1
-                    location = user['location']
-                    ret_place = self.identify_place_from_location(location)
-                    user['comunidad_autonoma'] = ret_place if ret_place != 'unknown' else 'no determinado'
-                    csv_writer.writerow(user)
-                if processed_counter == sample_size:
-                    break
-
     def __search_flag(self, places, flag_found):
         dict_place = {}
         found_flag = False
@@ -443,25 +420,39 @@ class LocationDetector:
     def identify_place_flag_in_location(self, location, place_to_identify='region'):
         place_to_return = self.default_place
         if location:
-            demojized_location = emoji.demojize(location)
-            emoji_codes = self.__get_emoji_codes(demojized_location)
-            flag_found = None
-            for emoji_code in emoji_codes:
-                for flag_emoji in self.places['flag_emoji_code']:
-                    if emoji_code.lower() == flag_emoji.lower():
-                        # found a flag, now let's get the name of the place
-                        flag_found = flag_emoji
+            emoji_dict = demoji.findall(location)
+            num_unknown_flags = 0
+            for _, emoji_code in emoji_dict.items():
+                if 'flag:' in emoji_code:
+                    # Convert given code to Github format, meaning with
+                    # leading and trailing colons
+                    p_code = emoji_code.split(':')[1].strip().replace(' ','_')
+                    p_code = ':{}:'.format(p_code)
+                    if p_code not in self.places['flag_emoji_code']:
+                        num_unknown_flags += 1
+            if num_unknown_flags <= 1:
+                # We only consider locations in which there is at maximun up 
+                # to one emoji flag that is different from flags in 
+                # self.places['flag_emoji_code']
+                demojized_location = emoji.demojize(location)
+                emoji_codes = self.__get_emoji_codes(demojized_location)
+                flag_found = None
+                for emoji_code in emoji_codes:
+                    for flag_emoji in self.places['flag_emoji_code']:
+                        if emoji_code.lower() == flag_emoji.lower():
+                            # found a flag, now let's get the name of the place
+                            flag_found = flag_emoji
+                            break
+                    if flag_found:
+                        # only the first found flag is considered
                         break
                 if flag_found:
-                    # only the first found flag is considered
-                    break
-            if flag_found:
-                _, flag_place = self.__search_flag(self.places_list, flag_found)
-                if place_to_identify in flag_place:
-                    place_to_return = flag_place[place_to_identify]
-                else:
-                    if 'country' in flag_place:
-                        place_to_return = flag_place['country']
+                    _, flag_place = self.__search_flag(self.places_list, flag_found)
+                    if place_to_identify in flag_place:
+                        place_to_return = flag_place[place_to_identify]
+                    else:
+                        if 'country' in flag_place:
+                            place_to_return = flag_place['country']
         return place_to_return
 
     def __search_lang(self, places, lang_found, list_places):
@@ -600,7 +591,7 @@ class LocationDetector:
         return location_identified, method_type
             
 
-# if __name__ == "__main__":
+#if __name__ == "__main__":
 #     places_fn = os.path.join('data', 'places_spain.json')
 #     places_fn_csv = os.path.join('..','..','data', 'places_spain_new.csv')
 #     test_fn = os.path.join('..','..','data', 'location_detector_testset.csv')
@@ -613,8 +604,8 @@ class LocationDetector:
 #     ld = LocationDetector(places_fn)
 #     #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
 #     #ld.evaluate_detector(test_fn)
-#     location = '🇪🇸 madrid'
-#     ret_place = ld.identify_location(location, '')
+#     location = '🇵🇦, 🇪🇸, 🇩🇪 y 🇵🇪'
+#     ret_place = ld.identify_place_flag_in_location(location, '')
 #     print(ret_place)
 
     
