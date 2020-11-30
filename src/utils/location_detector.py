@@ -45,7 +45,7 @@ class LocationDetector:
         if demonym_in_description:
             self.enabled_methods.append(
                 {
-                    'parameter': 'description',
+                    'parameter': 'description&location',
                     'method_name': 'identify_place_from_demonyms_in_description',
                     'method_type': 'matching_demonyms_description'
                 }                
@@ -90,10 +90,14 @@ class LocationDetector:
                 self.places['languages'].update(place['languages'])
             # add place's demonyms
             if 'demonyms' not in self.places:
-                self.places['demonyms'] = set()
-            if len(place['demonyms']) > 0:
-                for demonym in place['demonyms']:                    
-                    self.places['demonyms'].add(self.__normalize_text(demonym))
+                self.places['demonyms'] = []
+            if len(place['demonyms']['names']) > 0:
+                demonym_dict = {}
+                for key, values in place['demonyms'].items():
+                    demonym_dict[key] = []
+                    for value in values:
+                        demonym_dict[key].append(self.__normalize_text(value))
+                self.places['demonyms'].append(demonym_dict)
             if place['homonymous'] == 1:
                 self.homonymous.add(self.__normalize_text(place['name']))
             if place['type'] == 'country':
@@ -123,9 +127,20 @@ class LocationDetector:
         languages = []
         if row['language'] != self.EMPTY_CHAR:
             languages = row['language'].split(self.SEPARATION_CHAR)
-        demonyms = []
+        demonym_names = []
         if row['demonym'] != self.EMPTY_CHAR:
-            demonyms = row['demonym'].split(self.SEPARATION_CHAR)
+            demonym_names = row['demonym'].split(self.SEPARATION_CHAR)
+        demonym_banned_prefixes = []
+        if row['demonym_banned_prefixes'] != self.EMPTY_CHAR:
+            demonym_banned_prefixes = row['demonym_banned_prefixes'].split(self.SEPARATION_CHAR)
+        demonym_banned_places = []
+        if row['demonym_banned_places'] != self.EMPTY_CHAR:
+            demonym_banned_places = row['demonym_banned_places'].split(self.SEPARATION_CHAR)
+        demonyms_dict = {}
+        if len(demonym_names) > 0:
+            demonyms_dict['names'] = demonym_names
+            demonyms_dict['banned_prefixes'] = demonym_banned_prefixes
+            demonyms_dict['banned_places'] = demonym_banned_places
         place_dict = {
             'name': row[place_type].split(self.SEPARATION_CHAR)[0],
             'alternative_names': row[place_type].split(self.SEPARATION_CHAR)[1:],
@@ -133,7 +148,7 @@ class LocationDetector:
             'flag_emoji_code':  emoji_flags,
             'languages': languages,
             'homonymous': 1 if row[place_type].split(self.SEPARATION_CHAR)[0] in homonymous else 0,  
-            'demonyms': demonyms
+            'demonyms': demonyms_dict
         }                    
         if place_type == 'country':
             place_dict['regions'] = []
@@ -266,18 +281,23 @@ class LocationDetector:
             place_to_identify = 'country'
         return full_place[place_to_identify]
 
+    def __preprocess_location(self, location):
+        unique_locations = []        
+        clean_location = tw_preprocessor.clean(location)
+        normalized_location = self.__normalize_text(clean_location)
+        locations = tokenize_text(normalized_location)        
+        for location in locations:
+            if location not in unique_locations:
+                unique_locations.append(location)
+        return unique_locations, normalized_location
+
     def identify_place_from_location(self, location, place_to_identify='region'):        
         place_to_return = self.default_place
         if location:
-            clean_location = tw_preprocessor.clean(location)
-            normalized_location = self.__normalize_text(clean_location)
             iterate = True
             while iterate:
-                locations = tokenize_text(normalized_location)
-                unique_locations = []
-                for location in locations:
-                    if location not in unique_locations:
-                        unique_locations.append(location)
+                unique_locations, normalized_location = \
+                    self.__preprocess_location(location)
                 places_inverted_order = self.place_types.copy()
                 places_inverted_order.reverse()
                 place_found, place_type_found = None, None
@@ -510,37 +530,68 @@ class LocationDetector:
         dict_place = {}
         found_demonym = False
         for place in places:
-            for demonym in place['demonyms']:
-                n_demonym = self.__normalize_text(demonym)
-                if n_demonym == demonym_found:
-                    return True, {place['type']: place['name']}
-            if place['type'] == 'country':
-                found_demonym, dict_place = \
-                    self.__search_demonym(place['regions'], demonym_found)
-            elif place['type'] == 'region':
-                found_demonym, dict_place = \
-                    self.__search_demonym(place['provinces'], demonym_found)
-            elif place['type'] == 'province':
-                found_demonym, dict_place = \
-                    self.__search_demonym(place['cities'], demonym_found)
-            if found_demonym:
-                dict_place[place['type']] = place['name']
-                break
+            if place['demonyms']:
+                for demonym in place['demonyms']['names']:
+                    n_demonym = self.__normalize_text(demonym)
+                    if n_demonym == demonym_found:
+                        return True, {place['type']: place['name']}
+                if place['type'] == 'country':
+                    found_demonym, dict_place = \
+                        self.__search_demonym(place['regions'], demonym_found)
+                elif place['type'] == 'region':
+                    found_demonym, dict_place = \
+                        self.__search_demonym(place['provinces'], demonym_found)
+                elif place['type'] == 'province':
+                    found_demonym, dict_place = \
+                        self.__search_demonym(place['cities'], demonym_found)
+                if found_demonym:
+                    dict_place[place['type']] = place['name']
+                    break
         return found_demonym, dict_place
 
-    def __match_demonym(self, demonyms, descriptions):
+    def __match_demonym(self, demonyms, descriptions, locations):
         matchings = set()
         for demonym in demonyms:
-            demonym_length = len(demonym.split())
-            matching_counter = 0
-            for name in demonym.split():
-                if name in descriptions:
-                    matching_counter += 1
-            if matching_counter == demonym_length:
-                matchings.add(demonym)
+            for name in demonym['names']:
+                demonym_length = len(name.split())
+                matching_counter = 0
+                demonym_found = None
+                prefixes = []
+                last_idx = -1
+                for word in name.split():
+                    try:
+                        idx_word = descriptions.index(word)
+                        # if it is not the first matching (i.e., last_idx==-1), 
+                        # matchings should be consecutive
+                        if last_idx == -1 or (last_idx+1) == idx_word:
+                            matching_counter += 1                            
+                        else:
+                            matching_counter, prefixes =  1, []
+                        last_idx = idx_word
+                        if idx_word > 0:
+                            prefixes.append(descriptions[idx_word-1])
+                    except ValueError:
+                        pass
+                if matching_counter == demonym_length:
+                    demonym_found = name
+                    break
+            if demonym_found:
+                found_prefix = False
+                for banned_prefix in demonym['banned_prefixes']:
+                    if banned_prefix in prefixes:
+                        found_prefix = True
+                        break
+                if found_prefix:
+                    continue
+                if locations:                
+                    place_found = self.__match_location(demonym['banned_places'], locations)
+                    if place_found:
+                        continue
+                matchings.add(demonym_found)                                                                        
         return matchings
 
-    def identify_place_from_demonyms_in_description(self, description, place_to_identify='region'):
+    def identify_place_from_demonyms_in_description(self, description, location, 
+                                                    place_to_identify='region'):
         place_to_return = self.default_place
         if description:
             clean_description = tw_preprocessor.clean(description)
@@ -550,8 +601,12 @@ class LocationDetector:
             for word in descriptions:
                 if word not in unique_descriptions:
                     unique_descriptions.append(word)
+            unique_locations = []
+            if location:
+                unique_locations, _ = self.__preprocess_location(location)
             demonyms_found = self.__match_demonym(self.places['demonyms'], 
-                                                  unique_descriptions)
+                                                  unique_descriptions,
+                                                  unique_locations)
             if len(demonyms_found) > 0:
                 demonym_places = []
                 for demonym_found in demonyms_found:
@@ -584,35 +639,11 @@ class LocationDetector:
                 location_identified = method(location, place_to_identify)
             elif 'description' == enabled_method['parameter']:
                 location_identified = method(description, place_to_identify)
+            elif 'descriotion&location' == enabled_method['parameter']:
+                location_identified = method(description, location, place_to_identify)
             else:
-                raise Exception('Could not recognize the identification method {}'.format(enabled_method))
+                raise Exception('Could not recognize the identification '\
+                                'method {}'.format(enabled_method))
             if location_identified != self.default_place:
                 break
         return location_identified, method_type
-            
-
-#if __name__ == "__main__":
-#     places_fn = os.path.join('data', 'places_spain.json')
-#     places_fn_csv = os.path.join('..','..','data', 'places_spain_new.csv')
-#     test_fn = os.path.join('..','..','data', 'location_detector_testset.csv')
-#     #config_fn = os.path.join('..', 'config_mongo_inb.json')
-#     #test_users = set()
-#     #with open(test_fn, 'r') as f:
-#     #        csv_reader = csv.DictReader(f)            
-#     #        for row in csv_reader:
-#     #            test_users.add(row['screen_name'])
-#     ld = LocationDetector(places_fn)
-#     #ld.from_csv_to_json(places_fn_csv, '../../data/places_spain.json')
-#     #ld.evaluate_detector(test_fn)
-#     location = '🇵🇦, 🇪🇸, 🇩🇪 y 🇵🇪'
-#     ret_place = ld.identify_place_flag_in_location(location, '')
-#     print(ret_place)
-
-    
-    
-
-
-
-        
-
-                
