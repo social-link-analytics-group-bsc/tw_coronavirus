@@ -17,11 +17,10 @@ class EmbeddingsTrainer:
     corpus = []
     model = None
     tokenizer = nltk.RegexpTokenizer(r"\w+")
-
-    def __init__(self, docs):
+    
+    def load_corpus(self, docs):
         stopwords = nltk.corpus.stopwords.words("spanish") + \
                     nltk.corpus.stopwords.words("english")
-
         for doc in docs:
             doc = doc.lower()
             doc = tw_preprocessor.clean(doc)
@@ -30,7 +29,7 @@ class EmbeddingsTrainer:
                 if word not in stopwords and not str.isdigit(word):
                     text.append(word)
             self.corpus.append(text)
-    
+
     def save_model(self, model_fn):
         with tempfile.NamedTemporaryFile(prefix='embeddings-model-', 
                                          delete=False) as tmp:
