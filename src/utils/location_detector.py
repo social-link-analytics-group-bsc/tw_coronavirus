@@ -91,7 +91,7 @@ class LocationDetector:
             # add place's demonyms
             if 'demonyms' not in self.places:
                 self.places['demonyms'] = []
-            if len(place['demonyms']['names']) > 0:
+            if place['demonyms'] and len(place['demonyms']['names']) > 0:
                 demonym_dict = {}
                 for key, values in place['demonyms'].items():
                     demonym_dict[key] = []
@@ -295,9 +295,10 @@ class LocationDetector:
         place_to_return = self.default_place
         if location:
             iterate = True
+            normalized_location = location
             while iterate:
                 unique_locations, normalized_location = \
-                    self.__preprocess_location(location)
+                    self.__preprocess_location(normalized_location)
                 places_inverted_order = self.place_types.copy()
                 places_inverted_order.reverse()
                 place_found, place_type_found = None, None
