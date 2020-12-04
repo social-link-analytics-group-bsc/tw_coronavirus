@@ -32,8 +32,11 @@ class LocationDetector:
                  demonym_in_description=True,
                  language_of_description=True):
         
-        # Download demoji codes
-        demoji.download_codes()
+        home_dir = str(pathlib.Path.home())
+        if not os.path.isdir(home_dir):
+            # Download demoji codes in case
+            # it doesn't exist already
+            demoji.download_codes()
 
         self.enabled_methods = [
             {
