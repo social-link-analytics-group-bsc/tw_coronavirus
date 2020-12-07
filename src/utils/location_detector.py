@@ -188,6 +188,7 @@ class LocationDetector:
             f.write(json.dumps(countries, ensure_ascii=False))
 
     def __normalize_text(self, text):
+        text = text.replace('#','')
         words = remove_non_ascii(text)
         words = to_lowercase(words)
         words = remove_punctuation(words)
@@ -369,42 +370,118 @@ class LocationDetector:
                     iterate = False
         
         return place_to_return
-            
-    def evaluate_detector(self, testset_fn):
-        total, tp, fp, tn, fn = 0, 0, 0, 0, 0
-        with open(testset_fn, 'r') as f:
-            csv_reader = csv.DictReader(f)            
-            for row in csv_reader:
-                total += 1
-                error = False           
-                location = row['location']
-                ret_place = self.identify_place_from_location(location)
-                n_answer = row['correct_location'].strip().lower()
-                if ret_place.lower() == n_answer:
-                    if ret_place.lower() != 'unknown' and n_answer != 'unknown':
-                        tp += 1
-                    else:
-                        tn += 1
-                else:
-                    error = True
-                    if ret_place.lower() == 'unknown' and n_answer != 'unknown':
-                        fn += 1
-                    elif ret_place.lower() != 'unknown' and n_answer == 'unknown':
-                        fp += 1
-                    else:                
-                        fp += 1
-                if error:
-                    print('Error in location: {}\nDetector answer: {} - Correct answer: {}\n'.\
-                          format(row['location'], ret_place, row['correct_location']))
-        # Print results
-        print('Test set size: {}'.format(total))
+    
+    def __print_evaluation_result(self, total, tp, tn, fp, fn):
+        print('Total: {}'.format(total))
         print('TP: {}'.format(tp))
         print('TN: {}'.format(tn))
         print('FP: {}'.format(fp))
         print('FN: {}'.format(fn))
-        print('Accuracy: {}'.format(round((tp+tn)/total,4)))
-        print('Precision: {}'.format(round(tp/(tp+fp),4)))
-        print('Recall: {}'.format(round(tp/(tp+fn),4)))
+        accuracy = (tp+tn)/total
+        print('Accuracy: {}'.format(round(accuracy,4)))
+        precision = tp/(tp+fp)
+        print('Precision: {}'.format(round(precision,4)))
+        recall = tp/(tp+fn)
+        print('Recall: {}'.format(round(recall,4)))
+        f1 = 2*((precision*recall)/(precision+recall))
+        print('F1: {}'.format(round(f1,4)))
+
+    def evaluate_detector(self, testset_fn, errors_fn=None):
+        total, tp, fp, tn, fn = 0, 0, 0, 0, 0
+        total_city, tp_city, fp_city, tn_city, fn_city = 0, 0, 0, 0, 0
+        total_demo, tp_demo, fp_demo, tn_demo, fn_demo = 0, 0, 0, 0, 0
+        total_lang, tp_lang, fp_lang, tn_lang, fn_lang = 0, 0, 0, 0, 0
+        total_flag, tp_flag, fp_flag, tn_flag, fn_flag = 0, 0, 0, 0, 0
+        errors = []
+        with open(testset_fn, 'r') as f:
+            csv_reader = csv.DictReader(f)   
+            print('Evaluating the language detector, please wait...')         
+            for row in csv_reader:
+                total += 1                
+                location = row['location']
+                description = row['description']
+                testset_type = row['type']
+                true_label = row['true_label']
+                if testset_type == 'city':
+                    total_city += 1
+                    ret_place = self.identify_place_from_location(location)
+                elif testset_type == 'demonyms':
+                    total_demo += 1
+                    ret_place = \
+                        self.identify_place_from_demonyms_in_description(
+                            description, location)
+                elif testset_type == 'flag':
+                    total_flag += 1
+                    ret_place = self.identify_place_flag_in_location(location)
+                elif testset_type == 'language':
+                    total_lang += 1
+                    ret_place = self.identify_place_from_description_language(
+                        description)
+                else:
+                    raise Exception('Unknown test type {}'.format(testset_type))
+                n_answer = true_label.lower()
+                if ret_place.lower() == n_answer:
+                    if ret_place.lower() != 'unknown' and n_answer != 'unknown':
+                        tp += 1
+                        if testset_type == 'city': tp_city += 1
+                        elif testset_type == 'demonyms': tp_demo += 1
+                        elif testset_type == 'language': tp_lang += 1
+                        elif testset_type == 'flag': tp_flag += 1
+                    else:
+                        tn += 1
+                        if testset_type == 'city': tn_city += 1
+                        elif testset_type == 'demonyms': tn_demo += 1
+                        elif testset_type == 'language': tn_lang += 1
+                        elif testset_type == 'flag': tn_flag += 1
+                else:
+                    error_dict = {
+                        'algorithm_answer': ret_place,
+                        'expected_answer': true_label,
+                        'location': location,
+                        'description': description,
+                        'testset_type': testset_type
+                    }
+                    if ret_place.lower() == 'unknown' and n_answer != 'unknown':
+                        fn += 1
+                        if testset_type == 'city': fn_city += 1
+                        elif testset_type == 'demonyms': fn_demo += 1
+                        elif testset_type == 'language': fn_lang += 1                            
+                        elif testset_type == 'flag': fn_flag += 1
+                        error_dict['type_error'] = 'false_negative'                        
+                    else:
+                        fp += 1
+                        if testset_type == 'city': fp_city += 1
+                        elif testset_type == 'demonyms': fp_demo += 1
+                        elif testset_type == 'language': fp_lang += 1                            
+                        elif testset_type == 'flag': fp_flag += 1
+                        error_dict['type_error'] = 'false_positive'
+                    errors.append(error_dict)
+        # Save errors
+        if errors_fn:
+            print('Saving errors in provided file...')
+            with open(errors_fn, 'w') as f:
+                headers = list(errors[0].keys())
+                csv_writer = csv.DictWriter(f, fieldnames=headers)
+                csv_writer.writeheader()
+                for error in errors:
+                    csv_writer.writerow(error)
+            print('Errors have been save here {}'.format(errors_fn))
+        # Print results
+        print('############# General Results ###############\n')
+        self.__print_evaluation_result(total, tp, tn, fp, fn)
+        print('\n')
+        print('############# Test Type: City ###############\n')
+        self.__print_evaluation_result(total_city, tp_city, tn_city, fp_city, fn_city)        
+        print('\n')
+        print('############# Test Type: Demonyms ###############\n')
+        self.__print_evaluation_result(total_demo, tp_demo, tn_demo, fp_demo, fn_demo)
+        print('\n')
+        print('############# Test Type: Language ###############\n')
+        self.__print_evaluation_result(total_lang, tp_lang, tn_lang, fp_lang, fn_lang)
+        print('\n')
+        print('############# Test Type: Flag ###############\n')
+        self.__print_evaluation_result(total_flag, tp_flag, tn_flag, fp_flag, fn_flag)
+        print('\n')
 
     def __search_flag(self, places, flag_found):
         dict_place = {}
@@ -539,18 +616,18 @@ class LocationDetector:
                     n_demonym = self.__normalize_text(demonym)
                     if n_demonym == demonym_found:
                         return True, {place['type']: place['name']}
-                if place['type'] == 'country':
-                    found_demonym, dict_place = \
-                        self.__search_demonym(place['regions'], demonym_found)
-                elif place['type'] == 'region':
-                    found_demonym, dict_place = \
-                        self.__search_demonym(place['provinces'], demonym_found)
-                elif place['type'] == 'province':
-                    found_demonym, dict_place = \
-                        self.__search_demonym(place['cities'], demonym_found)
-                if found_demonym:
-                    dict_place[place['type']] = place['name']
-                    break
+            if place['type'] == 'country':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['regions'], demonym_found)
+            elif place['type'] == 'region':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['provinces'], demonym_found)
+            elif place['type'] == 'province':
+                found_demonym, dict_place = \
+                    self.__search_demonym(place['cities'], demonym_found)
+            if found_demonym:
+                dict_place[place['type']] = place['name']
+                break
         return found_demonym, dict_place
 
     def __match_demonym(self, demonyms, descriptions, locations):
@@ -600,16 +677,12 @@ class LocationDetector:
         if description:
             clean_description = tw_preprocessor.clean(description)
             normalized_description = self.__normalize_text(clean_description)
-            descriptions = tokenize_text(normalized_description)
-            unique_descriptions = []
-            for word in descriptions:
-                if word not in unique_descriptions:
-                    unique_descriptions.append(word)
+            descriptions = tokenize_text(normalized_description)            
             unique_locations = []
             if location:
                 unique_locations, _ = self.__preprocess_location(location)
             demonyms_found = self.__match_demonym(self.places['demonyms'], 
-                                                  unique_descriptions,
+                                                  descriptions,
                                                   unique_locations)
             if len(demonyms_found) > 0:
                 demonym_places = []
