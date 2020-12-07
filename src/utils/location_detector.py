@@ -716,7 +716,7 @@ class LocationDetector:
                 location_identified = method(location, place_to_identify)
             elif 'description' == enabled_method['parameter']:
                 location_identified = method(description, place_to_identify)
-            elif 'descriotion&location' == enabled_method['parameter']:
+            elif 'description&location' == enabled_method['parameter']:
                 location_identified = method(description, location, place_to_identify)
             else:
                 raise Exception('Could not recognize the identification '\
