@@ -2148,13 +2148,23 @@ def generate_word_embeddings(collection, config_fn=None):
                 corpus.append(row['complete_text'])
     # Generate embeddings
     logging.info('Starting the generation of embeddings...')
-    et = EmbeddingsTrainer(corpus)
+    et = EmbeddingsTrainer()
+    et.load_corpus(corpus)
     et.train(workers=6)
     logging.info('Embeddings generation finished, saving model...')
     model_fn = os.path.join(current_path, '..', 'data', 'tweets-covid') 
     et.save_model(model_fn)
     logging.info('Model saved in {}'.format(model_fn))
 
+
+def find_similar_words_to_terms(terms_list):
+    current_path = pathlib.Path(__file__).parent.resolve()
+    root_path = current_path.parents[0]
+    model_fn = os.path.join(root_path, 'models', 'tweets-embeddings-model') 
+    et = EmbeddingsTrainer()
+    et.load_model(model_fn)
+    similar_words = et.find_similar(terms_list, max_similar=50)
+    return similar_words
 
 if __name__ == "__main__":
     #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
@@ -2169,5 +2179,19 @@ if __name__ == "__main__":
     #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
     #remove_users_without_tweets('users', 'processed_new', 'processed', 
     #                            'config_mongo_inb.json')
-    #add_esp_location_flags('users', 'config_mongo_inb.json')
-    generate_word_embeddings('processed_new', 'config_mongo_inb.json')
+    add_esp_location_flags('users', 'config_mongo_inb.json')
+    #terms = ['vendo', 'oferta', 'vende']
+    #similar_words = find_similar_words_to_terms(terms)
+    #print(similar_words)
+    # current_path = pathlib.Path(__file__).parent.resolve()
+    # places_esp_fn = os.path.join(current_path, '..', 'data', 'places_spain.json')
+    # places_esp_csv_fn = os.path.join(current_path, '..', 'data', 'places_spain_new.csv')
+    # detector = LocationDetector(places_esp_fn)
+    #detector.from_csv_to_json(places_esp_csv_fn, places_esp_fn)
+    #location = '🇪🇺🇪🇸🇬🇧'
+    #description = 'Dona castellonera, mare de dues dragones, metgessa de família. In mens sana, corpore sano'
+    #ret = detector.identify_place_from_demonyms_in_description(description, location)
+    #print(ret)
+    # testset_fn = os.path.join(current_path, '..', 'data', 'location_detector_testset.csv')
+    # errors_test_fn = os.path.join(current_path, '..', 'data', 'error_evaluation_location_detector.csv')
+    # detector.evaluate_detector(testset_fn, errors_test_fn)
