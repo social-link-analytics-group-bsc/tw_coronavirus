@@ -395,7 +395,7 @@ class LocationDetector:
         errors = []
         with open(testset_fn, 'r') as f:
             csv_reader = csv.DictReader(f)   
-            print('Evaluating the language detector, please wait...')         
+            print('Evaluating the location detector, please wait...')         
             for row in csv_reader:
                 total += 1                
                 location = row['location']
