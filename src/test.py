@@ -90,6 +90,30 @@ class testDetectorTestCase(unittest.TestCase):
         ]
         self.__evaluate_test_cases('identify_place_from_demonyms_in_description', test_cases)
 
+    def testidentify_place_from_text_in_location(self):
+        test_cases = [
+            {
+                'test': 'Roquetes, Terres de l\'Ebre',
+                'expected_answer': 'Cataluña'
+            },
+            {
+                'test': 'Rojales, España',
+                'expected_answer': 'España'
+            },
+            {
+                'test': 'Valdemoro, España',
+                'expected_answer': 'Comunidad de Madrid'
+            },
+            {
+                'test': '23 de Enero, San Cristobal',
+                'expected_answer': 'unknown'
+            },
+            {
+                'test': 'Jesus María, Córdoba',
+                'expected_answer': 'unknown'
+            }
+        ]
+        self.__evaluate_test_cases('identify_place_from_location', test_cases)
 
 if __name__ == '__main__':
     unittest.main()
