@@ -341,6 +341,58 @@ def do_export_users(collection, config_file=None, output_filename=None):
     logging.info('Process finished, output was saved into {}'.format(output))
 
 
+def process_tweets(tweets, stemming=False, stemmer=None, banned_accounts=[]):
+    processed_tweets = []
+    for tweet in tweets:
+        logging.info('Processing tweet: {}'.format(tweet['id']))
+        if 'complete_text' in tweet:
+            tweet_txt = tweet['complete_text']
+            del tweet['complete_text']
+        else:
+            tweet_txt = tweet['text']
+        if tweet['user']['screen_name'] in banned_accounts:
+            continue
+        # remove emojis, urls, mentions
+        processed_txt = tw_preprocessor.clean(tweet_txt)
+        processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
+        processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
+        tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]        
+        if tweet['lang'] == 'es':
+            stop_words = stopwords.words('spanish')
+            punct_signs = ['.', '[', ']', ',', ';', ')', '),', '(']
+            stop_words.extend(punct_signs)
+            words = [token for token in tokens if token not in stop_words]
+            if stemming:                    
+                stemmers = [stemmer.stem(word) for word in words]
+                processed_txt = ' '.join([stem for stem in stemmers if stem.isalpha() and len(stem) > 1])
+            else:
+                processed_txt = ' '.join(word for word in words)
+        else:
+            processed_txt = ' '.join([token for token in tokens])
+        tweet['text'] = processed_txt
+        if 'sentiment' in tweet:
+            tweet['sentiment_polarity'] = tweet['sentiment']['score']
+            del tweet['sentiment']
+        tweet['hashtags'] = []
+        for hashtag in tweet['entities']['hashtags']:
+            tweet['hashtags'].append(hashtag['text'])
+        #tweet['urls'] = []
+        #for url in tweet['entities']['urls']:
+        #    tweet['urls'].append(url['expanded_url'])
+        tweet['mentions'] = []
+        for mention in tweet['entities']['user_mentions']:    
+            tweet['mentions'].append(mention['screen_name'])
+        del tweet['entities']
+        tweet['url'] = f"http://www.twitter.com/{tweet['user']['screen_name']}/status/{tweet['id']}"
+        del tweet['user']
+        dt = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
+        tweet['month'] = dt.month
+        tweet['year'] = dt.year
+        tweet['week_month'] = f'{week_of_month(dt)}-{dt.month}'
+        processed_tweets.append(tweet)
+    return processed_tweets
+
+
 def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False, 
                           lang=None, banned_accounts=[], exclude_rts=False):    
     if exclude_rts:
@@ -373,10 +425,12 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
     }
     if stemming:
         stemmer = SnowballStemmer('spanish')
-    PAGE_SIZE = 80000
+    else:
+        stemmer = None
+    PAGE_SIZE = 70000
     page_num = 0
     records_to_read = True
-    #processing_counter = total_segs = 0
+    tweets_to_save = []
     while records_to_read:
         page_num += 1
         pagination = {'page_num': page_num, 'page_size': PAGE_SIZE}
@@ -387,60 +441,19 @@ def export_tweets_to_json(collection, output_fn, config_fn=None, stemming=False,
         logging.info('Found {:,} tweets'.format(total_tweets))
         if total_tweets == 0:
             break
-        with open(output_fn, 'a', encoding='utf-8') as f:
-            f.write('[')
-            for idx, tweet in enumerate(tweets):
-                logging.info('Processing tweet: {}'.format(tweet['id']))
-                tweet_txt = tweet['complete_text']
-                del tweet['complete_text']
-                if tweet['user']['screen_name'] in banned_accounts:
-                    continue
-                # remove emojis, urls, mentions
-                processed_txt = tw_preprocessor.clean(tweet_txt)
-                processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
-                processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
-                tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]        
-                if tweet['lang'] == 'es':
-                    stop_words = stopwords.words('spanish')
-                    punct_signs = ['.', '[', ']', ',', ';', ')', '),', '(']
-                    stop_words.extend(punct_signs)
-                    words = [token for token in tokens if token not in stop_words]
-                    if stemming:                    
-                        stemmers = [stemmer.stem(word) for word in words]
-                        processed_txt = ' '.join([stem for stem in stemmers if stem.isalpha() and len(stem) > 1])
-                    else:
-                        processed_txt = ' '.join(word for word in words)
-                else:
-                    processed_txt = ' '.join([token for token in tokens])
-                tweet['text'] = processed_txt
-                if 'sentiment' in tweet:
-                    tweet['sentiment_polarity'] = tweet['sentiment']['score']
-                    del tweet['sentiment']
-                tweet['hashtags'] = []
-                for hashtag in tweet['entities']['hashtags']:
-                    tweet['hashtags'].append(hashtag['text'])
-                #tweet['urls'] = []
-                #for url in tweet['entities']['urls']:
-                #    tweet['urls'].append(url['expanded_url'])
-                tweet['mentions'] = []
-                for mention in tweet['entities']['user_mentions']:    
-                    tweet['mentions'].append(mention['screen_name'])
-                del tweet['entities']
-                tweet['url'] = f"http://www.twitter.com/{tweet['user']['screen_name']}/status/{tweet['id']}"
-                del tweet['user']
-                dt = datetime.strptime(tweet['created_at_date'], '%Y-%m-%d')
-                tweet['month'] = dt.month
-                tweet['year'] = dt.year
-                tweet['week_month'] = f'{week_of_month(dt)}-{dt.month}'
-                if idx < (total_tweets-1):
-                    f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
-                else:
-                    f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
-            f.write(']')    
+        tweets_to_save.extend(process_tweets(tweets, stemming, stemmer, banned_accounts))
+    with open(output_fn, 'a', encoding='utf-8') as f:
+        f.write('[')
+        for idx, tweet in enumerate(tweets_to_save):            
+            if idx < len(tweets_to_save)-1:
+                f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
+            else:
+                f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
+        f.write(']')
 
 
-def export_user_sample_to_csv(sample_size, collection, output_filename=None, 
-                              config_fn=None):
+def export_user_sample_to_csv(query, sample_size, collection, randomize=True,
+                              output_filename=None, config_fn=None):
     """
     Export a sample of users to a csv file
     """
@@ -448,37 +461,86 @@ def export_user_sample_to_csv(sample_size, collection, output_filename=None,
         output_filename = 'user_sample.csv'
     output = os.path.join('..', 'data', output_filename)
     dbm = DBManager(collection=collection, config_fn=config_fn)
-    query_filter = {
-        'comunidad_autonoma': {'$ne':'desconocido'}
-    }    
+    query_filter = query
     projection = {
         '_id': 0, 
-        'id': 1,
+        'id_str': 1,
         'screen_name': 1,
         'description': 1,
         'location': 1,
-        'comunidad_autonoma': 1,
-        'provincia': 1
+        'comunidad_autonoma': 1
     }
-    logging.info('Getting sample of users, please wait...')
-    users = dbm.get_sample(int(sample_size), query_filter, projection)
+    print('Getting sample of users, please wait...')
+    users = list(dbm.find_all(query_filter, projection))
     total_users = len(users)
-    logging.info('Found {} users'.format(total_users))
+    print('Found {} users'.format(total_users))
+    seed(1)
+    saved_users = 0
     with open(output, 'w') as f:
-        headers = ['id', 'screen_name', 'description', 'location', 
-                   'comunidad_autonoma', 'provincia']
+        headers = ['id_str', 'screen_name', 'description', 'location', 
+                   'comunidad_autonoma']
         csv_writer = csv.DictWriter(f, fieldnames=headers)
         csv_writer.writeheader()
-        for user in users:         
-            logging.info('Saving user: {}'.format(user['screen_name']))
-            csv_writer.writerow(user)
+        for user in users:
+            if randomize:
+                if random() > 0.5:
+                    saved_users += 1
+                    print('Saving user: {}'.format(user['screen_name']))
+                    csv_writer.writerow(user)
+            else:
+                saved_users += 1
+                print('Saving user: {}'.format(user['screen_name']))
+                csv_writer.writerow(user)
+            if saved_users >= sample_size:
+                break
+
+
+def from_corpus_to_json(corpus_fn, output_fn):
+    print('Reading corpus...')
+    with open(corpus_fn, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file, delimiter='\t')
+        tweets_to_save = []
+        tweet_counter = 0
+        for row in csv_reader:
+            tweet_counter += 1
+            print('[{0}] Processing tweet {1}'.format(tweet_counter, row['id_str']))
+            text = row['complete_text']
+            processed_txt = tw_preprocessor.clean(text)
+            processed_txt = demoji.replace(processed_txt).replace('\u200d️','').strip()
+            processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
+            tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]
+            processed_txt = ' '.join([token for token in tokens])
+            dict_tweet = {
+                'id': row['id_str'],
+                'type': row['type'],
+                'text': processed_txt
+            }
+            tweets_to_save.append(dict_tweet)
+    total_tweets_to_save = len(tweets_to_save)
+    print('In total {:,} tweets will be saved'.format(total_tweets_to_save))
+    with open(output_fn, 'w', encoding='utf-8') as f:
+        f.write('[')
+        for idx, tweet in enumerate(tweets_to_save):
+            if idx < total_tweets_to_save-1:
+                f.write('{},\n'.format(json.dumps(tweet, ensure_ascii=False)))
+            else:
+                f.write('{}\n'.format(json.dumps(tweet, ensure_ascii=False)))
+        f.write(']')
+    print('Corpus has been exported to file {}'.format(output_fn))
 
 
 if __name__ == "__main__":
     #export_sentiment_sample(1519, 'rc_all', 'config_mongo_inb.json', lang='es')
     #export_tweets_to_json('rc_all', output_fn='../data/tweets.json', 
     #                       config_fn='config_mongo_inb.json')
-    export_tweets('rc_all', '../data/bsc/processing_outputs/', \
-                  'config_mongo_inb.json', start_date='2020-11-09', 
-                  end_date='2020-11-16')
-    #export_user_sample_to_csv(1100, 'users', config_fn='config_mongo_inb.json')
+    #export_tweets('rc_all', '../data/bsc/processing_outputs/', \
+    #              'config_mongo_inb.json', start_date='2020-11-23', 
+    #              end_date='2020-11-29')
+    #query_filter = {'identification_method': {'$eq': 'matching_flag_location'}}
+    #export_user_sample_to_csv(query_filter, 200, 'users', randomize=False,
+    #                          output_filename='../data/bsc/processing_outputs/users_flag.csv',
+    #                          config_fn='config_mongo_inb.json')
+    current_path = pathlib.Path(__file__).parent.resolve()
+    corpus_fn = os.path.join(current_path, '..', 'data', 'corpus_tweets.csv')
+    output_fn = os.path.join(current_path, '..', 'data', 'corpus_tweets.json')
+    from_corpus_to_json(corpus_fn, output_fn)
