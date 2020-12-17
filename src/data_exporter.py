@@ -510,8 +510,9 @@ def from_corpus_to_json(corpus_fn, output_fn):
             processed_txt = emoji.get_emoji_regexp().sub(u'', processed_txt)
             tokens = [token.lower() for token in wordpunct_tokenize(processed_txt)]
             processed_txt = ' '.join([token for token in tokens])
+            id_tweet = int(row['id_str'])
             dict_tweet = {
-                'id': row['id_str'],
+                'id': id_tweet,
                 'type': row['type'],
                 'text': processed_txt
             }
