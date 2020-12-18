@@ -2166,32 +2166,32 @@ def find_similar_words_to_terms(terms_list):
     similar_words = et.find_similar(terms_list, max_similar=50)
     return similar_words
 
-if __name__ == "__main__":
-    #remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
-    #             'config_mongo_inb.json')
-    #create_field_created_at_date('rc_all', 'config_mongo_inb.json')
-    #is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
-    #add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
-    #update_user_status('users', 'config_mongo_inb.json')
-    #identify_users_from_outside_spain('users', 'config_mongo_inb.json')
-    #infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
-    #infer_location_from_description_lang('users', 'config_mongo_inb.json')
-    #add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
-    #remove_users_without_tweets('users', 'processed_new', 'processed', 
-    #                            'config_mongo_inb.json')
-    add_esp_location_flags('users', 'config_mongo_inb.json')
-    #terms = ['vendo', 'oferta', 'vende']
-    #similar_words = find_similar_words_to_terms(terms)
-    #print(similar_words)
-    # current_path = pathlib.Path(__file__).parent.resolve()
-    # places_esp_fn = os.path.join(current_path, '..', 'data', 'places_spain.json')
-    # places_esp_csv_fn = os.path.join(current_path, '..', 'data', 'places_spain_new.csv')
-    # detector = LocationDetector(places_esp_fn)
-    #detector.from_csv_to_json(places_esp_csv_fn, places_esp_fn)
-    #location = '🇪🇺🇪🇸🇬🇧'
-    #description = 'Dona castellonera, mare de dues dragones, metgessa de família. In mens sana, corpore sano'
-    #ret = detector.identify_place_from_demonyms_in_description(description, location)
-    #print(ret)
-    # testset_fn = os.path.join(current_path, '..', 'data', 'location_detector_testset.csv')
-    # errors_test_fn = os.path.join(current_path, '..', 'data', 'error_evaluation_location_detector.csv')
-    # detector.evaluate_detector(testset_fn, errors_test_fn)
+#if __name__ == "__main__":
+#remove_users('../data/banned_accounts.txt', 'processed_new', 'users', 
+#             'config_mongo_inb.json')
+#create_field_created_at_date('rc_all', 'config_mongo_inb.json')
+#is_the_total_tweets_above_median('rc_all', '2020-09-29', 15, 'config_mongo_inb.json')
+#add_status_active_users_in_tweets('processed_new', 'users', 'config_mongo_inb.json')
+#update_user_status('users', 'config_mongo_inb.json')
+#identify_users_from_outside_spain('users', 'config_mongo_inb.json')
+#infer_location_from_demonyms_in_description('users', 'src/config_mongo_inb.json')
+#infer_location_from_description_lang('users', 'config_mongo_inb.json')
+#add_user_lang_flag('users', 'processed_new', 'config_mongo_inb.json')
+#remove_users_without_tweets('users', 'processed_new', 'processed', 
+#                            'config_mongo_inb.json')
+#add_esp_location_flags('users', 'config_mongo_inb.json')
+#terms = ['vendo', 'oferta', 'vende']
+#similar_words = find_similar_words_to_terms(terms)
+#print(similar_words)
+#current_path = pathlib.Path(__file__).parent.resolve()
+#places_esp_fn = os.path.join(current_path, '..', 'data', 'places_spain.json')
+# places_esp_csv_fn = os.path.join(current_path, '..', 'data', 'places_spain_new.csv')
+#detector = LocationDetector(places_esp_fn)
+#detector.from_csv_to_json(places_esp_csv_fn, places_esp_fn)
+#location = '🇪🇺🇪🇸🇬🇧'
+#description = 'Dona castellonera, mare de dues dragones, metgessa de família. In mens sana, corpore sano'
+#ret = detector.identify_place_from_demonyms_in_description(description, location)
+#print(ret)
+#testset_fn = os.path.join(current_path, '..', 'data', 'location_detector_testset.csv')
+#errors_test_fn = os.path.join(current_path, '..', 'data', 'error_evaluation_location_detector.csv')
+#detector.evaluate_detector(testset_fn, errors_test_fn)
