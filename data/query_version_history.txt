@@ -1,0 +1,206 @@
+version: v0
+desde: 24/03/2020
+hasta: 07/04/2020
+
+{
+    '$and': [
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19'}},
+        {"lang": {$in: ["es", "ca", "eu", "gl"]}}, 
+        {$or: [
+        		{"place.country": "Spain"}, 
+        		{"user.location": {$in: [/españa/i, /catalunya/i, /spain/i, /madrid/i, /espanya/i]}}
+        	]
+        }                 
+    ]
+}
+
+
+version: v1
+desde: 08/04/2020
+hasta: 12/04/2020
+
+{
+    '$and': [
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19'}},
+        {'lang': {'$in': ['es', 'ca', 'eu', 'gl']}},
+        {'$or': [
+        			{'place.country': 'Spain'}, 
+        			{'user.location': {'$in': ['/guipúzcoa/i', '/valladolid/i', '/castelló/i', '/comunidad valenciana/i', '/almería/i', '/donostia/i', '/región de murcia/i', '/cantabria/i', '/murcia/i', '/bilbao/i', '/teruel/i', '/lugo/i', '/la rioja/i', '/huesca/i', '/la coruña/i', '/cádiz/i', '/aragón/i', '/soria/i', '/girona/i', '/ceuta/i', '/lérida/i', '/gasteiz/i', '/segovia/i', '/andalucía/i', '/oviedo/i', '/asturies/i', '/melilla/i', '/islas baleares/i', '/guadalajara/i', '/país vasco/i', '/cuenca/i', '/granada/i', '/palma de mallorca/i', '/córdoba/i', '/bilbo/i', '/palencia/i', '/sevilla/i', '/san sebastián/i', '/espanya/i', '/catalonia/i', '/castilla y león/i', '/comunidad de madrid/i', '/gipúzkoa/i', '/castellón/i', '/logroño/i', '/bizkaia/i', '/la coruña /i', '/ourense/i', '/santa cruz de tenerife/i', '/asturias/i', '/españa/i', '/jaén/i', '/lleida/i', '/spain/i', '/málaga/i', '/vizcaya/i', '/las palmas/i', '/navarra/i', '/extremadura/i', '/principado de asturias/i', '/valencia/i', '/catalunya/i', '/madrid/i', '/baleares/i', '/las palmas de gran canaria/i', '/ávila/i', '/albacete/i', '/euskadi/i', '/valència/i', '/alicante/i', '/castilla-la mancha/i', '/canarias/i', '/castellón de la plana/i', '/gerona/i', '/león/i', '/toledo/i', '/salamanca/i', '/orense/i', '/burgos/i', '/badajoz/i', '/álava/i', '/zaragoza/i', '/pontevedra/i', '/tarragona/i', '/illes balears/i', '/huelva/i', '/pamplona/i', '/vitoria/i', '/barcelona/i', '/a coruña/i', '/catalunña/i', '/ciudad real/i', '/zamora/i', '/nafarroa/i', '/galicia/i', '/alacant/i', '/santander/i', '/cáceres/i']}}
+        		]
+        }                 
+    ]
+}
+
+
+version: v2
+desde: 13/04/2020
+hasta: 14/04/2020
+
+
+{
+    '$and': [           
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19 epidemia pandemia contagio infeccion confinamiento confinado distanciamiento quedatenecasa yomequedoencasa estadodealarma UnidosSomosMasFuertes EsteVirusLoParamosUnidos mascarilla respirador sintomas'}},
+        {'$or': [
+            {'lang': ['ca', 'eu', 'gl']},
+            {'$and': [
+            		{'lang': 'es'},
+            		{'$or': [
+            			{'place.country': 'Spain'}, 
+            			{'user.location': {'$in': ['/guipúzcoa/i', '/valladolid/i', '/castelló/i', '/comunidad valenciana/i', '/almería/i', '/donostia/i', '/región de murcia/i', '/cantabria/i', '/murcia/i', '/bilbao/i', '/teruel/i', '/lugo/i', '/la rioja/i', '/huesca/i', '/la coruña/i', '/cádiz/i', '/aragón/i', '/soria/i', '/girona/i', '/ceuta/i', '/lérida/i', '/gasteiz/i', '/segovia/i', '/andalucía/i', '/oviedo/i', '/asturies/i', '/melilla/i', '/islas baleares/i', '/guadalajara/i', '/país vasco/i', '/cuenca/i', '/granada/i', '/palma de mallorca/i', '/córdoba/i', '/bilbo/i', '/palencia/i', '/sevilla/i', '/san sebastián/i', '/espanya/i', '/catalonia/i', '/castilla y león/i', '/comunidad de madrid/i', '/gipúzkoa/i', '/castellón/i', '/logroño/i', '/bizkaia/i', '/la coruña /i', '/ourense/i', '/santa cruz de tenerife/i', '/asturias/i', '/españa/i', '/jaén/i', '/lleida/i', '/spain/i', '/málaga/i', '/vizcaya/i', '/las palmas/i', '/navarra/i', '/extremadura/i', '/principado de asturias/i', '/valencia/i', '/catalunya/i', '/madrid/i', '/baleares/i', '/las palmas de gran canaria/i', '/ávila/i', '/albacete/i', '/euskadi/i', '/valència/i', '/alicante/i', '/castilla-la mancha/i', '/canarias/i', '/castellón de la plana/i', '/gerona/i', '/león/i', '/toledo/i', '/salamanca/i', '/orense/i', '/burgos/i', '/badajoz/i', '/álava/i', '/zaragoza/i', '/pontevedra/i', '/tarragona/i', '/illes balears/i', '/huelva/i', '/pamplona/i', '/vitoria/i', '/barcelona/i', '/a coruña/i', '/catalunña/i', '/ciudad real/i', '/zamora/i', '/nafarroa/i', '/galicia/i', '/alacant/i', '/santander/i', '/cáceres/i']}}
+            			]
+            		}       
+            	]
+            }
+        ]}                            
+    ]
+}
+
+
+version: v3
+desde: 15/04/2020
+hasta: 19/04/2020
+
+
+{
+    '$and': [           
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19 epidemia pandemia contagio infeccion confinamiento confinado distanciamiento quedatenecasa yomequedoencasa estadodealarma UnidosSomosMasFuertes EsteVirusLoParamosUnidos mascarilla respirador sintomas'}},
+        {'$or': [
+            {'lang': ['ca', 'eu', 'gl']},
+            {'$and': [
+            		{'lang': 'es'},
+            		{'$or': [
+            			{'place.country': 'Spain'}, 
+            			{'user.location': {'$in': ['guipúzcoa valladolid castelló  almería donostia cantabria murcia bilbao teruel lugo '
+           										   'huesca  cádiz aragón soria girona ceuta lérida gasteiz segovia andalucía oviedo asturies melilla '
+           										   'guadalajara  cuenca granada  córdoba bilbo palencia sevilla  espanya catalonia '
+           										   '  gipúzkoa castellón logroño bizkaia ourense  asturias españa jaén '
+           										   'lleida spain málaga vizcaya  navarra extremadura valencia catalunya madrid baleares '
+           										   ' ávila albacete euskadi valència alicante canarias  gerona león toledo '
+           										   'salamanca orense burgos badajoz álava zaragoza pontevedra tarragona  huelva pamplona vitoria barcelona  '
+           										   'cataluña  zamora nafarroa galicia alacant santander -argentina -bolivia -chile -colombia -cuba -ecuador -guatemala',
+           										   '-honduras -méxico -nicaragua -panamá -paraguay -perú -uruguay -venezuela',
+           										   '-"el salvador"', '-"costa rica"', '-"republica dominicana"',
+           										   '"cáceres"', '"ciudad real"', '"castellón de la plana"', '"comunidad valenciana"', '"palma de mallorca"',
+           										   '"san sebastian"', '"las palmas"', '"santa cruz de tenerife"', '"principado de asturias"',
+           										   '"las palmas de gran canaria"', '"illes balears"', '"islas baleares"', '"castilla y leon"',
+           										   '"comunidad de madrid"', '"santa cruz de tenerife"', '"region de murcia"', '"la coruña"',
+           										  '"a coruña"', '"castilla-la mancha"', '"país vasco"', '"la rioja"', '"san sebastián"']
+											}
+							}
+            			]
+            		}       
+            	]
+            }
+        ]}                            
+    ]
+}
+
+
+version v4
+desde: 20/04/2020
+hasta: 22/04/2020
+
+{
+    '$and': [           
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19 epidemia pandemia contagio infeccion confinamiento confinado distanciamiento quedatenecasa yomequedoencasa estadodealarma UnidosSomosMasFuertes EsteVirusLoParamosUnidos mascarilla respirador sintomas'}},
+        {'$or': [
+            {'lang': ['ca', 'eu', 'gl']},
+            {'$and': [
+            		{'lang': 'es'},
+            		{'$or': [
+            			{'place.country': 'Spain'}, 
+            			{'user.location': {'$in': [
+												        'barcelona alacant logroño torremolinos estepona majadahonda viladecans extremadura ',
+												        'bilbo vitoria paterna álava santander avilés baleares salamanca granada sevilla ',
+												        'ponferrada valladolid castelló vizcaya burgos rivas-vaciamadrid gandía ferrol bizkaia reus ',
+												        'móstoles pinto castellón tarragona guadalajara cádiz madrid alcorcón torrevieja badajoz siero ',
+												        'benidorm huelva ceuta gipúzkoa cuenca guipúzcoa palencia oviedo baracaldo donostia segovia ',
+												        'linares aranjuez almeria zaragoza catalunña valencia leganés calviá cáceres rubí torrelavega ',
+												        'tarrasa toledo granollers aragón benalmádena alcobendas murcia jaén catalonia arrecife lérida ',
+												        'canarias manresa alcoy huesca almería sagunto orense girona vélez-málaga asturies málaga vigo ',
+												        'albacete irún cantabria navarra gerona elda mijas córdoba lugo lorca marbella coslada valdemoro ',
+												        'torrente gasteiz soria andalucía casteldefels fuengirola orihuela getafe mérida villarreal ',
+												        'asturias badalona algeciras sabadell catalunya teide motril ourense león valència spain melilla ',
+												        'teruel lleida arona gijón zamora euskadi elche galicia mataró fuenlabrada pontevedra getxo cartagena ',
+												        'bilbao parla ávila utrera alicante españa nafarroa espanya pamplona -argentina -bolivia -chile -colombia -cuba -ecuador -guatemala',
+												        '-honduras -méxico -nicaragua -panamá -paraguay -perú -uruguay -venezuela',
+												        '-guanajuato -jalisco -monterrey -mx.', '-"el salvador"',
+												        '-"costa rica"', '-"republica dominicana"', '-"nuevo león"',
+												        '"ciudad real"', '"molina de segura"', '"santa cruz de tenerife"', '"región de murcia"', 
+												        '"san baudilio de llobregat"', '"alcalá de guadaíra"', '"sardañola del vallés"', '"hospitalet de llobregat"', 
+												        '"las rozas de madrid"', '"la línea de la concepción"', '"las palmas de gran canaria"', 
+												        '"el puerto de santa maría"', '"chiclana de la frontera"', '"san vicente del raspeig"', '"illes balears"', 
+												        '"san cugat del vallés"', '"castellón de la plana"', '"las palmas"', '"islas baleares"', '"la rioja"', 
+												        '"castilla-la mancha"', '"jerez de la frontera"', '"collado villalba"', '"cornellá de llobregat"', 
+												        '"arganda del rey"', '"sanlúcar de barrameda"', '"el prat de llobregat"', '"mollet del vallés"', 
+												        '"la coruña"', '"san cristobal de la laguna"', '"talavera de la reina"', '"san sebastián"', 
+												        '"santiago de compostela"', '"comunidad de madrid"', '"san bartolomé de tirajana"', '"torrejón de ardoz"', 
+												        '"el ejido"', '"principado de asturias"', '"granadilla de abona"', '"santa lucía de tirajana"', 
+												        '"santa coloma de gramanet"', '"castilla y león"', '"boadilla del monte"', '"pozuelo de alarcón"', 
+												        '"comunidad valenciana"', '"san sebastián de los reyes"', '"a coruña"', '"colmenar viejo"', 
+												        '"alcalá de henares"', '"roquetas de mar"', '"palma de mallorca"', '"san fernando"', '"dos hernanas"', 
+												        '"país vasco"', '"villanueva y geltrú"'
+												]
+
+											}
+							}
+            			]
+            		}       
+            	]
+            }
+        ]}                            
+    ]
+}
+
+version v5
+desde: 23/04/2020
+hasta: actualidad
+
+{
+    '$and': [           
+        {'$text': {'$search': 'coronavirus corona virus coronaoutbreak COVID-19 COVID19 2019-nCoV 2019nCoV SARS-CoV-2 SARSCoV2 CoV-19 CoV19 COVD 19 COVD19 COVIDー19 epidemia pandemia contagio infeccion confinamiento confinado distanciamiento quedatenecasa yomequedoencasa estadodealarma UnidosSomosMasFuertes EsteVirusLoParamosUnidos mascarilla respirador sintomas'}},
+        {'$or': [
+            {'lang': ['ca', 'eu', 'gl']},
+            {'$or': [
+            		{'place.country': 'Spain'}, 
+            		{'user.location': {'$in': [
+												'barcelona alacant logroño torremolinos estepona majadahonda viladecans extremadura ',
+												'bilbo vitoria paterna álava santander avilés baleares salamanca granada sevilla ',
+												'ponferrada valladolid castelló vizcaya burgos rivas-vaciamadrid gandía ferrol bizkaia reus ',
+												'móstoles pinto castellón tarragona guadalajara cádiz madrid alcorcón torrevieja badajoz siero ',
+												'benidorm huelva ceuta gipúzkoa cuenca guipúzcoa palencia oviedo baracaldo donostia segovia ',
+												'linares aranjuez almeria zaragoza catalunña valencia leganés calviá cáceres rubí torrelavega ',
+												'tarrasa toledo granollers aragón benalmádena alcobendas murcia jaén catalonia arrecife lérida ',
+												'canarias manresa alcoy huesca almería sagunto orense girona vélez-málaga asturies málaga vigo ',
+												'albacete irún cantabria navarra gerona elda mijas córdoba lugo lorca marbella coslada valdemoro ',
+												'torrente gasteiz soria andalucía casteldefels fuengirola orihuela getafe mérida villarreal ',
+												'asturias badalona algeciras sabadell catalunya teide motril ourense león valència spain melilla ',
+												'teruel lleida arona gijón zamora euskadi elche galicia mataró fuenlabrada pontevedra getxo cartagena ',
+												'bilbao parla ávila utrera alicante españa nafarroa espanya pamplona -argentina -bolivia -chile -colombia -cuba -ecuador -guatemala',
+												'-honduras -méxico -nicaragua -panamá -paraguay -perú -uruguay -venezuela',
+												'-guanajuato -jalisco -monterrey -mx.', '-"el salvador"',
+												'-"costa rica"', '-"republica dominicana"', '-"nuevo león"',
+												'"ciudad real"', '"molina de segura"', '"santa cruz de tenerife"', '"región de murcia"', 
+												'"san baudilio de llobregat"', '"alcalá de guadaíra"', '"sardañola del vallés"', '"hospitalet de llobregat"', 
+												'"las rozas de madrid"', '"la línea de la concepción"', '"las palmas de gran canaria"', 
+												'"el puerto de santa maría"', '"chiclana de la frontera"', '"san vicente del raspeig"', '"illes balears"', 
+												'"san cugat del vallés"', '"castellón de la plana"', '"las palmas"', '"islas baleares"', '"la rioja"', 
+												'"castilla-la mancha"', '"jerez de la frontera"', '"collado villalba"', '"cornellá de llobregat"', 
+												'"arganda del rey"', '"sanlúcar de barrameda"', '"el prat de llobregat"', '"mollet del vallés"', 
+												'"la coruña"', '"san cristobal de la laguna"', '"talavera de la reina"', '"san sebastián"', 
+												'"santiago de compostela"', '"comunidad de madrid"', '"san bartolomé de tirajana"', '"torrejón de ardoz"', 
+												'"el ejido"', '"principado de asturias"', '"granadilla de abona"', '"santa lucía de tirajana"', 
+												'"santa coloma de gramanet"', '"castilla y león"', '"boadilla del monte"', '"pozuelo de alarcón"', 
+												'"comunidad valenciana"', '"san sebastián de los reyes"', '"a coruña"', '"colmenar viejo"', 
+												'"alcalá de henares"', '"roquetas de mar"', '"palma de mallorca"', '"san fernando"', '"dos hernanas"', 
+												'"país vasco"', '"villanueva y geltrú"'
+									]
+
+								}
+						}
+            		]
+            	}       
+            ]
+        }
+    ]
+}                            
