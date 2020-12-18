@@ -68,7 +68,7 @@ be learn in the article [Demographic Inference and Representative Population Est
 M3Inference helps us to derive the gender and age of the users as well as to 
 identify which Twitter users are controlled by organizations and which represent
 people. A manual inspection on a sample of the M3Inference results showed a low
-accuracy of age inference, hence, it was discarded.
+accuracy of age inference, hence, it was finally discarded.
 
 ## Language detector
 
