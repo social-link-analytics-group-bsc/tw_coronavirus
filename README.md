@@ -101,11 +101,65 @@ language detector tools on all tweets as part of the processing task.
 Three tools are used for this purpose, namely Polyglot, [FastText](https://fasttext.cc/docs/en/language-identification.html), 
 and [LangId](https://pypi.org/project/langid/1.1.5). Majority vote is applied
 to decide among the results of the three tools. Meaning, the language of tweets
-are assigned to the language detected by the majority of the tools.
+are determined by the language detected by the majority of the tools. If there
+isn't a clear candidate (i.e., all tools detect different languages) `undefined`
+is answered.
 
 ## Location detector
 
-...
+A multi-criteria approach has been develop to detect the location of tweets. 
+First, a data model has been developed to store information about cities, provinces,
+and autonoums communities in Spain. In the model each city, province, autonoums 
+community, country of interest has the following properties
+
+| Property | Type | Description | Valid values | Example |
+|-|-|-|-|-|
+| name | String | Name of the city/province/autonomous community/country | List of strings | España |
+| alternative_names | List | Alternative names given to the city/province/autonomous community/country | List of strings | ['Spain', 'Spagna', 'Espanya'] |
+| type | String | Type of place  | City, Province, Autonomous Community, Country | Country |
+| flag_emoji_code | List | Emoji code of the place's flag | List of emoji codes in Github version | [':Spain:'] |
+| languages | List | Languages spoken in the place | List of strings | ['es', 'ca', 'gl', 'eu'] |
+| homonymous | Integer | Whether there is a homonymous place somewhere | 1 (there is a homonymous) / 0 | 0 |
+| demonyms | Complex | Demonyms associated to the place |  |  |
+| demonyms.names | List | Names of the demonyms | List of strings | ['Español', 'Española'] |
+| demonyms.banned_prefix | List | Demonyms preceded by these terms are ignored | List of strings | ['en', 'hablo', 'es', 'lo'] |
+| demonyms.banned_places | List | Demonyms are ignored if places listed here appear in location | List of strings | ['San Juan', 'Nuevo León'] |
+
+An additional property is used to create hierarchical relationships between places. 
+Places of `type` country contains a list of thier regions, which at the same time include
+a list of their provinces. Provinces contain a list of their cities and so on. Following
+the example of the table, the place *España* has the property *regions*, which
+contains the regions of Spain. See **`data/places_esp.json`** for an example of 
+how cities, provinces, and regions of Spain are defined using the data model.
+
+### Criteria
+
+1. **Matching of place name**: the location self-declared by the user is inspected
+term by terms trying to find the name of a place included in the data model. If the
+found place has a homonymous somewhere the name of the corresponding country, region,
+or province should also appear in the self-declared location. In order to favor
+inclusion over exclusion, an exeption to this rule are locations that contain 
+as unique string the name of the place. For example, the city Cordoba exists in 
+Spain and in Argentina, so if an user declares `location=Cordoba` or 
+`location=Cordoba, Andalucia` they are a valid matches while `location=Soy de Cordoba` no.
+
+2. **Matching demonyms in description**: the description of the users is analyzed
+term by term trying to find match with the demonyms defined in the data model. Here,
+demonyms preceded by the terms included in the list of `banned_prefix` are ignored.
+Likewise, if there is a match with some of the defined demonyms but the user
+declares that is located in one of the places listed in `banned_places`, the match
+is discarded.
+
+3. **Language of description**: tweets (and their corresponding users) are assigned
+to places according to the language of the users' description. For example, tweets 
+authored by users with descriptions written in Vasque are assigned to Vasque Country.
+
+4. **Matching emoji flags**: location is inspected attemping to find the defined
+emojis.
+
+Criterion `1)` is executed first, if place could not be found, criterion `2)` is
+applied. If criteria `1)` and `2)` did not match, criterion `3)` and `4)` are executed 
+in this order.
 
 ## Installation
 
@@ -116,6 +170,8 @@ are assigned to the language detected by the majority of the tools.
 ## Command Line Interface
 
 All commands must be run from the `src` directory.
+
+### Example 1: 
 
 
 
