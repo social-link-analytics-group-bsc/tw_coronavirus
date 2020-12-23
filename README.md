@@ -187,7 +187,8 @@ evaluation of each of the criterion.
 
 ## Command Line Interface (CLI)
 
-All commands must be run from the `src` directory.
+The list of supported commands are in `src/run.py` and all commands must be run 
+from the `src` directory. Some illustrative examples are presented below.
 
 ### Example 1: Identify location
 
