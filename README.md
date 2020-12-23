@@ -1,4 +1,4 @@
-# Infrastructure to collect, process, analyze tweets about COVID-19
+# Data pipeline to collect, process, analyze tweets about COVID-19
 
 The repository contains scripts and software modules used to collect, process,
 and analyze tweets about COVID-19. A MongoDB database is employed to store the
@@ -65,20 +65,36 @@ The demographic characteristics of users are calculated using the library
 for demographic inference. Details on how M3Inference works under the hood can
 be learn in the article [Demographic Inference and Representative Population Estimates from Multilingual Social Media Data](https://dl.acm.org/doi/10.1145/3308558.3313684).
 
-M3Inference helps us to derive the gender and age of the users as well as to 
-identify which Twitter users are controlled by organizations and which represent
-people. A manual inspection on a sample of the M3Inference results showed a low
-accuracy of age inference, hence, it was finally discarded.
+M3Inference helps us to infer the gender and age of the users as well as to 
+identify which Twitter users are controlled by organizations and which by
+"people". A posterior manual inspection on a representative sample of the 
+M3Inference results showed a low accuracy of age inferences, hence, only gender
+and the type of account (organization/non-organitzation) are considered
+for the analyses.
+
+## Sentiment analyzer
+
+So far the pipeline supports the sentiment analysis of tweets in Spanish, Catalan,
+Vasque, Galician, and English. For Catalan, Vasque, and Galician, (Polyglot)[https://pypi.org/project/polyglot], 
+a python multilingual toolkit for natural language processing, is used. Polyglot
+returns scores between 0 (most positive) and -1 (most negative) that are then
+normalized using the (Hyperbolic Tangent function (TanH))[https://en.wikipedia.org/wiki/Hyperbolic_functions#Hyperbolic_tangent] 
+to have scores in the range of -1 - 1. 
+
+For English, (Vader)[https://pypi.org/project/vaderSentiment], a rule-based sentiment 
+analysis tool, is applied together with Polyglot. TanH is also used here to 
+normalize the scores of both tools, which are then averaged.
+
+In the case of the Spanish tweets, a combination of three tools are employed. Apart from Polyglot, a customized version of 
+[Affin](https://github.com/mmaguero/afinn) and the machine-learning based solution
+[Senti-Py](https://github.com/aylliote/senti-py) are employed. As in the English case, 
+the resulting scores are normalized using TanH and then averaged.
 
 ## Language detector
 
 ...
 
 ## Location detector
-
-...
-
-## Sentiment analyzer
 
 ...
 
