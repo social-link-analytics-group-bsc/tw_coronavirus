@@ -134,7 +134,7 @@ how cities, provinces, and regions of Spain are defined using the data model.
 
 ### Criteria
 
-1. **Matching of place name**: the location self-declared by the user is inspected
+1. **Matching place name**: the location self-declared by the user is inspected
 term by terms trying to find the name of a place included in the data model. If the
 found place has a homonymous somewhere the name of the corresponding country, region,
 or province should also appear in the self-declared location. In order to favor
@@ -157,9 +157,27 @@ authored by users with descriptions written in Vasque are assigned to Vasque Cou
 4. **Matching emoji flags**: location is inspected attemping to find the defined
 emojis.
 
+### Algorithm
+
 Criterion `1)` is executed first, if place could not be found, criterion `2)` is
 applied. If criteria `1)` and `2)` did not match, criterion `3)` and `4)` are executed 
-in this order.
+in this order. If non of the criteria produce a math, the tweet (and its corresponding)
+author are assigned to an `unknown` place.
+
+### Evaluation
+
+The approach has been tested using the testset `data/location_detector_testset.csv` 
+and showed to have an overall `accuracy` of **0.968**, a `recall` of **0.983**, 
+a `precision` of **0.981**, and `F1` of **0.982**. The table below shows the 
+evaluation of each of the criterion.
+
+
+| Criterion | Accuracy | Recall | Precision | F1 |
+|-|-|-|-|-|
+| Matching place name | 0.982 | 0.981 | 0.995 | 0.993 |
+| Matching demonyms in description | 0.920 | 0.994 | 0.922 | 0.957 |
+| Language of description | 0.834 | 0.861 | 0.975 | 0.911 |
+| Matching emoji flags | 0.991 | 0.995 | 0.995 | 0.995 |
 
 ## Installation
 
@@ -167,11 +185,21 @@ in this order.
 2. Rename `src/config.json.example` to `src/config.json` 
 3. Set information about mongo db in `src/config.json`
 
-## Command Line Interface
+## Command Line Interface (CLI)
 
 All commands must be run from the `src` directory.
 
-### Example 1: 
+### Example 1: Identify location
+
+`python run.py add-location-flags [mongo_collection_name] --config_file [mongo_config_file_name]`
+
+### Example 2: Detect language
+
+`python run.py add-language-flag [mongo_collection_name] --config_file [mongo_config_file_name]`
+
+### Example 3: Analyze sentiment 
+
+`python run.py preprocess [mongo_collection_name] --config_file [mongo_config_file_name]`
 
 
 
