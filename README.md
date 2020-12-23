@@ -85,14 +85,23 @@ For English, [Vader](https://pypi.org/project/vaderSentiment), a rule-based sent
 analysis tool, is applied together with Polyglot. TanH is also used here to 
 normalize the scores of both tools, which are then averaged.
 
-In the case of the Spanish tweets, a combination of three tools are employed. Apart from Polyglot, a customized version of 
-[Affin](https://github.com/mmaguero/afinn) and the machine-learning based solution
-[Senti-Py](https://github.com/aylliote/senti-py) are employed. As in the English case, 
-the resulting scores are normalized using TanH and then averaged.
+In the case of the Spanish tweets, a combination of three tools are employed. Apart 
+from Polyglot, a customized version of [Affin](https://github.com/mmaguero/afinn) 
+and the machine-learning based solution [Senti-Py](https://github.com/aylliote/senti-py) 
+are employed. As in the English case, the resulting scores are normalized using 
+TanH and then averaged.
 
 ## Language detector
 
-...
+Even when the API of Twitter provides information about the language of tweets, 
+we saw certain inaccuracy in this information. Tweets in Catalan are flagged as
+French, tweets in Galician are reported Portguese, etc. So, we decided to run
+language detector tools on all tweets as part of the processing task.
+
+Three tools are used for this purpose, namely Polyglot, [FastText](https://fasttext.cc/docs/en/language-identification.html), 
+and [LangId](https://pypi.org/project/langid/1.1.5). Majority vote is applied
+to decide among the results of the three tools. Meaning, the language of tweets
+are assigned to the language detected by the majority of the tools.
 
 ## Location detector
 
@@ -107,27 +116,6 @@ the resulting scores are normalized using TanH and then averaged.
 ## Command Line Interface
 
 All commands must be run from the `src` directory.
-
-### Detect language of tweets
-
-`python run.py detect-language [data_dir] [file_name_of_tweets]`
-
-- *data_dir*: path to data directory and must be relative to the `src` directory
-- *file_name_of_tweets*: Name of the file containing the tweets in CSV format
-
-### Create network of users
-
-`python run.py create-db-users [collection_name]`
-
-- *collection_name*: name of collection that contains tweets
-
-### Create network of interactions
-
-**The database of users must exist**
-
-`python run.py --create_interaction_net`
-
-The resulting network is stored in `sna/gefx` under the name `network_`[today_date].gefx
 
 
 
