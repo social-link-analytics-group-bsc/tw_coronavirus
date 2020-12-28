@@ -1,5 +1,6 @@
 -e git+https://github.com/mmaguero/afinn.git@2ed44448f7b9bdd024c5b544a4386a06eb34eeb6#egg=afinn
 altair==4.0.1
+appnope==0.1.2
 astor==0.8.1
 astroid==2.3.3
 attrs==19.3.0
@@ -32,6 +33,7 @@ defusedxml==0.6.0
 demoji==0.2.1
 distributed==2.14.0
 docutils==0.15.2
+emoji==0.6.0
 entrypoints==0.3
 enum-compat==0.0.3
 fasttext==0.9.1
@@ -40,6 +42,7 @@ Flask==1.1.2
 Flask-Compress==1.5.0
 fsspec==0.6.2
 future==0.18.2
+gensim==3.8.3
 geographiclib==1.50
 geopandas==0.7.0
 geopy==1.21.0
@@ -122,7 +125,7 @@ pybind11==2.4.3
 pycld2==0.41
 pydeck==0.3.0b2
 Pygments==2.6.1
-PyICU==2.4.3
+PyICU==2.6
 pylint==2.4.4
 pymongo==3.10.1
 pyparsing==2.4.6
@@ -149,6 +152,7 @@ Send2Trash==1.5.0
 Shapely==1.7.0
 six==1.14.0
 sklearn==0.0
+smart-open==4.0.1
 sortedcontainers==2.1.0
 spanish-sentiment-analysis==1.0.0
 squarify==0.4.3
