@@ -179,6 +179,13 @@ evaluation of each of the criterion.
 | Language of description | 0.834 | 0.861 | 0.975 | 0.911 |
 | Matching emoji flags | 0.991 | 0.995 | 0.995 | 0.995 |
 
+## Dashboard
+
+A proof-of-concept dashboard can be launched by running `python app.py` from
+`src/dashboard`
+
+![Dashboard](screenshots/dashboard.png)
+
 ## Installation
 
 1. Install requirements `pip install -r requirements.txt`
@@ -200,7 +207,7 @@ from the `src` directory. Some illustrative examples are presented below.
 
 ### Example 3: Analyze sentiment 
 
-`python run.py preprocess [mongo_collection_name] --config_file [mongo_config_file_name]`
+`python run.py sentiment_analysis [mongo_collection_name] --config_file [mongo_config_file_name]`
 
 
 
