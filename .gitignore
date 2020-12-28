@@ -138,11 +138,27 @@ launch.json
 
 data/bsc
 
-reports
-
 log
 
 src/utils/twitter_cache
 
-
 download_results.sh
+
+reports/0_2805030620
+reports/10_2805030620
+reports/11_0406100620
+reports/1_2403020420
+reports/2_0204070420
+reports/3_0804160420
+reports/3_0804260420
+reports/4_1704220420
+reports/5_2304290420
+reports/6_3004060520
+reports/7_0705130520
+reports/8_1405200520
+reports/9_2105270520
+reports/media_publication
+reports/radar_24082020
+reports/radar_26082020
+reports/users
+reports/valencia
