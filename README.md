@@ -2,32 +2,30 @@
 
 The repository contains scripts and software modules used to collect, process,
 and analyze tweets about COVID-19. A MongoDB database is employed to store the
-downloaded and processed data. The script **`tweets_processor.sh`** is the 
+downloaded and processed data. The script **`tweets_processor.sh`** is 
 responsible for the heavy-load of processing tasks. It computes the type,
-extracts the complete text, identify the location in Spain, calculate the sentiment, 
-infers the language, and compute metrics (retweets, favorites) of tweets. The script
-also updates the collection of users and it is programmed to be executed daily
-to process the tweets that get into the database lastly.
+extracts the complete text, identifies the location, calculates the sentiment, 
+infers the language, and computes metrics (retweets, favorites) of tweets. The script
+also updates the collection of users.
 
 The directory **`data`** contains some datasets that help in processing tweets. For
-example the dataset **`banned_accounts.csv`** includes a list of twitter account that
-we decided to exclude from our collection of tweets. The datasets **`demonyms_spain.csv`** and
-**`places_spain*.*`** are used in the task of identifying the location of tweets. The 
-dataset **`keywords_covid.txt`** holds the list of keywords we used to find tweets. The
-datasets **`query_version_history.txt`** and **`query_versions.csv`** shows the different 
-queries we employed in our searches on Twitter. The queries evolved over time and 
-in these files all different versions are reported together with usage start and
-end date.
+example, the dataset **`banned_accounts.csv`** includes a list of Twitter accounts that
+we decided to exclude from our tweets' collection. The datasets **`demonyms_spain.csv`** and
+**`places_spain*.*`** are used to identify tweets' location. The dataset 
+**`keywords_covid.txt`** holds the list of keywords we used to find tweets. The
+datasets **`query_version_history.txt`** and **`query_versions.csv`** show the different 
+queries we employed in our searches on Twitter. In these files, all versions of 
+queries are reported together with usage start and end dates.
 
-The directory **`legacy`** includes scripts and software code that were used in the
-past and they are made available in case they can be useful in the future.
+The directory **`legacy`** includes scripts and software code used in the past 
+and are made available if they can be useful in the future.
 
-The core of the infrastructure is in **`src`**, which is organized in three main modules,
+The infrastructure's core is in **`src`**, which is organized in three main modules,
 **`data_loader.py`**, **`data_explorter.py`**, and **`data_wrangler.py`** to load, export, and
 process data, respectively. Functions implemented in these modules are expected to be
-called from the script **`run.py`**, which is the main script to run processing and analysis.
-Complementary the directory **`utils`** contains utilitarian classes that are key in
-the execution of the loading, exporting, and processing tasks. Next, the complete
+called from the script **`run.py`**, the main script to run processing and analysis.
+Complementary, the directory **`utils`** contains utilitarian classes that are key in
+executing the loading, exporting, and processing tasks. Next, the complete
 structure of the directory is presented.
 
 ```
@@ -63,18 +61,18 @@ structure of the directory is presented.
 The demographic characteristics of users are calculated using the library 
 [M3Inference](https://github.com/euagendas/m3inference), a deep-learning system 
 for demographic inference. Details on how M3Inference works under the hood can
-be learn in the article [Demographic Inference and Representative Population Estimates from Multilingual Social Media Data](https://dl.acm.org/doi/10.1145/3308558.3313684).
+be learned in the article 
+[Demographic Inference and Representative Population Estimates from Multilingual Social Media Data](https://dl.acm.org/doi/10.1145/3308558.3313684).
 
-M3Inference helps us to infer the gender and age of the users as well as to 
-identify which Twitter users are controlled by organizations and which by
-"people". A posterior manual inspection on a representative sample of the 
-M3Inference results showed a low accuracy of age inferences, hence, only gender
-and type of account (organization/non-organitzation) are considered
-for the analyses.
+M3Inference helps us infer users' gender and age and identify which user 
+accounts are controlled by organizations and which by "people." A posterior manual \
+inspection on a representative sample of the M3Inference results showed a low 
+accuracy of age inferences, hence, only gender and type of account 
+(organization/non-organization) are considered for the analyses.
 
 ## Sentiment analyzer
 
-So far the pipeline supports the sentiment analysis of tweets in Spanish, Catalan,
+The pipeline supports the sentiment analysis of tweets in Spanish, Catalan,
 Vasque, Galician, and English. For Catalan, Vasque, and Galician, [Polyglot](https://pypi.org/project/polyglot), 
 a python multilingual toolkit for natural language processing, is used. Polyglot
 returns scores between 0 (most positive) and -1 (most negative) that are then
@@ -87,30 +85,30 @@ normalize the scores of both tools, which are then averaged.
 
 In the case of the Spanish tweets, a combination of three tools are employed. Apart 
 from Polyglot, a customized version of [Affin](https://github.com/mmaguero/afinn) 
-and the machine-learning based solution [Senti-Py](https://github.com/aylliote/senti-py) 
+and the machine-learning-based solution [Senti-Py](https://github.com/aylliote/senti-py) 
 are employed. As in the English case, the resulting scores are normalized using 
 TanH and then averaged.
 
 ## Language detector
 
 Even when the API of Twitter provides information about the language of tweets, 
-we saw certain inaccuracy in this information. Tweets in Catalan are flagged as
-French, tweets in Galician are reported Portguese, etc. So, we decided to run
-language detector tools on all tweets as part of the processing task.
+we saw certain inaccuracy in this information. Tweets in Catalan are identified 
+as French, tweets in Galician are reported as Portuguese, etc. So, we decided to 
+run language detector tools on all tweets as part of the processing task.
 
 Three tools are used for this purpose, namely Polyglot, [FastText](https://fasttext.cc/docs/en/language-identification.html), 
-and [LangId](https://pypi.org/project/langid/1.1.5). Majority vote is applied
-to decide among the results of the three tools. Meaning, the language of tweets
-are determined by the language detected by the majority of the tools. If there
-isn't a clear candidate (i.e., all tools detect different languages) `undefined`
+and [LangId](https://pypi.org/project/langid/1.1.5). The majority vote is applied 
+to decide among the results of the three tools. Meaning, the language of tweets 
+is determined by the language detected by the majority of the tools. If there 
+isn't a clear candidate (i.e., all tools detect different languages), `undefined` 
 is answered.
 
 ## Location detector
 
-A multi-criteria approach has been develop to detect the location of tweets. 
-First, a data model has been developed to store information about cities, provinces,
-and autonoums communities in Spain. In the model each city, province, autonoums 
-community, country of interest has the following properties
+A multi-criteria approach has been implemented to detect the location of tweets. 
+First, a data model has been developed to store information about cities, provinces, 
+and autonomous communities in Spain. In the model, each city, province, autonomous 
+community, country of interest has the following properties.
 
 | Property | Type | Description | Valid values | Example |
 |-|-|-|-|-|
@@ -126,50 +124,51 @@ community, country of interest has the following properties
 | demonyms.banned_places | List | Demonyms are ignored if places listed here appear in location | List of strings | ['San Juan', 'Nuevo León'] |
 
 An additional property is used to create hierarchical relationships between places. 
-Places of `type` country contains a list of thier regions, which at the same time include
-a list of their provinces. Provinces contain a list of their cities and so on. Following
-the example of the table, the place *España* has the property *regions*, which
-contains the regions of Spain. See **`data/places_esp.json`** for an example of 
-how cities, provinces, and regions of Spain are defined using the data model.
+Places of `type` country contain a list of their regions, which at the same time 
+include a list of their provinces. Provinces contain a list of their cities and 
+so on. Following the example of the table, the place *España* has the property *regions*, 
+which contains the Spain's regions. See **`data/places_esp.json`** for an example 
+of how cities, provinces, and regions of Spain are defined using the data model.
 
 ### Criteria
 
-1. **Matching place name**: the location self-declared by the user is inspected
-term by terms trying to find the name of a place included in the data model. If the
-found place has a homonymous somewhere the name of the corresponding country, region,
-or province should also appear in the self-declared location. In order to favor
-inclusion over exclusion, an exeption to this rule are locations that contain 
-as unique string the name of the place. For example, the city Cordoba exists in 
-Spain and in Argentina, so if an user declares `location=Cordoba` or 
-`location=Cordoba, Andalucia` they are a valid matches while `location=Soy de Cordoba` no.
+1. **Matching place name**: the location self-declared by the user is inspected 
+term by terms trying to find the name of a place included in the data model. If 
+the located place has a homonymous somewhere, the name of the corresponding country, 
+region, or province should also appear in the self-declared location. To favor 
+inclusion over exclusion, an exception to this rule are locations that contain 
+a unique string with the name of the place. For example, the city Cordoba exists 
+in Spain and Argentina, so if a user declares `location=Cordoba` or 
+`location=Cordoba, Andalucia`, they are both valid matches while 
+`location=Soy de Cordoba` no.
 
-2. **Matching demonyms in description**: the description of the users is analyzed
-term by term trying to find match with the demonyms defined in the data model. Here,
-demonyms preceded by the terms included in the list of `banned_prefix` are ignored.
-Likewise, if there is a match with some of the defined demonyms but the user
-declares that is located in one of the places listed in `banned_places`, the match
-is discarded.
+2. **Matching demonyms in description**: the users' description is analyzed term 
+by term, trying to find a match with the demonyms defined in the data model. Here, 
+demonyms preceded by the terms included in the list of `banned_prefix` are ignored. 
+Likewise, if there is a match with some of the defined demonyms but the user 
+declares that she is located in one of the places listed in `banned_places`, the 
+match is discarded.
 
 3. **Language of description**: tweets (and their corresponding users) are assigned
-to places according to the language of the users' description. For example, tweets 
+to places according to the language of the users' descriptions. For example, tweets 
 authored by users with descriptions written in Vasque are assigned to Vasque Country.
 
-4. **Matching emoji flags**: location is inspected attemping to find the defined
+4. **Matching emoji flags**: location is inspected attempting to find the defined
 emojis.
 
 ### Algorithm
 
-Criterion `1)` is executed first, if place could not be found, criterion `2)` is
-applied. If criteria `1)` and `2)` did not match, criterion `3)` and `4)` are executed 
-in this order. If non of the criteria produce a math, the tweet (and its corresponding)
-author are assigned to an `unknown` place.
+Criterion `1)` is executed first; if the place could not be found, the criterion 
+`2)` is applied. If criteria `1)` and `2)` did not match, criteria `3)` and `4)` 
+are executed in this order. If non of the criteria produce a match, the tweet 
+(and its corresponding) author are assigned to an `unknown` place.
 
 ### Evaluation
 
-The approach has been tested using the testset `data/location_detector_testset.csv` 
-and showed to have an overall `accuracy` of **0.968**, a `recall` of **0.983**, 
+The approach has been tested using the test set `data/location_detector_testset.csv` 
+and showed an overall `accuracy` of **0.968**, a `recall` of **0.983**, 
 a `precision` of **0.981**, and `F1` of **0.982**. The table below shows the 
-evaluation of each of the criterion.
+evaluation of each of the criteria.
 
 
 | Criterion | Accuracy | Recall | Precision | F1 |
@@ -208,6 +207,15 @@ from the `src` directory. Some illustrative examples are presented below.
 ### Example 3: Analyze sentiment 
 
 `python run.py sentiment_analysis [mongo_collection_name] --config_file [mongo_config_file_name]`
+
+## Technology
+
+1. Python >= 3.6
+2. MongoDB
+
+## Contributors
+
+[Jorge Saldivar](https://github.com/joausaga), María José Rementería
 
 
 
