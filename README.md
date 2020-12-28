@@ -210,12 +210,12 @@ from the `src` directory. Some illustrative examples are presented below.
 
 ## Technology
 
-1. Python >= 3.6
-2. MongoDB
+1. [Python 3.6](https://www.python.org/downloads)
+2. [MongoDB Community Edition](https://www.mongodb.com/download-center#community)--used as data storage repository
 
 ## Contributors
 
-[Jorge Saldivar](https://github.com/joausaga), María José Rementería
+[Jorge Saldivar](https://github.com/joausaga), Nataly Buslón, and María José Rementería
 
 
 
