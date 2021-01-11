@@ -65,7 +65,7 @@ be learned in the article
 [Demographic Inference and Representative Population Estimates from Multilingual Social Media Data](https://dl.acm.org/doi/10.1145/3308558.3313684).
 
 M3Inference helps us infer users' gender and age and identify which user 
-accounts are controlled by organizations and which by "people." A posterior manual \
+accounts are controlled by organizations and which by "people." A posterior manual 
 inspection on a representative sample of the M3Inference results showed a low 
 accuracy of age inferences, hence, only gender and type of account 
 (organization/non-organization) are considered for the analyses.
