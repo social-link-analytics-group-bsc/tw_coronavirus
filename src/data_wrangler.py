@@ -785,11 +785,12 @@ def add_esp_location_flags(collection, config_fn, doc_type='tweet'):
         doc_id = doc['id_str']
         processing_counter += 1
         logging.info('Processing document {}'.format(doc['id_str']))
+        user_location = ''
         if 'user' in doc: 
             if doc['user']['location'] != '':
                 user_location = doc['user']['location']
-            else:
-                user_location = doc['place']['full_name']
+            elif 'place' in doc:
+                user_location = doc['place']['full_name']                
             user_description = doc['user']['description']
         else:
             user_location = doc['location']
