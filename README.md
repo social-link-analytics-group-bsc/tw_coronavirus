@@ -28,6 +28,8 @@ Complementary, the directory **`utils`** contains utilitarian classes that are k
 executing the loading, exporting, and processing tasks. Next, the complete
 structure of the directory is presented.
 
+## Source code structure
+
 ```
 ...
 ├── src                                 <- Source code of the infrastructure
