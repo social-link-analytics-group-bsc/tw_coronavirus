@@ -758,8 +758,8 @@ def add_esp_location_flags(collection, config_fn):
         'screen_name':1,
         'description': 1,
         'location':1,
-        #'user.location':1,
-        #'place.full_name': 1
+        'user.location':1,
+        'place.full_name': 1
     }
     logging.info('Getting documents...')
     tweets = list(dbm.find_all(query, projection))
