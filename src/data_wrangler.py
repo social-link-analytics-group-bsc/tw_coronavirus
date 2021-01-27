@@ -739,7 +739,11 @@ def identify_unknown_locations(locations, places_esp, n_places_esp, cities,
             ccaa_province['provincia'] = places_esp.loc[place_idx, 'provincia']
 
 
-def add_esp_location_flags(collection, config_fn):
+def add_esp_location_flags(collection, config_fn, doc_type='tweet'):
+    """
+    doc_type: can be tweet or user
+    """
+
     current_path = pathlib.Path(__file__).parent.resolve()
     places_esp_fn = os.path.join(current_path, '..', 'data', 'places_spain.json')
     detector = LocationDetector(places_esp_fn, flag_in_location=True, 
@@ -752,35 +756,44 @@ def add_esp_location_flags(collection, config_fn):
             {'comunidad_autonoma': 'no determinado'}
         ]
     }
-    projection = {
-        '_id':0,
-        'id_str':1,
-        'screen_name':1,
-        'description': 1,
-        'location':1,
-        'user.location':1,
-        'place.full_name': 1
-    }
+    if doc_type == 'tweet':
+        projection = {
+            '_id':0,
+            'id_str':1,
+            'user.screen_name':1,
+            'user.description': 1,
+            'user.location':1,
+            'place.full_name': 1
+        }
+    else:
+        projection = {
+            '_id':0,
+            'id_str':1,
+            'screen_name':1,
+            'description': 1,
+            'location':1
+        }
     logging.info('Getting documents...')
-    tweets = list(dbm.find_all(query, projection))
-    total_tweets = len(tweets)
-    logging.info('Processing locations of {0:,} documents'.format(total_tweets))
+    docs = list(dbm.find_all(query, projection))
+    total_docs = len(docs)
+    logging.info('Processing locations of {0:,} documents'.format(total_docs))
     update_queries = []
-    max_batch = BATCH_SIZE if total_tweets > BATCH_SIZE else total_tweets
+    max_batch = BATCH_SIZE if total_docs > BATCH_SIZE else total_docs
     processing_counter = total_segs = 0
-    for tweet in tweets:
+    for doc in docs:
         start_time = time.time()
-        tweet_id = tweet['id_str']
+        doc_id = doc['id_str']
         processing_counter += 1
-        logging.info('Processing document {}'.format(tweet['id_str']))
-        if 'user' in tweet: 
-            if tweet['user']['location'] != '':
-                user_location = tweet['user']['location']
+        logging.info('Processing document {}'.format(doc['id_str']))
+        if 'user' in doc: 
+            if doc['user']['location'] != '':
+                user_location = doc['user']['location']
             else:
-                user_location = tweet['place']['full_name']
+                user_location = doc['place']['full_name']
+            user_description = doc['user']['description']
         else:
-            user_location = tweet['location']
-            user_description = tweet['description']
+            user_location = doc['location']
+            user_description = doc['description']
         location, method = detector.identify_location(user_location, user_description)
         if location == 'unknown':
             location = 'no determinado'
@@ -791,7 +804,7 @@ def add_esp_location_flags(collection, config_fn):
         }
         update_queries.append(
             {
-                'filter': {'id_str': str(tweet_id)},
+                'filter': {'id_str': str(doc_id)},
                 'new_values': location_dict
             }                        
         )
@@ -800,7 +813,7 @@ def add_esp_location_flags(collection, config_fn):
             update_queries = []
         total_segs = calculate_remaining_execution_time(start_time, total_segs,
                                                         processing_counter, 
-                                                        total_tweets)
+                                                        total_docs)
     if len(update_queries) > 0:
         add_fields(dbm, update_queries)
 
