@@ -208,7 +208,7 @@ from the `src` directory. Some illustrative examples are presented below.
 
 ### Example 3: Analyze sentiment 
 
-`python run.py sentiment_analysis [mongo_collection_name] --config_file [mongo_config_file_name]`
+`python run.py sentiment-analysis [mongo_collection_name] --config_file [mongo_config_file_name]`
 
 ## Technology
 
